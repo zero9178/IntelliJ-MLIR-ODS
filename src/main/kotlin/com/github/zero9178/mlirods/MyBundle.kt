@@ -1,4 +1,4 @@
-package com.github.zero9178.intellijmlirods
+package com.github.zero9178.mlirods
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

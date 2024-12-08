@@ -1,6 +1,8 @@
-package com.github.zero9178.intellijmlirods.lsp
+package com.github.zero9178.mlirods.lsp
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerSupportProvider
@@ -19,7 +21,17 @@ internal class TableGenLspServerSupportProvider : LspServerSupportProvider {
 }
 
 private class TableGenLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "TableGen") {
+
+    companion object {
+        private val EP_NAME =
+            ExtensionPointName.create<LSPLocationProviderInterface>("com.github.zero9178.mlirods.lspLocationProvider")
+    }
+
     override fun createCommandLine(): GeneralCommandLine {
+        val loc = EP_NAME.computeSafeIfAny {
+            it.getLocation(project)
+        }
+        thisLogger().warn(loc.toString())
         TODO("Start LSP server with TableGen commands file")
     }
 

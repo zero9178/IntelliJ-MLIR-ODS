@@ -1,11 +1,12 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.zero9178.intellijmlirods</id>
+    <id>com.github.zero9178.mlirods</id>
     <name>MLIR-ODS</name>
     <vendor>zero9178</vendor>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.ultimate</depends>
+    <depends optional="true" config-file="com.github.zero9178.mlirods-clion.xml">com.intellij.clion</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
@@ -15,9 +16,13 @@
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
         <serverSupportProvider
-                implementation="com.github.zero9178.intellijmlirods.lsp.TableGenLspServerSupportProvider"/>
+                implementation="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProvider"/>
     </extensions>
 
+    <extensionPoints>
+        <extensionPoint name="lspLocationProvider" dynamic="true"
+                        interface="com.github.zero9178.mlirods.lsp.LSPLocationProviderInterface"/>
+    </extensionPoints>
 
     <applicationListeners>
 

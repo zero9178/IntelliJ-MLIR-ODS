@@ -1,4 +1,4 @@
-package com.github.zero9178.intellijmlirods
+package com.github.zero9178.mlirods
 
 import com.intellij.ide.highlighter.XmlFileType
 import com.intellij.psi.xml.XmlFile
