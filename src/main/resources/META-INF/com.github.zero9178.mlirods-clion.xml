@@ -1,0 +1,5 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.github.zero9178.mlirods">
+        <lspLocationProvider implementation="com.github.zero9178.mlirods.clion.TestLSPLocationProvider"/>
+    </extensions>
+</idea-plugin>
