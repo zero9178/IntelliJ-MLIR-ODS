@@ -156,5 +156,16 @@ intellijPlatformTesting {
                 robotServerPlugin()
             }
         }
+
+        register("runIU") {
+            type = IntelliJPlatformType.IntellijIdeaUltimate
+            version = providers.gradleProperty("platformVersion")
+            sandboxDirectory = intellijPlatform.sandboxContainer.dir("runIU-sandbox")
+        }
+        register("runCL") {
+            type = IntelliJPlatformType.CLion
+            version = providers.gradleProperty("platformVersion")
+            sandboxDirectory = intellijPlatform.sandboxContainer.dir("runCL-sandbox")
+        }
     }
 }
