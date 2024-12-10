@@ -20,8 +20,8 @@
     </extensions>
 
     <extensionPoints>
-        <extensionPoint name="lspLocationProvider" dynamic="true"
-                        interface="com.github.zero9178.mlirods.lsp.LSPLocationProviderInterface"/>
+        <extensionPoint name="tableGenServerSupportProvider" dynamic="true"
+                        interface="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProviderInterface"/>
     </extensionPoints>
 
     <applicationListeners>
