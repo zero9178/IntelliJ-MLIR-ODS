@@ -1,5 +1,6 @@
 <idea-plugin>
     <extensions defaultExtensionNs="com.github.zero9178.mlirods">
-        <lspLocationProvider implementation="com.github.zero9178.mlirods.clion.TestLSPLocationProvider"/>
+        <tableGenServerSupportProvider
+                implementation="com.github.zero9178.mlirods.clion.CMakeTableGenLspServerSupportProvider"/>
     </extensions>
 </idea-plugin>
