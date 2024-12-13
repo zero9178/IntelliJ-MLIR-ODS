@@ -93,8 +93,7 @@ class TableGenLspServerDescriptor(
             thisLogger().info("Restarting TableGen LSP due to file changes")
             return@AsyncFileListener object : AsyncFileListener.ChangeApplier {
                 override fun afterVfsChange() {
-                    LspServerManager.getInstance(project)
-                        .stopAndRestartIfNeeded(TableGenLspServerSupportProvider::class.java)
+                    restartTableGenLSPAsync(project)
                 }
             }
         }, this)
@@ -118,4 +117,8 @@ class TableGenLspServerDescriptor(
 
     override val lspServerListener: LspServerListener
         get() = this
+}
+
+fun restartTableGenLSPAsync(project: Project) {
+    LspServerManager.getInstance(project).stopAndRestartIfNeeded(TableGenLspServerSupportProvider::class.java)
 }

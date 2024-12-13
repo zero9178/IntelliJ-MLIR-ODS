@@ -19,10 +19,10 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
             it.isExecutable && it.name == "tblgen-lsp-server"
         } ?: return false
 
-        // TODO: Should this switch and use the build config that is currently active?
-        //       Or should it have a heuristic (e.g. use the release). Users may not want to
-        //       use a debug build e.g.
-        val buildConfig = target.buildConfigurations.firstOrNull() ?: return false
+        val activeConfig = project.service<CMakeActiveProfileService>().fetchProfile()
+        val buildConfig = target.buildConfigurations.find {
+            it.name == activeConfig
+        } ?: return false
         val productFile = buildConfig.productFile ?: return false
 
         // TODO: Check whether the LSP has been built and notify the user otherwise.
