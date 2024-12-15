@@ -3,4 +3,8 @@
         <tableGenServerSupportProvider
                 implementation="com.github.zero9178.mlirods.clion.CMakeTableGenLspServerSupportProvider"/>
     </extensions>
+    <projectListeners>
+        <listener class="com.github.zero9178.mlirods.clion.CMakeTableGenBuildListener"
+                  topic="com.jetbrains.cidr.execution.build.CidrBuildListener"/>
+    </projectListeners>
 </idea-plugin>

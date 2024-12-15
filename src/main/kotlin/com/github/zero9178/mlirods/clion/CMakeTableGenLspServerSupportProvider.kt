@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerSupportProvider
+import com.jetbrains.cidr.cpp.cmake.model.CMakeTarget
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
 
 internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportProviderInterface {
@@ -15,9 +16,8 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter
     ): Boolean {
-        val target = project.service<CMakeWorkspace>().modelTargets.firstOrNull {
-            it.isExecutable && it.name == "tblgen-lsp-server"
-        } ?: return false
+        val target =
+            project.service<CMakeWorkspace>().modelTargets.firstOrNull(CMakeTarget::isTableGenLspServer) ?: return false
 
         val activeConfig = project.service<CMakeActiveProfileService>().fetchProfile()
         val buildConfig = target.buildConfigurations.find {
