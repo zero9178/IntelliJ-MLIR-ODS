@@ -1,11 +1,16 @@
 package com.github.zero9178.mlirods.lsp
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
+import java.io.File
+import java.io.IOException
 
 /**
  * Descriptor used to start and identify the LSP.
@@ -24,7 +29,25 @@ class TableGenLspServerDescriptor(
     private val compileCommandsPath = compileCommands.path
 
     override fun createCommandLine() = GeneralCommandLine().withExePath(executablePath)
-        .withParameters("--tablegen-compilation-database=${compileCommandsPath}")
+        .withParameters("--tablegen-compilation-database=${compileCommandsPath}").apply {
+            if (!SystemInfoRt.isWindows)
+                return@apply
+
+            // Windows locks files that are executing, making it impossible for us to rebuild the executable if
+            // currently in use.
+            // Work around this by making a temp of the executable and running that.
+            // TODO: If any of the servers have DLL dependencies, this won't be good enough.
+            val originalFile = File(executablePath)
+            val tempFile =
+                FileUtil.createTempFile(originalFile.parentFile, ".${originalFile.name}", ".tmp")
+            try {
+                FileUtil.copy(originalFile, tempFile)
+            } catch (e: IOException) {
+                return@apply
+            }
+            withExePath(tempFile.absolutePath)
+            OSProcessHandler.deleteFileOnTermination(this, tempFile)
+        }
 
     override fun isSupportedFile(file: VirtualFile) = file.extension == "td"
 
