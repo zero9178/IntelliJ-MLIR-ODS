@@ -1,14 +1,15 @@
 package com.github.zero9178.mlirods.clion
 
+import com.github.zero9178.mlirods.lsp.LspLifetimeListener
 import com.github.zero9178.mlirods.lsp.TableGenLspServerDescriptor
 import com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProviderInterface
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.jetbrains.cidr.cpp.cmake.model.CMakeTarget
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
+import org.eclipse.lsp4j.InitializeResult
 
 internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportProviderInterface {
     override fun fileOpened(
@@ -27,18 +28,24 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
 
         // TODO: Check whether the LSP has been built and notify the user otherwise.
 
-        val executable = LocalFileSystem.getInstance().findFileByIoFile(productFile) ?: return false
-
         /// TODO: This assumes layout as in the LLVM monorepo. No clue whether this holds!
-        val compileCommands = LocalFileSystem.getInstance()
-            .findFileByIoFile(buildConfig.configurationGenerationDir.resolve("tablegen_compile_commands.yml"))
-            ?: return false
-
+        val compileCommands = buildConfig.configurationGenerationDir.resolve("tablegen_compile_commands.yml")
         serverStarter.ensureServerStarted(
             TableGenLspServerDescriptor(
-                executable,
+                productFile,
                 compileCommands,
-                project
+                project,
+                object : LspLifetimeListener {
+                    override fun serverInitialized(params: InitializeResult) {
+                        project.service<CMakeTableGenBuildNotificationProviderService>()
+                            .clearNotifications()
+                    }
+
+                    override fun serverFailedToStart() {
+                        project.service<CMakeTableGenBuildNotificationProviderService>()
+                            .showBuildNotification(buildConfig)
+                    }
+                }
             )
         )
         return true

@@ -12,7 +12,7 @@ internal class TableGenLspServerSupportProvider : LspServerSupportProvider {
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter
     ) {
-        if (file.extension != "td") return
+        if (!file.isTableGenFile) return
 
         EP_NAME.findFirstSafe {
             it.fileOpened(project, file, serverStarter)
