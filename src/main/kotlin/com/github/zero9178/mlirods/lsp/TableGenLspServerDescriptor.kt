@@ -2,10 +2,13 @@ package com.github.zero9178.mlirods.lsp
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.ProcessNotCreatedException
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
@@ -13,23 +16,31 @@ import java.io.File
 import java.io.IOException
 
 /**
+ * Interface supplementing [LspServerListener] to add more lifetime callbacks.
+ */
+interface LspLifetimeListener : LspServerListener {
+    /**
+     * Called if the Lsp server failed to start, most often due to IO errors.
+     */
+    fun serverFailedToStart() {}
+}
+
+/**
  * Descriptor used to start and identify the LSP.
- * 'executable' should refer to "tblgen-lsp-server", while 'compileCommands' should refer directly to the
+ * [executable] should refer to "tblgen-lsp-server", while [compileCommands] should refer directly to the
  * "tablegen_compile_commands.yml" file.
  *
- * The descriptor will automatically check for file changes of the compile commands and executable it was started with
- * and restart automatically if changed.
+ * [listener] may be used to receive callbacks about the lifetime of the Lsp server created from the descriptor.
+ * Note that if a Lsp server in the same project already exists, no second server is started and the listener will
+ * never be called.
  */
 class TableGenLspServerDescriptor(
-    executable: VirtualFile, compileCommands: VirtualFile, project: Project
+    private val executable: File, private val compileCommands: File, project: Project,
+    private val listener: LspLifetimeListener? = null
 ) : ProjectWideLspServerDescriptor(project, "TableGen") {
 
-    // Paths in canonical form for comparison and command line creation.
-    private val executablePath = executable.path
-    private val compileCommandsPath = compileCommands.path
-
-    override fun createCommandLine() = GeneralCommandLine().withExePath(executablePath)
-        .withParameters("--tablegen-compilation-database=${compileCommandsPath}").apply {
+    override fun createCommandLine() = GeneralCommandLine().withExePath(executable.absolutePath)
+        .withParameters("--tablegen-compilation-database=${compileCommands.absolutePath}").apply {
             if (!SystemInfoRt.isWindows)
                 return@apply
 
@@ -37,7 +48,7 @@ class TableGenLspServerDescriptor(
             // currently in use.
             // Work around this by making a temp of the executable and running that.
             // TODO: If any of the servers have DLL dependencies, this won't be good enough.
-            val originalFile = File(executablePath)
+            val originalFile = File(exePath)
             val tempFile =
                 FileUtil.createTempFile(originalFile.parentFile, ".${originalFile.name}", ".tmp")
             try {
@@ -48,6 +59,20 @@ class TableGenLspServerDescriptor(
             withExePath(tempFile.absolutePath)
             OSProcessHandler.deleteFileOnTermination(this, tempFile)
         }
+
+    override fun startServerProcess(): OSProcessHandler {
+        try {
+            return super.startServerProcess()
+        } catch (e: ProcessNotCreatedException) {
+            listener?.serverFailedToStart()
+            // TODO: Ideally we could throw this exception to silently fail without logging, but this is currently not
+            //       the case.
+            throw ProcessCanceledException()
+        }
+    }
+
+    override val lspServerListener: LspServerListener?
+        get() = listener
 
     override fun isSupportedFile(file: VirtualFile) = file.extension == "td"
 
