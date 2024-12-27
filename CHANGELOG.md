@@ -1,7 +1,10 @@
 <!-- Keep a Changelog guide -> https://keepachangelog.com -->
 
-# IntelliJ-MLIR-ODS Changelog
+# MLIR ODS Changelog
 
 ## [Unreleased]
 ### Added
-- Initial scaffold created from [IntelliJ Platform Plugin Template](https://github.com/JetBrains/intellij-platform-plugin-template)
+
+## [0.0.1] - 2024-12-27
+### Added
+- Support for using `tblgen-lsp-server` built as part of the opened CMake project
