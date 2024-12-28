@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.lsp.restartTableGenLSPAsync
 import com.intellij.execution.ExecutionTargetListener
 import com.intellij.execution.ExecutionTargetManager
 import com.intellij.execution.RunManager
+import com.intellij.execution.RunManagerListener
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.diagnostic.thisLogger
@@ -12,10 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.getValue
 import com.intellij.util.setValue
 import com.jetbrains.cidr.cpp.execution.CMakeBuildProfileExecutionTarget
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -25,9 +23,19 @@ import java.util.concurrent.atomic.AtomicReference
 class CMakeActiveProfileService(project: Project, cs: CoroutineScope) {
 
     private var myProfile: Deferred<String> by AtomicReference(cs.async {
-        // Make sure the run manager is ready. This avoids a warning in the log that it is being created before
-        // initialized.
-        project.serviceAsync<RunManager>()
+        val connection = project.messageBus.simpleConnect()
+        try {
+            suspendCancellableCoroutine { cont ->
+                connection.subscribe(RunManagerListener.TOPIC, object : RunManagerListener {
+                    override fun stateLoaded(runManager: RunManager, isFirstLoadState: Boolean) {
+                        cont.resumeWith(Result.success(Unit))
+                    }
+                })
+            }
+        } finally {
+            connection.disconnect()
+        }
+
         val manager = project.serviceAsync<ExecutionTargetManager>()
         val target = manager.activeTarget
         (target as? CMakeBuildProfileExecutionTarget)?.profileName ?: ""
