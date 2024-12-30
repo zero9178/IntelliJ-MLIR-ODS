@@ -6,7 +6,7 @@ import com.intellij.execution.ExecutionTargetManager
 import com.intellij.execution.RunManager
 import com.intellij.execution.RunManagerListener
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.serviceAsync
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference
 class CMakeActiveProfileService(project: Project, cs: CoroutineScope) {
 
     private var myProfile: Deferred<String> by AtomicReference(cs.async {
-        val connection = project.messageBus.simpleConnect()
+        val connection = project.messageBus.connect(this)
         try {
             suspendCancellableCoroutine { cont ->
                 connection.subscribe(RunManagerListener.TOPIC, object : RunManagerListener {
@@ -36,7 +36,7 @@ class CMakeActiveProfileService(project: Project, cs: CoroutineScope) {
             connection.disconnect()
         }
 
-        val manager = project.serviceAsync<ExecutionTargetManager>()
+        val manager = project.service<ExecutionTargetManager>()
         val target = manager.activeTarget
         (target as? CMakeBuildProfileExecutionTarget)?.profileName ?: ""
     })

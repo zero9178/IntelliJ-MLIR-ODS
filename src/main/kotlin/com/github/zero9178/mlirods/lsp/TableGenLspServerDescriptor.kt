@@ -12,6 +12,8 @@ import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
+import com.intellij.util.io.BaseDataReader
+import com.intellij.util.io.BaseOutputReader
 import java.io.File
 import java.io.IOException
 
@@ -39,9 +41,12 @@ class TableGenLspServerDescriptor(
     private val listener: LspLifetimeListener? = null
 ) : ProjectWideLspServerDescriptor(project, "TableGen") {
 
+    private val useTempExecutable: Boolean
+        get() = SystemInfoRt.isWindows
+
     override fun createCommandLine() = GeneralCommandLine().withExePath(executable.absolutePath)
         .withParameters("--tablegen-compilation-database=${compileCommands.absolutePath}").apply {
-            if (!SystemInfoRt.isWindows)
+            if (!useTempExecutable)
                 return@apply
 
             // Windows locks files that are executing, making it impossible for us to rebuild the executable if
@@ -57,12 +62,39 @@ class TableGenLspServerDescriptor(
                 return@apply
             }
             withExePath(tempFile.absolutePath)
-            OSProcessHandler.deleteFileOnTermination(this, tempFile)
         }
+
+    private fun deleteExecutable(executable: String) {
+        FileUtil.delete(File(executable))
+    }
 
     override fun startServerProcess(): OSProcessHandler {
         try {
-            return super.startServerProcess()
+            val commandLine = createCommandLine().withCharset(Charsets.UTF_8)
+            try {
+                return object : OSProcessHandler(commandLine) {
+                    override fun readerOptions(): BaseOutputReader.Options = object : BaseOutputReader.Options() {
+                        override fun policy(): BaseDataReader.SleepingPolicy = forMostlySilentProcess().policy()
+
+                        // Must not loose '\r' in "\r\n" line endings. They affect char count, which must match `Content-Length`
+                        override fun splitToLines(): Boolean = false
+                    }
+
+                    override fun onOSProcessTerminated(exitCode: Int) {
+                        // Delete the temporary executable once the process was terminated.
+                        try {
+                            super.onOSProcessTerminated(exitCode)
+                        } finally {
+                            if (useTempExecutable)
+                                deleteExecutable(commandLine.exePath)
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                if (useTempExecutable)
+                    deleteExecutable(commandLine.exePath)
+                throw e
+            }
         } catch (e: ProcessNotCreatedException) {
             listener?.serverFailedToStart()
             // TODO: Ideally we could throw this exception to silently fail without logging, but this is currently not
