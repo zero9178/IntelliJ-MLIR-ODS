@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.lsp.LspLifetimeListener
 import com.github.zero9178.mlirods.lsp.TableGenLspServerDescriptor
 import com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProviderInterface
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerSupportProvider
@@ -18,12 +19,21 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
         serverStarter: LspServerSupportProvider.LspServerStarter
     ): Boolean {
         val target =
-            project.service<CMakeWorkspace>().modelTargets.firstOrNull(CMakeTarget::isTableGenLspServer) ?: return false
+            project.service<CMakeWorkspace>().modelTargets.firstOrNull(CMakeTarget::isTableGenLspServer)
+        if (target == null) {
+            thisLogger().info("Project has no 'tblgen-lsp-server' cmake target")
+            return false
+        }
 
-        val activeConfig = project.service<CMakeActiveProfileService>().fetchProfile()
+        val activeConfig = project.service<CMakeActiveProfileService>().profile
         val buildConfig = target.buildConfigurations.find {
             it.name == activeConfig
-        } ?: return false
+        }
+        if (buildConfig == null) {
+            thisLogger().info("'tblgen-lsp-server' has no build configuration called '$activeConfig'")
+            return false
+        }
+
         val productFile = buildConfig.productFile ?: return false
 
         // TODO: Check whether the LSP has been built and notify the user otherwise.
