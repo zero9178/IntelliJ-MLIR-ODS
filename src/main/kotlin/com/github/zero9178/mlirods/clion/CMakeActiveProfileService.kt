@@ -1,60 +1,60 @@
 package com.github.zero9178.mlirods.clion
 
 import com.github.zero9178.mlirods.lsp.restartTableGenLSPAsync
-import com.intellij.execution.ExecutionTargetListener
-import com.intellij.execution.ExecutionTargetManager
-import com.intellij.execution.RunManager
-import com.intellij.execution.RunManagerListener
+import com.intellij.execution.*
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.progress.runBlockingCancellable
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.getValue
 import com.intellij.util.setValue
 import com.jetbrains.cidr.cpp.execution.CMakeBuildProfileExecutionTarget
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicReference
+
+private val LOG = logger<CMakeActiveProfileService>()
+
+private class RunManagerInitializedListener(private val project: Project) : RunManagerListener {
+    override fun stateLoaded(runManager: RunManager, isFirstLoadState: Boolean) {
+        if (!isFirstLoadState) return
+
+        project.service<CMakeActiveProfileService>().initFromExecutionManager()
+    }
+}
+
+private class CMakeExecutionTargetListener(private val project: Project) : ExecutionTargetListener {
+    override fun activeTargetChanged(newTarget: ExecutionTarget) {
+        val target = newTarget as? CMakeBuildProfileExecutionTarget ?: return
+
+        project.service<CMakeActiveProfileService>().profile = target.profileName
+        LOG.info("Restarting LSP due to build profile change")
+        restartTableGenLSPAsync(project)
+    }
+}
 
 /**
  * Service used to be able to get the current cmake build profile at any point in time.
  */
 @Service(Service.Level.PROJECT)
-class CMakeActiveProfileService(project: Project, cs: CoroutineScope) {
+class CMakeActiveProfileService(private val project: Project, private val cs: CoroutineScope) {
 
-    private var myProfile: Deferred<String> by AtomicReference(cs.async {
-        val connection = project.messageBus.connect(this)
-        try {
-            suspendCancellableCoroutine { cont ->
-                connection.subscribe(RunManagerListener.TOPIC, object : RunManagerListener {
-                    override fun stateLoaded(runManager: RunManager, isFirstLoadState: Boolean) {
-                        cont.resumeWith(Result.success(Unit))
-                    }
-                })
-            }
-        } finally {
-            connection.disconnect()
-        }
-
+    /**
+     * Starts an asynchronous operation to initialize the profile from the currently active target.
+     */
+    internal fun initFromExecutionManager() = cs.launch {
+        // TODO: Use serviceAsync once the API is public.
         val manager = project.service<ExecutionTargetManager>()
-        val target = manager.activeTarget
-        (target as? CMakeBuildProfileExecutionTarget)?.profileName ?: ""
-    })
+        val target = manager.activeTarget as? CMakeBuildProfileExecutionTarget ?: return@launch
+
+        profile = target.profileName
+        LOG.info("Restarting LSP due to run manager being initialized")
+        restartTableGenLSPAsync(project)
+    }
 
     /**
      * Returns the name of the current cmake build profile.
-     * This operation may block for a short time during project opening, but returns quickly otherwise.
      */
-    fun fetchProfile() = runBlockingCancellable { myProfile.await() }
-
-    init {
-        project.messageBus.connect(cs).subscribe(
-            ExecutionTargetManager.TOPIC, ExecutionTargetListener { newTarget ->
-                val target = newTarget as? CMakeBuildProfileExecutionTarget ?: return@ExecutionTargetListener
-
-                myProfile = CompletableDeferred(target.profileName)
-                thisLogger().info("Restarting LSP due to build profile change")
-                restartTableGenLSPAsync(project)
-            })
-    }
+    var profile: String by AtomicReference("")
+        internal set
 }
