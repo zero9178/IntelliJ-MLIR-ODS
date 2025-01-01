@@ -2,9 +2,7 @@
 
 # MLIR ODS Changelog
 
-## [Unreleased]
-### Added
-
+## [0.0.2] - 2025-01-01
 ### Fixed
 - Possible race conditions and cancellations on project startup leading to the LSP not being started.
 
