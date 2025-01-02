@@ -1,0 +1,41 @@
+{
+  parserClass="com.github.zero9178.mlirods.language.generated.TableGenParser"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="TableGen"
+  psiImplClassSuffix="Impl"
+  psiPackage="com.github.zero9178.mlirods.language.generated.psi"
+  psiImplPackage="com.github.zero9178.mlirods.language.generated.psi.impl"
+
+  elementTypeHolderClass="com.github.zero9178.mlirods.language.generated.TableGenTypes"
+  elementTypeClass="com.github.zero9178.mlirods.language.TableGenElementType"
+  tokenTypeClass="com.github.zero9178.mlirods.language.TableGenTokenType"
+  tokens = [
+    PLUS='+'
+    MINUS='-'
+    LBRACKET='['
+    RBRACKET=']'
+    LBRACE='{'
+    RBRACE='}'
+    LANGLE='<'
+    RANGLE='>'
+    COLON=':'
+    SEMICOLON=';'
+    DOT='.'
+    ELLIPSE='...'
+    EQUALS='='
+    QUESTION_MARK='?'
+    HASHTAG='#'
+    DEF='def'
+  ]
+}
+
+tableGenFile ::= item_*
+
+// Most accepting parser possible which simply allows a sequence of all possible token types.
+// We primarily use the parser infrastructure to auto-generate the token types which the lexer generates.
+// It could be used in the future for semantic tokens as well, although the LSP should provide these instead.
+private item_ ::= punctuation | INTEGER | LINE_COMMENT | BLOCK_COMMENT | CLRF | STRING_LITERAL | OTHER | keyword
+punctuation ::= '+' | '-' | '[' | ']' | '{' | '}' | '<' | '>' | ':' | ';' | '.' | '...' | '=' | '?' | '#'
+keyword ::= 'def'

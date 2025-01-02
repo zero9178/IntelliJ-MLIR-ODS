@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license. -->
+
+<svg
+   width="16"
+   height="16"
+   viewBox="0 0 16 16"
+   fill="none"
+   id="svg2"
+   version="1.1"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   sodipodi:docname="tablegen-file.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <metadata
+     id="metadata12">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs10" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1128"
+     id="namedview8"
+     showgrid="false"
+     inkscape:zoom="23.647214"
+     inkscape:cx="2.4950085"
+     inkscape:cy="2.3681437"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
+  <rect
+     x="2.4830508"
+     y="2.4830508"
+     width="11"
+     height="11"
+     rx="1.5"
+     id="rect4"
+     style="fill:#f2f2f2;fill-opacity:1;stroke:#4d4d4d;stroke-opacity:1" />
+  <text
+     xml:space="preserve"
+     style="font-size:7.23728px;line-height:1;font-family:sans-serif;text-align:center;text-anchor:middle;stroke-width:0;stroke-dasharray:none"
+     x="8.1375074"
+     y="10.583709"
+     id="text1"><tspan
+       sodipodi:role="line"
+       id="tspan1"
+       x="8.1375074"
+       y="10.583709"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:1;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';fill:#4d4d4d;stroke-width:0;stroke-dasharray:none">TD</tspan></text>
+</svg>

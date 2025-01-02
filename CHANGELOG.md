@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Added
+- Initial file type and syntax highlighting support
 
 ## [0.0.2] - 2025-01-01
 ### Fixed

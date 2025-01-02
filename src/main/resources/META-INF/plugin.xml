@@ -11,7 +11,15 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-
+        <fileType name="TableGen"
+                  implementationClass="com.github.zero9178.mlirods.language.TableGenFileType"
+                  fieldName="INSTANCE"
+                  language="TableGen"
+                  extensions="td"/>
+        <lang.parserDefinition language="TableGen"
+                               implementationClass="com.github.zero9178.mlirods.language.TableGenParserDefinition"/>
+        <lang.syntaxHighlighter language="TableGen"
+                                implementationClass="com.github.zero9178.mlirods.highlighting.TableGenSyntaxHighlighter"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
