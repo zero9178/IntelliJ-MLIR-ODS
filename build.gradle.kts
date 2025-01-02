@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
+    alias(libs.plugins.grammarKit)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -19,6 +20,9 @@ version = providers.gradleProperty("pluginVersion").get()
 // Set the JVM language level used to build the project.
 kotlin {
     jvmToolchain(21)
+}
+java {
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 // Configure project's dependencies
@@ -142,6 +146,38 @@ tasks {
 
     publishPlugin {
         dependsOn(patchChangelog)
+    }
+
+    generateParser {
+        sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.bnf"))
+        pathToParser.set("com/github/zero9178/mlirods/language/generated/TableGenParser.java")
+        pathToPsiRoot.set("com/github/zero9178/mlirods/language/generated/psi")
+        targetRootOutputDir.set(file("src/main/gen"))
+        purgeOldFiles.set(true)
+    }
+    generateLexer {
+        sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.flex"))
+        targetOutputDir.set(file("src/main/gen/com/github/zero9178/mlirods/language/generated"))
+
+        dependsOn(generateParser)
+    }
+
+    compileKotlin {
+        dependsOn(generateLexer)
+    }
+    compileJava {
+        dependsOn(generateLexer)
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir("src/main/gen")
+        }
+        kotlin {
+            srcDir("src/main/gen")
+        }
     }
 }
 

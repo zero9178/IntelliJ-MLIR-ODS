@@ -8,6 +8,7 @@ intelliJPlatform = "2.2.1"
 kotlin = "2.1.0"
 kover = "0.9.0"
 qodana = "2024.3.4"
+grammarKit = "2022.3.2.2"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -18,3 +19,4 @@ intelliJPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "inte
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 qodana = { id = "org.jetbrains.qodana", version.ref = "qodana" }
+grammarKit = { id = "org.jetbrains.grammarkit", version.ref = "grammarKit" }
