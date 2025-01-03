@@ -20,6 +20,9 @@
     RBRACE='}'
     LANGLE='<'
     RANGLE='>'
+    LPAREN='('
+    RPAREN=')'
+    COMMA=','
     COLON=':'
     SEMICOLON=';'
     DOT='.'
@@ -62,7 +65,8 @@ tableGenFile ::= item_*
 // It could be used in the future for semantic tokens as well, although the LSP should provide these instead.
 private item_ ::= punctuation | INTEGER | LINE_COMMENT | BLOCK_COMMENT | CLRF | STRING_LITERAL | IDENTIFIER
                 | OTHER | keyword
-punctuation ::= '+' | '-' | '[' | ']' | '{' | '}' | '<' | '>' | ':' | ';' | '.' | '...' | '=' | '?' | '#'
+punctuation ::= '+' | '-' | '[' | ']' | '{' | '}' | '<' | '>' | ':' | ';' | '.' | '...' | '=' | '?' | '#' | '(' | ')'
+              | ','
 keyword ::= 'assert'
           | 'bit'
           | 'bits'

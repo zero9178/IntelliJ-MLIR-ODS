@@ -38,3 +38,23 @@ val KEYWORDS = TokenSet.create(
     TableGenTypes.THEN,
     TableGenTypes.TRUE,
 )
+val PUNCTUATION = TokenSet.create(
+    TableGenTypes.PLUS,
+    TableGenTypes.MINUS,
+    TableGenTypes.LBRACKET,
+    TableGenTypes.RBRACKET,
+    TableGenTypes.LBRACE,
+    TableGenTypes.RBRACE,
+    TableGenTypes.LANGLE,
+    TableGenTypes.RANGLE,
+    TableGenTypes.LPAREN,
+    TableGenTypes.RPAREN,
+    TableGenTypes.COMMA,
+    TableGenTypes.COLON,
+    TableGenTypes.SEMICOLON,
+    TableGenTypes.DOT,
+    TableGenTypes.ELLIPSE,
+    TableGenTypes.EQUALS,
+    TableGenTypes.QUESTION_MARK,
+    TableGenTypes.HASHTAG,
+)
