@@ -36,6 +36,9 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 ("=")                                           { return TableGenTypes.EQUALS; }
 ("?")                                           { return TableGenTypes.QUESTION_MARK; }
 ("#")                                           { return TableGenTypes.HASHTAG; }
+(",")                                           { return TableGenTypes.COMMA; }
+("(")                                           { return TableGenTypes.LPAREN; }
+(")")                                           { return TableGenTypes.RPAREN; }
 
 ("def")                                         { return TableGenTypes.DEF; }
 ("assert")                                      { return TableGenTypes.ASSERT; }

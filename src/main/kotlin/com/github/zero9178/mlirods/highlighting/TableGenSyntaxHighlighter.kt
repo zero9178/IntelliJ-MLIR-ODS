@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.highlighting
 
 import com.github.zero9178.mlirods.language.KEYWORDS
+import com.github.zero9178.mlirods.language.PUNCTUATION
 import com.github.zero9178.mlirods.language.TableGenLexerAdapter
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.intellij.lexer.Lexer
@@ -34,9 +35,15 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
         TableGenTypes.BLOCK_COMMENT -> arrayOf(DefaultLanguageHighlighterColors.BLOCK_COMMENT)
         TableGenTypes.LINE_COMMENT -> arrayOf(DefaultLanguageHighlighterColors.LINE_COMMENT)
         TableGenTypes.LBRACE, TableGenTypes.RBRACE -> arrayOf(DefaultLanguageHighlighterColors.BRACES)
+        TableGenTypes.LPAREN, TableGenTypes.RPAREN -> arrayOf(DefaultLanguageHighlighterColors.PARENTHESES)
+        TableGenTypes.LBRACKET, TableGenTypes.RBRACKET -> arrayOf(DefaultLanguageHighlighterColors.BRACKETS)
         TableGenTypes.IDENTIFIER -> arrayOf(DefaultLanguageHighlighterColors.IDENTIFIER)
+        TableGenTypes.COMMA -> arrayOf(DefaultLanguageHighlighterColors.COMMA)
+        TableGenTypes.SEMICOLON -> arrayOf(DefaultLanguageHighlighterColors.SEMICOLON)
+        TableGenTypes.DOT -> arrayOf(DefaultLanguageHighlighterColors.DOT)
         else -> when {
             KEYWORDS.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.KEYWORD)
+            PUNCTUATION.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.OPERATION_SIGN)
             else -> emptyArray()
         }
     }
