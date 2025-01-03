@@ -5,6 +5,7 @@
 ## [Unreleased]
 ### Added
 - Initial file type and syntax highlighting support
+- Add highlighting of matching delimiters
 
 ## [0.0.2] - 2025-01-01
 ### Fixed

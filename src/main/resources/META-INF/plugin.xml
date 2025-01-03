@@ -20,6 +20,8 @@
                                implementationClass="com.github.zero9178.mlirods.language.TableGenParserDefinition"/>
         <lang.syntaxHighlighter language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.highlighting.TableGenSyntaxHighlighter"/>
+        <lang.braceMatcher language="TableGen"
+                           implementationClass="com.github.zero9178.mlirods.highlighting.TableGenBraceMatcher"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
