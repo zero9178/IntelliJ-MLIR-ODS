@@ -8,3 +8,33 @@ import com.github.zero9178.mlirods.language.generated.TableGenTypes
 class TableGenTokenType(@NonNls debugName: String) : IElementType(debugName, TableGenLanguage.INSTANCE)
 
 class TableGenElementType(@NonNls debugName: String) : IElementType(debugName, TableGenLanguage.INSTANCE)
+
+val COMMENTS = TokenSet.create(TableGenTypes.LINE_COMMENT, TableGenTypes.BLOCK_COMMENT)
+val STRING_LITERALS = TokenSet.create(TableGenTypes.STRING_LITERAL)
+val KEYWORDS = TokenSet.create(
+    TableGenTypes.ASSERT,
+    TableGenTypes.BIT,
+    TableGenTypes.BITS,
+    TableGenTypes.CLASS,
+    TableGenTypes.CODE,
+    TableGenTypes.DAG,
+    TableGenTypes.DEF,
+    TableGenTypes.DUMP,
+    TableGenTypes.ELSE,
+    TableGenTypes.FALSE,
+    TableGenTypes.FOREACH,
+    TableGenTypes.DEFM,
+    TableGenTypes.DEFSET,
+    TableGenTypes.DEFVAR,
+    TableGenTypes.FIELD,
+    TableGenTypes.IF,
+    TableGenTypes.IN,
+    TableGenTypes.INCLUDE,
+    TableGenTypes.INT,
+    TableGenTypes.LET,
+    TableGenTypes.LIST,
+    TableGenTypes.MULTICLASS,
+    TableGenTypes.STRING,
+    TableGenTypes.THEN,
+    TableGenTypes.TRUE,
+)

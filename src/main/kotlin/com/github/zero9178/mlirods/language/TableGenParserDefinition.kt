@@ -12,8 +12,6 @@ import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.TableGenParser
 
 private val FILE = IFileElementType(TableGenLanguage.INSTANCE)
-private val COMMENTS = TokenSet.create(TableGenTypes.LINE_COMMENT, TableGenTypes.BLOCK_COMMENT)
-private val STRING_LITERALS = TokenSet.create(TableGenTypes.STRING_LITERAL)
 
 internal class TableGenParserDefinition : ParserDefinition {
     override fun createLexer(project: Project?): Lexer = TableGenLexerAdapter()

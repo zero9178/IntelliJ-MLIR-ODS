@@ -30,7 +30,81 @@ class LexerTest : LexerTestCase() {
     )
 
     fun `test keywords`() = doTest(
-        "def", "def ('def')"
+        """
+            assert
+            bit
+            bits
+            class
+            code
+            dag
+            def
+            dump
+            else
+            false
+            foreach
+            defm
+            defset
+            defvar
+            field
+            if
+            in
+            include
+            int
+            let
+            list
+            multiclass
+            string
+            then
+            true
+        """.trimIndent(), "assert ('assert')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "bit ('bit')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "bits ('bits')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "class ('class')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "code ('code')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "dag ('dag')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "def ('def')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "dump ('dump')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "else ('else')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "false ('false')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "foreach ('foreach')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "defm ('defm')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "defset ('defset')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "defvar ('defvar')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "field ('field')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "if ('if')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "in ('in')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "include ('include')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "int ('int')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "let ('let')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "list ('list')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "multiclass ('multiclass')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "string ('string')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "then ('then')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "true ('true')"
     )
 
     fun `test integers`() = doTest(
@@ -107,5 +181,21 @@ class LexerTest : LexerTestCase() {
     """.trimIndent(), "OTHER ('/')\n" +
                 "OTHER ('*')\n" +
                 "OTHER ('/')"
+    )
+
+    fun `test identifiers`() = doTest(
+        """
+            a
+            _a
+            0_a
+            aa
+        """.trimIndent(),
+        "IDENTIFIER ('a')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "IDENTIFIER ('_a')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "IDENTIFIER ('0_a')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "IDENTIFIER ('aa')"
     )
 }
