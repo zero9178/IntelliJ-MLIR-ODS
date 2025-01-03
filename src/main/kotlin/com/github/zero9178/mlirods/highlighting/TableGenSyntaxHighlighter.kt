@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.highlighting
 
+import com.github.zero9178.mlirods.language.KEYWORDS
 import com.github.zero9178.mlirods.language.TableGenLexerAdapter
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.intellij.lexer.Lexer
@@ -33,7 +34,10 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
         TableGenTypes.BLOCK_COMMENT -> arrayOf(DefaultLanguageHighlighterColors.BLOCK_COMMENT)
         TableGenTypes.LINE_COMMENT -> arrayOf(DefaultLanguageHighlighterColors.LINE_COMMENT)
         TableGenTypes.LBRACE, TableGenTypes.RBRACE -> arrayOf(DefaultLanguageHighlighterColors.BRACES)
-        TableGenTypes.DEF -> arrayOf(DefaultLanguageHighlighterColors.KEYWORD)
-        else -> emptyArray()
+        TableGenTypes.IDENTIFIER -> arrayOf(DefaultLanguageHighlighterColors.IDENTIFIER)
+        else -> when {
+            KEYWORDS.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.KEYWORD)
+            else -> emptyArray()
+        }
     }
 }

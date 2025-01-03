@@ -38,10 +38,37 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 ("#")                                           { return TableGenTypes.HASHTAG; }
 
 ("def")                                         { return TableGenTypes.DEF; }
+("assert")                                      { return TableGenTypes.ASSERT; }
+("bit")                                         { return TableGenTypes.BIT; }
+("bits")                                        { return TableGenTypes.BITS; }
+("class")                                       { return TableGenTypes.CLASS; }
+("code")                                        { return TableGenTypes.CODE; }
+("dag")                                         { return TableGenTypes.DAG; }
+("def")                                         { return TableGenTypes.DEF; }
+("dump")                                        { return TableGenTypes.DUMP; }
+("else")                                        { return TableGenTypes.ELSE; }
+("false")                                       { return TableGenTypes.FALSE; }
+("foreach")                                     { return TableGenTypes.FOREACH; }
+("defm")                                        { return TableGenTypes.DEFM; }
+("defset")                                      { return TableGenTypes.DEFSET; }
+("defvar")                                      { return TableGenTypes.DEFVAR; }
+("field")                                       { return TableGenTypes.FIELD; }
+("if")                                          { return TableGenTypes.IF; }
+("in")                                          { return TableGenTypes.IN; }
+("include")                                     { return TableGenTypes.INCLUDE; }
+("int")                                         { return TableGenTypes.INT; }
+("let")                                         { return TableGenTypes.LET; }
+("list")                                        { return TableGenTypes.LIST; }
+("multiclass")                                  { return TableGenTypes.MULTICLASS; }
+("string")                                      { return TableGenTypes.STRING; }
+("then")                                        { return TableGenTypes.THEN; }
+("true")                                        { return TableGenTypes.TRUE; }
 
 ((\+|-)?[0-9]+)                                 { return TableGenTypes.INTEGER; }
 (0x[0-9a-fA-F]+)                                { return TableGenTypes.INTEGER; }
 (0b[01]+)                                       { return TableGenTypes.INTEGER; }
+
+([0-9]*[a-zA-Z_][a-zA-Z_0-9]*)                  { return TableGenTypes.IDENTIFIER; }
 
 (("[{")!([^]* "}]" [^]*)("}]"))                 { return TableGenTypes.STRING_LITERAL; }
 (("\"")(([^\"\r\n])|{ESCAPES})*("\""))          { return TableGenTypes.STRING_LITERAL; }
