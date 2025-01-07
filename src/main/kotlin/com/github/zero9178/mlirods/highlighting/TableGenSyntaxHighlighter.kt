@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.highlighting
 
 import com.github.zero9178.mlirods.language.KEYWORDS
 import com.github.zero9178.mlirods.language.PUNCTUATION
+import com.github.zero9178.mlirods.language.STRING_LITERALS
 import com.github.zero9178.mlirods.language.TableGenLexerAdapter
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.intellij.lexer.Lexer
@@ -30,7 +31,6 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
      * @return The array of text attribute keys.
      */
     override fun getTokenHighlights(tokenType: IElementType?): Array<TextAttributesKey> = when (tokenType) {
-        TableGenTypes.STRING_LITERAL -> arrayOf(DefaultLanguageHighlighterColors.STRING)
         TableGenTypes.INTEGER -> arrayOf(DefaultLanguageHighlighterColors.NUMBER)
         TableGenTypes.BLOCK_COMMENT -> arrayOf(DefaultLanguageHighlighterColors.BLOCK_COMMENT)
         TableGenTypes.LINE_COMMENT -> arrayOf(DefaultLanguageHighlighterColors.LINE_COMMENT)
@@ -44,6 +44,7 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
         else -> when {
             KEYWORDS.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.KEYWORD)
             PUNCTUATION.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.OPERATION_SIGN)
+            STRING_LITERALS.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.STRING)
             else -> emptyArray()
         }
     }

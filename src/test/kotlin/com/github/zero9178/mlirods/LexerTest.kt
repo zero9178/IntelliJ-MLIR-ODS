@@ -155,11 +155,11 @@ class LexerTest : LexerTestCase() {
 
     fun `test strings negative`() = doTest(
         """
-        "
-        "
-    """.trimIndent(), "OTHER ('\"')\n" +
+        "text
+        "text2
+    """.trimIndent(), "STRING_LITERAL_BAD ('\"text')\n" +
                 "WHITE_SPACE ('\\n')\n" +
-                "OTHER ('\"')"
+                "STRING_LITERAL_BAD ('\"text2')"
     )
 
     fun `test raw strings`() = doTest(

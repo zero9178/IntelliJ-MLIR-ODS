@@ -10,7 +10,7 @@ class TableGenTokenType(@NonNls debugName: String) : IElementType(debugName, Tab
 class TableGenElementType(@NonNls debugName: String) : IElementType(debugName, TableGenLanguage.INSTANCE)
 
 val COMMENTS = TokenSet.create(TableGenTypes.LINE_COMMENT, TableGenTypes.BLOCK_COMMENT)
-val STRING_LITERALS = TokenSet.create(TableGenTypes.STRING_LITERAL)
+val STRING_LITERALS = TokenSet.create(TableGenTypes.STRING_LITERAL, TableGenTypes.STRING_LITERAL_BAD)
 val KEYWORDS = TokenSet.create(
     TableGenTypes.ASSERT,
     TableGenTypes.BIT,

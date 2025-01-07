@@ -5,6 +5,7 @@
 ## [Unreleased]
 ### Added
 - Enabled `Comment with Line/Block Comment` functionality in TableGen
+- Implemented automatic insertion of pairs of `"` (Smart Keys `Insert Pair Quote` functionality)
 
 ## [0.1.0] - 2025-01-03
 ### Added

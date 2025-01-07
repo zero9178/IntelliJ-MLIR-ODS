@@ -75,6 +75,7 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 
 (("[{")!([^]* "}]" [^]*)("}]"))                 { return TableGenTypes.STRING_LITERAL; }
 (("\"")(([^\"\r\n])|{ESCAPES})*("\""))          { return TableGenTypes.STRING_LITERAL; }
+(("\"")(([^\"\r\n])|{ESCAPES})*)                { return TableGenTypes.STRING_LITERAL_BAD; }
 
 (("//")[^\r\n]*)                                { return TableGenTypes.LINE_COMMENT; }
 
