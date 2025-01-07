@@ -74,8 +74,8 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 ([0-9]*[a-zA-Z_][a-zA-Z_0-9]*)                  { return TableGenTypes.IDENTIFIER; }
 
 (("[{")!([^]* "}]" [^]*)("}]"))                 { return TableGenTypes.STRING_LITERAL; }
-// Last quote is optional since the user intention is unambigiously a string literal.
-(("\"")(([^\"\r\n])|{ESCAPES})*("\"")?)         { return TableGenTypes.STRING_LITERAL; }
+(("\"")(([^\"\r\n])|{ESCAPES})*("\""))          { return TableGenTypes.STRING_LITERAL; }
+(("\"")(([^\"\r\n])|{ESCAPES})*)                { return TableGenTypes.STRING_LITERAL_BAD; }
 
 (("//")[^\r\n]*)                                { return TableGenTypes.LINE_COMMENT; }
 
