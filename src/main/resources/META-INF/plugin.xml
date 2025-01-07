@@ -24,6 +24,8 @@
                            implementationClass="com.github.zero9178.mlirods.highlighting.TableGenBraceMatcher"/>
         <lang.commenter language="TableGen"
                         implementationClass="com.github.zero9178.mlirods.language.TableGenCommenter"/>
+        <lang.quoteHandler language="TableGen"
+                           implementationClass="com.github.zero9178.mlirods.language.TableGenQuoteHandler"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
