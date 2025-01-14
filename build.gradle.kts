@@ -1,5 +1,6 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.grammarkit.tasks.GenerateLexerTask
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
@@ -161,12 +162,16 @@ tasks {
 
         dependsOn(generateParser)
     }
+    task("generateStringLexer", GenerateLexerTask::class) {
+        sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/highlighting/TableGenString.flex"))
+        targetOutputDir.set(file("src/main/gen/com/github/zero9178/mlirods/highlighting/generated"))
+    }
 
     compileKotlin {
-        dependsOn(generateLexer)
+        dependsOn(generateLexer, "generateStringLexer")
     }
     compileJava {
-        dependsOn(generateLexer)
+        dependsOn(generateLexer, "generateStringLexer")
     }
 }
 
