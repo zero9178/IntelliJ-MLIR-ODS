@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+
+## [0.2.0] - 2025-01-16
 ### Added
 - Enabled `Comment with Line/Block Comment` functionality in TableGen
 - Implemented automatic insertion of pairs of `"` (Smart Keys `Insert Pair Quote` functionality)
