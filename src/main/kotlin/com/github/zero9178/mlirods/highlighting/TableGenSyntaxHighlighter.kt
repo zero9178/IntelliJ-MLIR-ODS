@@ -3,12 +3,12 @@ package com.github.zero9178.mlirods.highlighting
 import com.github.zero9178.mlirods.language.KEYWORDS
 import com.github.zero9178.mlirods.language.PUNCTUATION
 import com.github.zero9178.mlirods.language.STRING_LITERALS
-import com.github.zero9178.mlirods.language.TableGenLexerAdapter
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.intellij.lexer.Lexer
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
+import com.intellij.psi.StringEscapesTokenTypes
 import com.intellij.psi.tree.IElementType
 
 internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
@@ -20,7 +20,7 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
      * @return The lexer implementation.
      */
     override fun getHighlightingLexer(): Lexer {
-        return TableGenLexerAdapter()
+        return TableGenHighlighterLexer()
     }
 
     /**
@@ -41,6 +41,7 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
         TableGenTypes.COMMA -> arrayOf(DefaultLanguageHighlighterColors.COMMA)
         TableGenTypes.SEMICOLON -> arrayOf(DefaultLanguageHighlighterColors.SEMICOLON)
         TableGenTypes.DOT -> arrayOf(DefaultLanguageHighlighterColors.DOT)
+        StringEscapesTokenTypes.VALID_STRING_ESCAPE_TOKEN -> arrayOf(DefaultLanguageHighlighterColors.VALID_STRING_ESCAPE)
         else -> when {
             KEYWORDS.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.KEYWORD)
             PUNCTUATION.contains(tokenType) -> arrayOf(DefaultLanguageHighlighterColors.OPERATION_SIGN)

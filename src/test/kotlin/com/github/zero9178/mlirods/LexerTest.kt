@@ -150,16 +150,16 @@ class LexerTest : LexerTestCase() {
         """
        "quoted\"\n ends now"
     """.trimIndent(),
-        "STRING_LITERAL ('\"quoted\\\"\\n ends now\"')"
+        "LINE_STRING_LITERAL ('\"quoted\\\"\\n ends now\"')"
     )
 
     fun `test strings negative`() = doTest(
         """
         "text
         "text2
-    """.trimIndent(), "STRING_LITERAL_BAD ('\"text')\n" +
+    """.trimIndent(), "LINE_STRING_LITERAL_BAD ('\"text')\n" +
                 "WHITE_SPACE ('\\n')\n" +
-                "STRING_LITERAL_BAD ('\"text2')"
+                "LINE_STRING_LITERAL_BAD ('\"text2')"
     )
 
     fun `test raw strings`() = doTest(
@@ -169,7 +169,7 @@ class LexerTest : LexerTestCase() {
        newlines inbetween
        that even have "quotes" up until }]
     """.trimIndent(),
-        "STRING_LITERAL ('[{ some text\\n" +
+        "BLOCK_STRING_LITERAL ('[{ some text\\n" +
                 "that may have\\n" +
                 "newlines inbetween\\n" +
                 "that even have \"quotes\" up until }]')"
