@@ -3,6 +3,7 @@ import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.grammarkit.tasks.GenerateLexerTask
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.models.ProductRelease.Channel
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 
 plugins {
@@ -118,6 +119,14 @@ intellijPlatform {
         ides {
             select {
                 types = listOf(IntelliJPlatformType.IntellijIdeaUltimate, IntelliJPlatformType.CLion)
+                sinceBuild = providers.gradleProperty("pluginSinceBuild")
+                untilBuild = providers.gradleProperty("pluginUntilBuild")
+                channels = listOf(
+                    Channel.EAP,
+                    Channel.BETA,
+                    Channel.RELEASE,
+                    Channel.RC
+                )
             }
         }
     }
