@@ -7,6 +7,8 @@
 - Enabled `Comment with Line/Block Comment` functionality in TableGen
 - Implemented automatic insertion of pairs of `"` (Smart Keys `Insert Pair Quote` functionality)
 - Implement syntax highlighting of escape sequences in string literals
+### Fixed
+- Enable and verify for 2025 IDEs
 
 ## [0.1.0] - 2025-01-03
 ### Added
