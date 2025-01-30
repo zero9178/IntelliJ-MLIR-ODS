@@ -55,6 +55,7 @@
     STRING='string'
     THEN='then'
     TRUE='true'
+    IDENTIFIER="regexp:[0-9]*[a-zA-Z_][a-zA-Z_0-9]*"
   ]
 }
 
@@ -64,6 +65,7 @@ tableGenFile ::= item_*
 // We primarily use the parser infrastructure to auto-generate the token types which the lexer generates.
 // It could be used in the future for semantic tokens as well, although the LSP should provide these instead.
 private item_ ::= punctuation
+                | let_directive
                 | INTEGER
                 | LINE_COMMENT
                 | BLOCK_COMMENT
@@ -74,6 +76,8 @@ private item_ ::= punctuation
                 | IDENTIFIER
                 | OTHER
                 | keyword
+
+let_directive ::= 'let' IDENTIFIER
 
 punctuation ::= '+' | '-' | '[' | ']' | '{' | '}' | '<' | '>' | ':' | ';' | '.' | '...' | '=' | '?' | '#' | '(' | ')'
               | ','
