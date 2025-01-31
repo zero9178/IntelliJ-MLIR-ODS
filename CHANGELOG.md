@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Added
+- Syntax highlighting of fields in `let`-expressions
 
 ## [0.2.0] - 2025-01-16
 ### Added
