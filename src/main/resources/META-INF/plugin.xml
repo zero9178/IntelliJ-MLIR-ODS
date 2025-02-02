@@ -28,6 +28,7 @@
                            implementationClass="com.github.zero9178.mlirods.language.TableGenQuoteHandler"/>
         <annotator language="TableGen"
                    implementationClass="com.github.zero9178.mlirods.language.highlighting.TableGenSemanticTokensAnnotator"/>
+        <colorSettingsPage implementation="com.github.zero9178.mlirods.color.TableGenColorSettingsPage"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">

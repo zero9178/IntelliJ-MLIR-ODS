@@ -11,7 +11,7 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
                 string s = ?;
             }
             def Foo : Foo {
-                let <text_attr textAttributesKey="DEFAULT_INSTANCE_FIELD">s</text_attr> = "";
+                let <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = "";
             }
         """.trimIndent()
         )
