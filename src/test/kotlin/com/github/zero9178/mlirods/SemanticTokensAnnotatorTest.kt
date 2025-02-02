@@ -7,12 +7,15 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
     fun `test let identifier`() {
         myFixture.configureByText(
             "test.td", """
-            class Foo {
-                string s = ?;
+            let <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = 5 in {
+                class Foo {
+                    string <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = ?;
+                }
             }
             def Foo : Foo {
                 let <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = "";
             }
+            defvar test = Foo.<text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr>;
         """.trimIndent()
         )
         myFixture.checkHighlighting(false, true, false)
