@@ -6,6 +6,7 @@
 ### Added
 - Syntax highlighting of fields in `let`-expressions, record fields and field accesses
 - Color page in `Editor -> Color Scheme -> TableGen` 
+- Added editor folding of code literals, braced bodies and angle brackets   
 
 ## [0.2.0] - 2025-01-16
 ### Added
