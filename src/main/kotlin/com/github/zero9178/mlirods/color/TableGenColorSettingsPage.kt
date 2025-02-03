@@ -21,6 +21,7 @@ private val DESCRIPTORS = arrayOf(
     AttributesDescriptor({ "Braces and Operators//Semicolon" }, SEMICOLON),
     AttributesDescriptor({ "Braces and Operators//Dot" }, DOT),
     AttributesDescriptor({ "Braces and Operators//Operators" }, OPERATION_SIGN),
+    AttributesDescriptor({ "Braces and Operators//Bang operators" }, BANG_OPERATOR),
     AttributesDescriptor({ "String//Escape sequence" }, STRING_ESCAPE),
     AttributesDescriptor({ "String//String text" }, STRING),
     AttributesDescriptor({ "Keyword" }, KEYWORD),
@@ -48,7 +49,7 @@ private class TableGenColorSettingsPage : ColorSettingsPage {
             }];
         }
         
-        defvar b = Foo<>.s;
+        defvar b = !empty(Foo<>.s);
         """.trimIndent()
     }
 

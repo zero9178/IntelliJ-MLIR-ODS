@@ -17,6 +17,7 @@ val STRING_ESCAPE =
     createTextAttributesKey("TABLEGEN_STRING_ESCAPE", DefaultLanguageHighlighterColors.VALID_STRING_ESCAPE)
 val KEYWORD = createTextAttributesKey("TABLEGEN_KEYWORD", DefaultLanguageHighlighterColors.KEYWORD)
 val OPERATION_SIGN = createTextAttributesKey("TABLEGEN_OPERATOR_SIGN", DefaultLanguageHighlighterColors.OPERATION_SIGN)
+val BANG_OPERATOR = createTextAttributesKey("TABLEGEN_BANG_OPERATOR", DefaultLanguageHighlighterColors.STATIC_METHOD)
 val STRING = createTextAttributesKey("TABLEGEN_STRING", DefaultLanguageHighlighterColors.STRING)
 
 val FIELD = createTextAttributesKey("TABLEGEN_FIELD", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
