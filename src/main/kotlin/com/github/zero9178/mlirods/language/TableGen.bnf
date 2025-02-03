@@ -7,6 +7,7 @@
   psiImplClassSuffix="Impl"
   psiPackage="com.github.zero9178.mlirods.language.generated.psi"
   psiImplPackage="com.github.zero9178.mlirods.language.generated.psi.impl"
+  psiImplUtilClass="com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil"
 
   elementTypeHolderClass="com.github.zero9178.mlirods.language.generated.TableGenTypes"
   elementTypeClass="com.github.zero9178.mlirods.language.TableGenElementType"
@@ -103,12 +104,35 @@ assert_statement ::= 'assert' value ',' value ';' {pin=1}
 
 private equals_value ::= '=' value {pin=1}
 
-class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {pin=1}
+// Fake base class for elements common among 'class' and 'multiclass' statements.
+fake abstract_class_statement ::= template_arg_list? parent_class_list? '{'? '}'? {
+    implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
+    methods = [
+        lAngle='LANGLE'
+        rAngle='RANGLE'
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+
+        getPlaceHolderText
+        getFoldingTextRanges
+    ]
+}
+
+class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
+    extends=abstract_class_statement
+    pin=1
+}
 private template_arg_list ::= '<' template_arg_decl (',' template_arg_decl)* '>' {pin=1}
 template_arg_decl ::= type IDENTIFIER equals_value?
 private record_body ::= parent_class_list? body {pin=1}
 parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
-class_ref ::= IDENTIFIER class_ref_suffix?
+class_ref ::= IDENTIFIER class_ref_suffix? {
+    implements="com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+    methods = [
+        lAngle='LANGLE'
+        rAngle='RANGLE'
+    ]
+}
 private class_ref_suffix ::= '<' arg_value_list? '>' {pin=1}
 private body ::= ';' | body_list
 private body_list ::= '{' body_item* '}' {pin=1}
@@ -138,7 +162,14 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
 defvar_body_item ::= 'defvar' IDENTIFIER '=' value ';' {pin=1}
 assert_body_item ::= assert_statement
 
-def_statement ::= 'def' value? record_body {pin=1}
+def_statement ::= 'def' value? record_body {
+    pin=1
+    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    methods=[
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+    ]
+}
 defm_statement ::= 'defm' value? parent_class_list? ';' {pin=1}
 defset_statement ::= 'defset' type IDENTIFIER '=' '{' statement* '}' {pin=1}
 deftype_statement ::= 'deftype' IDENTIFIER '=' type ';' {pin=1}
@@ -148,8 +179,15 @@ dump_statement ::= 'dump' value ';' {pin=1}
 private statement_block ::= statement | statement_block_list
 private statement_block_list ::= '{' statement* '}' {pin=1}
 
-foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {pin=1}
-private foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value)
+foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
+    pin=1
+    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    methods = [
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+    ]
+}
+foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value)
 
 if_statement ::= 'if' value 'then' if_body else_body? {
     methods=[
@@ -159,9 +197,22 @@ if_statement ::= 'if' value 'then' if_body else_body? {
     pin=1
 }
 private else_body ::= 'else' if_body {pin=1}
-if_body ::= statement_block
+if_body ::= statement_block {
+    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    methods = [
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+    ]
+}
 
-let_statement ::= 'let' let_list 'in' statement_block {pin=1}
+let_statement ::= 'let' let_list 'in' statement_block {
+    pin=1
+    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    methods = [
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+    ]
+}
 private let_list ::= let_item (',' let_item)*
 let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
@@ -169,7 +220,10 @@ let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
         field_identifier="IDENTIFIER"
     ]
 }
-multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list? statement_block {pin=1}
+multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list? statement_block {
+    extends=abstract_class_statement
+    pin=1
+}
 
 type ::= bit_type
        | int_type
@@ -232,9 +286,16 @@ private simple_value ::= integer_value
 private value_list_ne ::= value (',' value)*
 
 integer_value ::= INTEGER
-string_value ::= BLOCK_STRING_LITERAL
+string_value ::= block_string_value
                | LINE_STRING_LITERAL+
                | LINE_STRING_LITERAL_BAD
+block_string_value ::= BLOCK_STRING_LITERAL {
+    extends=string_value
+    implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
+    methods = [
+        getPlaceHolderText
+    ]
+}
 bool_value ::= 'true' | 'false'
 undef_value ::= '?'
 list_init_value ::= '[' value_list_ne? ','? ']' ('<' type '>')? {pin=1}
@@ -247,7 +308,14 @@ dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
 dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER
 identifier_value ::= IDENTIFIER
 
-class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {pin=2}
+class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
+    pin=2
+    implements="com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+    methods = [
+        lAngle='LANGLE'
+        rAngle='RANGLE'
+    ]
+}
 // Note: This is a simplification from the official syntax that is easier to parse.
 private arg_value_list ::= arg_value_item (',' arg_value_item)*
 arg_value_item ::= value equals_value?

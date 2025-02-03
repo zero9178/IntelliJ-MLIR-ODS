@@ -1,10 +1,12 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.grammarkit.tasks.GenerateLexerTask
+import org.jetbrains.grammarkit.tasks.GenerateParserTask
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.models.ProductRelease.Channel
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
+import java.util.*
 
 plugins {
     id("java") // Java support
@@ -22,6 +24,9 @@ version = providers.gradleProperty("pluginVersion").get()
 // Set the JVM language level used to build the project.
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        freeCompilerArgs.add("-Xjvm-default=all")
+    }
 }
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -158,29 +163,38 @@ tasks {
         dependsOn(patchChangelog)
     }
 
-    generateParser {
-        sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.bnf"))
-        pathToParser.set("com/github/zero9178/mlirods/language/generated/TableGenParser.java")
-        pathToPsiRoot.set("com/github/zero9178/mlirods/language/generated/psi")
-        targetRootOutputDir.set(file("src/main/gen"))
-        purgeOldFiles.set(true)
+    fun generateParserTask(suffix: String = "", config: GenerateParserTask.() -> Unit = {}) =
+        task<GenerateParserTask>("generateParser${suffix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }}") {
+            purgeOldFiles.set(true)
+            targetRootOutputDir.set(file("src/main/gen"))
+            sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.bnf"))
+            pathToParser.set("com/github/zero9178/mlirods/language/generated/TableGenParser.java")
+            pathToPsiRoot.set("com/github/zero9178/mlirods/language/generated/psi")
+            config()
+        }
+
+    val initial = generateParserTask("initial")
+    val generateParser = generateParserTask("final") {
+        dependsOn(compileKotlin)
+        classpath(compileKotlin.get().outputs)
     }
+
     generateLexer {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.flex"))
         targetOutputDir.set(file("src/main/gen/com/github/zero9178/mlirods/language/generated"))
 
-        dependsOn(generateParser)
+        dependsOn(initial)
     }
-    task("generateStringLexer", GenerateLexerTask::class) {
+    val stringLexer = task("generateStringLexer", GenerateLexerTask::class) {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/highlighting/TableGenString.flex"))
         targetOutputDir.set(file("src/main/gen/com/github/zero9178/mlirods/highlighting/generated"))
     }
 
     compileKotlin {
-        dependsOn(generateLexer, "generateStringLexer")
+        dependsOn(generateLexer, stringLexer, initial)
     }
     compileJava {
-        dependsOn(generateLexer, "generateStringLexer")
+        dependsOn(generateLexer, stringLexer, generateParser)
     }
 }
 
