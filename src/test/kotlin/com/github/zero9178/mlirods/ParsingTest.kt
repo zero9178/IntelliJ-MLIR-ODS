@@ -8,6 +8,7 @@ class ParsingTest : ParsingTestCase("", "td", TableGenParserDefinition()) {
 
     fun testStatements() = doTest(true, true)
     fun testExpressions() = doTest(true, true)
+    fun testErrorRecovery() = doTest(true, false)
 
     override fun getTestDataPath(): String? {
         return "src/test/testData/parser"
