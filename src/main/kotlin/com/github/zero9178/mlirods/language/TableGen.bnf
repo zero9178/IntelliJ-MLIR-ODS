@@ -43,6 +43,7 @@
     FOREACH='foreach'
     DEFM='defm'
     DEFSET='defset'
+    DEFTYPE='deftype'
     DEFVAR='defvar'
     FIELD='field'
     IF='if'
@@ -55,54 +56,192 @@
     STRING='string'
     THEN='then'
     TRUE='true'
+    HASHTAG_DEFINE='#define'
+    HASHTAG_IFDEF='#ifdef'
+    HASHTAG_IFNDEF='#ifndef'
+    HASHTAG_ELSE='#else'
+    HASHTAG_ENDIF='#endif'
     IDENTIFIER="regexp:[0-9]*[a-zA-Z_][a-zA-Z_0-9]*"
+    VAR_IDENTIFIER="regexp:\$[a-zA-Z_][a-zA-Z_0-9]*"
+    INTEGER="regexp:(([+\-])?[0-9]+)|(0x[0-9a-fA-F]+)|(0b[01]+)"
+    BANG_OPERATOR="regexp:![a-zA-Z]+"
+    BANG_COND="!cond"
+    // Used by live preview only.
+    WHITE_SPACE="regexp:\s*"
   ]
+
+  extends(".*_(statement|directive)")=statement
+  extends(".*_type")=type
+  extends(".*_body_item")=body_item
+  extends(".*_value")=value
 }
 
-tableGenFile ::= item_*
+tableGenFile ::= statement*
 
-// Most accepting parser possible which simply allows a sequence of all possible token types.
-// We primarily use the parser infrastructure to auto-generate the token types which the lexer generates.
-// It could be used in the future for semantic tokens as well, although the LSP should provide these instead.
-private item_ ::= punctuation
-                | let_directive
-                | INTEGER
-                | LINE_COMMENT
-                | BLOCK_COMMENT
-                | CLRF
-                | BLOCK_STRING_LITERAL
-                | LINE_STRING_LITERAL
-                | LINE_STRING_LITERAL_BAD
-                | IDENTIFIER
-                | OTHER
-                | keyword
+statement ::= include_directive
+            | preprocessor_directive
+            | assert_statement
+            | class_statement
+            | def_statement
+            | defm_statement
+            | defset_statement
+            | deftype_statement
+            | defvar_statement
+            | dump_statement
+            | foreach_statement
+            | if_statement
+            | let_statement
+            | multiclass_statement
+            | BLOCK_COMMENT
+            | LINE_COMMENT
+            | OTHER
 
-let_directive ::= 'let' IDENTIFIER
+include_directive ::= 'include' (LINE_STRING_LITERAL | LINE_STRING_LITERAL_BAD) {extends=statement}
+preprocessor_directive ::= (HASHTAG_DEFINE | HASHTAG_IFDEF | HASHTAG_IFNDEF) IDENTIFIER
+                         | HASHTAG_ENDIF | HASHTAG_ELSE
+assert_statement ::= 'assert' value ',' value ';'
 
-punctuation ::= '+' | '-' | '[' | ']' | '{' | '}' | '<' | '>' | ':' | ';' | '.' | '...' | '=' | '?' | '#' | '(' | ')'
-              | ','
-keyword ::= 'assert'
-          | 'bit'
-          | 'bits'
-          | 'class'
-          | 'code'
-          | 'dag'
-          | 'def'
-          | 'dump'
-          | 'else'
-          | 'false'
-          | 'foreach'
-          | 'defm'
-          | 'defset'
-          | 'defvar'
-          | 'field'
-          | 'if'
-          | 'in'
-          | 'include'
-          | 'int'
-          | 'let'
-          | 'list'
-          | 'multiclass'
-          | 'string'
-          | 'then'
-          | 'true'
+class_statement ::= 'class' IDENTIFIER template_arg_list? record_body
+private template_arg_list ::= '<' template_arg_decl (',' template_arg_decl)* '>'
+template_arg_decl ::= type IDENTIFIER ('=' value)?
+private record_body ::= parent_class_list body
+parent_class_list ::= (':' class_ref (',' class_ref)*)?
+class_ref ::= IDENTIFIER ('<' arg_value_list? '>')?
+private body ::= ';' | '{' body_item* '}'
+
+body_item ::= field_body_item
+            | let_body_item
+            | defvar_body_item
+            | assert_body_item
+field_body_item ::= 'field'? type IDENTIFIER ('=' value)? ';' {
+    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    methods=[
+        field_identifier="IDENTIFIER"
+    ]
+}
+let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
+    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    methods=[
+        field_identifier="IDENTIFIER"
+    ]
+}
+defvar_body_item ::= 'defvar' IDENTIFIER '=' value ';'
+assert_body_item ::= assert_statement
+
+def_statement ::= 'def' value? record_body
+defm_statement ::= 'defm' value? parent_class_list ';'
+defset_statement ::= 'defset' type IDENTIFIER '=' '{' statement* '}'
+deftype_statement ::= 'deftype' IDENTIFIER '=' type ';'
+defvar_statement ::= 'defvar' IDENTIFIER '=' value ';'
+dump_statement ::= 'dump' value ';'
+
+private statement_block ::= (statement | '{' statement* '}')
+
+foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block
+private foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value)
+
+if_statement ::= 'if' value 'then' if_body ('else' if_body)? {
+    methods=[
+        thenBody="if_body[0]"
+        elseBody="if_body[1]"
+    ]
+}
+if_body ::= statement_block
+
+let_statement ::= 'let' let_list 'in' statement_block
+private let_list ::= let_item (',' let_item)*
+let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
+    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    methods=[
+        field_identifier="IDENTIFIER"
+    ]
+}
+multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list statement_block
+
+type ::= bit_type
+       | int_type
+       | string_type
+       | dag_type
+       | code_type
+       | bits_type
+       | list_type
+       | class_type
+bit_type ::= 'bit'
+int_type ::= 'int'
+string_type ::= 'string'
+dag_type ::= 'dag'
+code_type ::= 'code'
+bits_type ::= 'bits' '<' INTEGER '>'
+list_type ::= 'list' '<' type '>'
+class_type ::= IDENTIFIER
+
+value ::= simple_value
+        | field_access_value
+        | bit_access_value
+        | slice_access_value
+        | concat_value
+
+concat_value ::= value '#' value
+field_access_value ::= value '.' IDENTIFIER {
+    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    methods=[
+        field_identifier="IDENTIFIER"
+    ]
+}
+
+bit_access_value ::= value '{' range_list '}'
+private range_list ::= range_piece (',' range_piece)*
+range_piece ::= bit_range
+              | single_bit
+single_bit ::= INTEGER {extends=range_piece}
+bit_range ::= INTEGER ('...' | '-')? INTEGER {
+    extends=range_piece
+}
+
+slice_access_value ::= value '[' slice_element (',' slice_element)* ']'
+slice_element ::= slice_element_range
+                | single_slice_element
+single_slice_element ::= value {extends=slice_element}
+slice_element_range ::= value ((('...' | '-') value) | INTEGER) {extends=slice_element}
+
+private simple_value ::= integer_value
+               | string_value
+               | bool_value
+               | undef_value
+               | list_init_value
+               | dag_init_value
+               | class_instantiation_value
+               | identifier_value
+               | bang_operator_value
+               | cond_operator_value
+
+private value_list_ne ::= value (',' value)*
+
+integer_value ::= INTEGER
+string_value ::= BLOCK_STRING_LITERAL
+               | LINE_STRING_LITERAL+
+               | LINE_STRING_LITERAL_BAD
+bool_value ::= 'true' | 'false'
+undef_value ::= '?'
+list_init_value ::= '[' value_list_ne? ','? ']' ('<' type '>')?
+dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
+    methods=[
+        operator="dag_arg[0]"
+    ]
+}
+dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER
+identifier_value ::= IDENTIFIER
+
+class_instantiation_value ::= IDENTIFIER '<' arg_value_list '>'
+// Note: This is a simplification from the official syntax that is easier to parse.
+private arg_value_list ::= (arg_value_item (',' arg_value_item)*)?
+arg_value_item ::= value ('=' value)?
+
+bang_operator_value ::= BANG_OPERATOR ('<' type '>')? '(' value_list_ne ')'
+cond_operator_value ::= '!cond' '(' cond_clause (',' cond_clause)* ')'
+cond_clause ::= value ':' value {
+    methods=[
+        condition="value[0]"
+        thenValue="value[1]"
+    ]
+}

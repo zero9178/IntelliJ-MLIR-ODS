@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 ### Added
-- Syntax highlighting of fields in `let`-expressions
+- Syntax highlighting of fields in `let`-expressions, record fields and field accesses
 - Color page in `Editor -> Color Scheme -> TableGen` 
 
 ## [0.2.0] - 2025-01-16

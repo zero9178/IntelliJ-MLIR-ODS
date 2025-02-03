@@ -66,12 +66,20 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 ("string")                                      { return TableGenTypes.STRING; }
 ("then")                                        { return TableGenTypes.THEN; }
 ("true")                                        { return TableGenTypes.TRUE; }
+("!cond")                                       { return TableGenTypes.BANG_COND; }
+("!"[a-zA-Z]+)                                  { return TableGenTypes.BANG_OPERATOR; }
+("#ifdef")                                      { return TableGenTypes.HASHTAG_IFDEF; }
+("#ifndef")                                     { return TableGenTypes.HASHTAG_IFNDEF; }
+("#define")                                     { return TableGenTypes.HASHTAG_DEFINE; }
+("#else")                                       { return TableGenTypes.HASHTAG_ELSE; }
+("#endif")                                      { return TableGenTypes.HASHTAG_ENDIF; }
 
 ((\+|-)?[0-9]+)                                 { return TableGenTypes.INTEGER; }
 (0x[0-9a-fA-F]+)                                { return TableGenTypes.INTEGER; }
 (0b[01]+)                                       { return TableGenTypes.INTEGER; }
 
 ([0-9]*[a-zA-Z_][a-zA-Z_0-9]*)                  { return TableGenTypes.IDENTIFIER; }
+(\$[a-zA-Z_][a-zA-Z_0-9]*)                      { return TableGenTypes.VAR_IDENTIFIER; }
 
 (("[{")!([^]* "}]" [^]*)("}]"))                 { return TableGenTypes.BLOCK_STRING_LITERAL; }
 (("\"")(([^\"\r\n])|{ESCAPES})*("\""))          { return TableGenTypes.LINE_STRING_LITERAL; }
