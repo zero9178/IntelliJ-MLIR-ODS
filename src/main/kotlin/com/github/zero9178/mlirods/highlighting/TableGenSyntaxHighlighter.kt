@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.highlighting
 
+import com.github.zero9178.mlirods.color.BANG_OPERATOR
 import com.github.zero9178.mlirods.color.BLOCK_COMMENT
 import com.github.zero9178.mlirods.color.BRACES
 import com.github.zero9178.mlirods.color.BRACKETS
@@ -55,6 +56,7 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
         TableGenTypes.COMMA -> arrayOf(COMMA)
         TableGenTypes.SEMICOLON -> arrayOf(SEMICOLON)
         TableGenTypes.DOT -> arrayOf(DOT)
+        TableGenTypes.BANG_OPERATOR, TableGenTypes.BANG_COND -> arrayOf(BANG_OPERATOR)
         StringEscapesTokenTypes.VALID_STRING_ESCAPE_TOKEN -> arrayOf(STRING_ESCAPE)
         else -> when {
             KEYWORDS.contains(tokenType) -> arrayOf(KEYWORD)
