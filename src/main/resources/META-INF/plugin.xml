@@ -41,6 +41,8 @@
     <extensionPoints>
         <extensionPoint name="tableGenServerSupportProvider" dynamic="true"
                         interface="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProviderInterface"/>
+        <extensionPoint name="compilationCommandsProvider" dynamic="true"
+                        interface="com.github.zero9178.mlirods.model.CompilationCommandsProvider"/>
     </extensionPoints>
 
     <applicationListeners>
