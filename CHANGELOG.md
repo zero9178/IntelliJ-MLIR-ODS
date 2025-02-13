@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Added
+- Added resolution of include statements, enabling the `GoTo` action 
 
 ## [0.3.0] - 2025-02-04
 ### Added

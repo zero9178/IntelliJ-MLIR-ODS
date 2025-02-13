@@ -25,7 +25,7 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
             return false
         }
 
-        val activeConfig = project.service<CMakeActiveProfileService>().profile
+        val activeConfig = project.service<CMakeActiveProfileService>().profileName
         val buildConfig = target.buildConfigurations.find {
             it.name == activeConfig
         }

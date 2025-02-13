@@ -6,12 +6,15 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
-import com.intellij.util.getValue
-import com.intellij.util.setValue
+import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
+import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspaceListener
 import com.jetbrains.cidr.cpp.execution.CMakeBuildProfileExecutionTarget
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicReference
 
 private val LOG = logger<CMakeActiveProfileService>()
 
@@ -27,9 +30,8 @@ private class CMakeExecutionTargetListener(private val project: Project) : Execu
     override fun activeTargetChanged(newTarget: ExecutionTarget) {
         val target = newTarget as? CMakeBuildProfileExecutionTarget ?: return
 
-        project.service<CMakeActiveProfileService>().profile = target.profileName
+        project.service<CMakeActiveProfileService>().profileName = target.profileName
         LOG.info("Restarting LSP due to build profile change")
-        restartTableGenLSPAsync(project)
     }
 }
 
@@ -39,6 +41,26 @@ private class CMakeExecutionTargetListener(private val project: Project) : Execu
 @Service(Service.Level.PROJECT)
 class CMakeActiveProfileService(private val project: Project, private val cs: CoroutineScope) {
 
+    private val myProfileNameFlow = MutableStateFlow("")
+    internal val myProfileListFlow = MutableStateFlow(
+        project.service<CMakeWorkspace>().profileInfos.toList()
+    )
+
+    init {
+        project.messageBus.connect(cs).subscribe(CMakeWorkspaceListener.TOPIC, object : CMakeWorkspaceListener {
+            override fun generationFinished() {
+                myProfileListFlow.value =
+                    project.service<CMakeWorkspace>().profileInfos.toList()
+            }
+        })
+
+        cs.launch {
+            myProfileNameFlow.filter { !it.isEmpty() }.collect {
+                restartTableGenLSPAsync(project)
+            }
+        }
+    }
+
     /**
      * Starts an asynchronous operation to initialize the profile from the currently active target.
      */
@@ -47,14 +69,31 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
         val manager = project.service<ExecutionTargetManager>()
         val target = manager.activeTarget as? CMakeBuildProfileExecutionTarget ?: return@launch
 
-        profile = target.profileName
+        profileName = target.profileName
         LOG.info("Restarting LSP due to run manager being initialized")
-        restartTableGenLSPAsync(project)
     }
 
     /**
      * Returns the name of the current cmake build profile.
      */
-    var profile: String by AtomicReference("")
-        internal set
+    var profileName: String
+        internal set(value) {
+            myProfileNameFlow.value = value
+        }
+        get() = myProfileNameFlow.value
+
+    /**
+     * A flow yielding new profile names whenever the active profile name has changed.
+     */
+    val profileNameFlow: StateFlow<String>
+        get() = myProfileNameFlow
+
+    /**
+     * A flow yielding the active profile whenever the active profile has changed.
+     */
+    val profileFlow = profileNameFlow.combine(myProfileListFlow) { name, list ->
+        list.find {
+            it.profile.name == name
+        }
+    }
 }
