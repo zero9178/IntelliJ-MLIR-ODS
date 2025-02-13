@@ -6,6 +6,8 @@
     <extensions defaultExtensionNs="com.github.zero9178.mlirods">
         <tableGenServerSupportProvider
                 implementation="com.github.zero9178.mlirods.clion.CMakeTableGenLspServerSupportProvider"/>
+        <compilationCommandsProvider
+                implementation="com.github.zero9178.mlirods.clion.CMakeTableGenCompilationCommandsProvider"/>
     </extensions>
     <projectListeners>
         <listener class="com.github.zero9178.mlirods.clion.CMakeTableGenBuildListener"
