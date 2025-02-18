@@ -1,15 +1,13 @@
 package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.model.IncludePaths
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
-class ReferenceTest : BasePlatformTestCase() {
-    fun `test include`() {
-        val reference =
-            myFixture.getReferenceAtCaretPositionWithAssertion("ReferenceTestData.td")
+class RenameTest : BasePlatformTestCase() {
+    fun `test rename include`() {
         val testFile = myFixture.copyFileToProject("test.td")
         val virtualFile = myFixture.copyFileToProject("HasCompileCommands.td")
+        val inputFile = myFixture.copyFileToProject("ReferenceTestData.td")
         installCompileCommands(
             project,
             mapOf(
@@ -17,8 +15,9 @@ class ReferenceTest : BasePlatformTestCase() {
             )
         )
 
-        val element = assertInstanceOf(reference.resolve(), PsiFile::class.java)
-        assertEquals(element.viewProvider.virtualFile.name, "test.td")
+        myFixture.configureFromExistingVirtualFile(inputFile)
+        myFixture.renameElementAtCaret("tests.td")
+        myFixture.checkResultByFile("ReferenceTestData.td", "ReferenceTestDataAfter.td", false)
     }
 
     override fun getTestDataPath(): String? {

@@ -4,12 +4,13 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassS
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
-import com.github.zero9178.mlirods.language.psi.TableGenIncludeReference
+import com.github.zero9178.mlirods.language.psi.TableGenIncludeReferenceSet
+import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.intellij.extapi.psi.ASTDelegatePsiElement
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiReference
+import com.intellij.psi.impl.source.resolve.reference.impl.providers.FileReference
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 
@@ -50,8 +51,8 @@ class TableGenPsiImplUtil {
         fun getPlaceHolderText(element: TableGenBlockStringValue, textRange: TextRange): String = "[{...}]"
 
         @JvmStatic
-        fun getReference(element: TableGenIncludeDirective): PsiReference? {
-            return TableGenIncludeReference(element)
+        fun getReferences(element: TableGenIncludeDirective): Array<FileReference>? {
+            return TableGenIncludeReferenceSet(element).allReferences
         }
 
         /**

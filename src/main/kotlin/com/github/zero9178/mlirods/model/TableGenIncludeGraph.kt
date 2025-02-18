@@ -36,12 +36,12 @@ class TableGenIncludeGraph(private val project: Project, cs: CoroutineScope) {
     // Note: This class is on purpose rather "racy", as tons of actions can at any point in time change the include
     // graph. We therefore only try to ensure consistency at any point in time. That is, for the currently received
     // compile commands and up-to-date index, the cache may only ever contain idempotent results based on these.
-    private val myCacheMap = concurrentMapOf<VirtualFile, List<Path>>()
+    private val myCacheMap = concurrentMapOf<VirtualFile, List<VirtualFile>>()
     private val myIndividualFileLocks = concurrentMapOf<VirtualFile, Any>()
     private val myWholeMapLock = ReentrantReadWriteLock()
 
     @VisibleForTesting
-    val myBaseMapFlow = MutableStateFlow(emptyMap<VirtualFile, List<Path>>())
+    val myBaseMapFlow = MutableStateFlow(emptyMap<VirtualFile, List<VirtualFile>>())
 
     init {
         // Clear cache on:
@@ -108,7 +108,7 @@ class TableGenIncludeGraph(private val project: Project, cs: CoroutineScope) {
         }
     }
 
-    private fun getIncludePathsInternal(tableGenFile: VirtualFile): List<Path>? {
+    private fun getIncludePathsInternal(tableGenFile: VirtualFile): List<VirtualFile>? {
         val entry = myBaseMapFlow.value[tableGenFile]
         if (entry != null) return entry
 
@@ -117,7 +117,7 @@ class TableGenIncludeGraph(private val project: Project, cs: CoroutineScope) {
 
     @RequiresReadLock
     @RequiresBlockingContext
-    fun getIncludePaths(tableGenFile: VirtualFile): List<Path> {
+    fun getIncludePaths(tableGenFile: VirtualFile): List<VirtualFile> {
         if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
 
         return getIncludePathsInternal(tableGenFile) ?: emptyList()
