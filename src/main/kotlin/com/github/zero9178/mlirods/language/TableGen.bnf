@@ -104,7 +104,7 @@ include_directive ::= 'include' LINE_STRING_LITERAL {
         string="LINE_STRING_LITERAL"
 
         toString
-        getReference
+        getReferences
         getIncludeSuffix
     ]
     implements=["com.intellij.psi.PsiElement"

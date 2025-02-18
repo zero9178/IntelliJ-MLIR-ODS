@@ -5,6 +5,7 @@
 ## [Unreleased]
 ### Added
 - Added resolution of include statements, enabling the `GoTo` action 
+- Implemented renaming of include statements, enabling the `Rename` action of TableGen files
 
 ## [0.3.0] - 2025-02-04
 ### Added

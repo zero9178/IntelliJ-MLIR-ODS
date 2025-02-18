@@ -79,7 +79,14 @@ class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProv
                     virtualFile to IncludePaths(
                         it.includes.split(
                             ';'
-                        ).map { it -> Path(it) })
+                        ).flatMap { it ->
+                            val virtualFile = instance.findFileByNioPath(Path(it))
+                            if (virtualFile == null) {
+                                LOG.warn("failed to find virtual file for $it")
+                                return@flatMap emptyList()
+                            }
+                            listOf(virtualFile)
+                        })
                 )
             }.associate { it }
             CompilationCommandsState(map)

@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.TestOnly
-import java.nio.file.Path
 
 private val EP_NAME =
     ExtensionPointName.create<TableGenCompilationCommandsProvider>("com.github.zero9178.mlirods.compilationCommandsProvider")
@@ -18,7 +17,7 @@ private val EP_NAME =
 @TestOnly
 fun getCompilationCommandsEP() = EP_NAME
 
-data class IncludePaths(val paths: List<Path>)
+data class IncludePaths(val paths: List<VirtualFile>)
 
 data class CompilationCommandsState(val map: Map<VirtualFile, IncludePaths> = emptyMap())
 
