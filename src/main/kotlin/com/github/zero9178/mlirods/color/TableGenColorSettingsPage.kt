@@ -27,6 +27,7 @@ private val DESCRIPTORS = arrayOf(
     AttributesDescriptor({ "Keyword" }, KEYWORD),
     AttributesDescriptor({ "Identifiers//Field" }, FIELD),
     AttributesDescriptor({ "Identifiers//Other" }, IDENTIFIER),
+    AttributesDescriptor({ "Preprocessor//Directive" }, PREPROCESSOR_DIRECTIVE),
 )
 
 private class TableGenColorSettingsPage : ColorSettingsPage {
@@ -48,6 +49,11 @@ private class TableGenColorSettingsPage : ColorSettingsPage {
                 code literal
             }];
         }
+        
+        #define FOO
+        #ifndef FOO
+            unreachable
+        #endif
         
         defvar b = !empty(Foo<>.s);
         """.trimIndent()

@@ -16,6 +16,12 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
                 let <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = "";
             }
             defvar test = Foo.<text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr>;
+            #define <text_attr textAttributesKey="TABLEGEN_PREPROCESSOR_MACRO_NAME">FOO</text_attr>
+            #ifdef <text_attr textAttributesKey="TABLEGEN_PREPROCESSOR_MACRO_NAME">FOO</text_attr>
+            #ifndef <text_attr textAttributesKey="TABLEGEN_PREPROCESSOR_MACRO_NAME">FOO</text_attr>
+            
+            #endif
+            #endif
         """.trimIndent()
         )
         myFixture.checkHighlighting(false, true, false)

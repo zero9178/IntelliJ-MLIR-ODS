@@ -19,5 +19,9 @@ val KEYWORD = createTextAttributesKey("TABLEGEN_KEYWORD", DefaultLanguageHighlig
 val OPERATION_SIGN = createTextAttributesKey("TABLEGEN_OPERATOR_SIGN", DefaultLanguageHighlighterColors.OPERATION_SIGN)
 val BANG_OPERATOR = createTextAttributesKey("TABLEGEN_BANG_OPERATOR", DefaultLanguageHighlighterColors.STATIC_METHOD)
 val STRING = createTextAttributesKey("TABLEGEN_STRING", DefaultLanguageHighlighterColors.STRING)
+val PREPROCESSOR_DIRECTIVE =
+    createTextAttributesKey("TABLEGEN_PREPROCESSOR_DIRECTIVE", DefaultLanguageHighlighterColors.METADATA)
 
 val FIELD = createTextAttributesKey("TABLEGEN_FIELD", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
+val PREPROCESSOR_MACRO_NAME =
+    createTextAttributesKey("TABLEGEN_PREPROCESSOR_MACRO_NAME", PREPROCESSOR_DIRECTIVE)

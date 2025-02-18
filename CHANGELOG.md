@@ -6,6 +6,7 @@
 ### Added
 - Added resolution of include statements, enabling the `GoTo` action 
 - Implemented renaming of include statements, enabling the `Rename` action of TableGen files
+- Implemented syntax highlighting of preprocessor directives and macro names
 
 ## [0.3.0] - 2025-02-04
 ### Added
