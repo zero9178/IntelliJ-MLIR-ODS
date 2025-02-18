@@ -11,6 +11,8 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <additionalTextAttributes scheme="Default" file="colorSchemes/TableGenDefault.xml"/>
+        <additionalTextAttributes scheme="Darcula" file="colorSchemes/TableGenDarcula.xml"/>
         <fileType name="TableGen"
                   implementationClass="com.github.zero9178.mlirods.language.TableGenFileType"
                   fieldName="INSTANCE"

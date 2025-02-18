@@ -62,3 +62,10 @@ val PUNCTUATION = TokenSet.create(
     TableGenTypes.QUESTION_MARK,
     TableGenTypes.HASHTAG,
 )
+val PREPROCESSOR_TOKENS = TokenSet.create(
+    TableGenTypes.HASHTAG_IFDEF,
+    TableGenTypes.HASHTAG_IFNDEF,
+    TableGenTypes.HASHTAG_ELSE,
+    TableGenTypes.HASHTAG_DEFINE,
+    TableGenTypes.HASHTAG_ENDIF,
+)

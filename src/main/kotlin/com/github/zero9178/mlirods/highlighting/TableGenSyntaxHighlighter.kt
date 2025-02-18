@@ -1,26 +1,12 @@
 package com.github.zero9178.mlirods.highlighting
 
-import com.github.zero9178.mlirods.color.BANG_OPERATOR
-import com.github.zero9178.mlirods.color.BLOCK_COMMENT
-import com.github.zero9178.mlirods.color.BRACES
-import com.github.zero9178.mlirods.color.BRACKETS
-import com.github.zero9178.mlirods.color.COMMA
-import com.github.zero9178.mlirods.color.DOT
-import com.github.zero9178.mlirods.color.IDENTIFIER
-import com.github.zero9178.mlirods.color.KEYWORD
-import com.github.zero9178.mlirods.color.LINE_COMMENT
-import com.github.zero9178.mlirods.color.NUMBER
-import com.github.zero9178.mlirods.color.OPERATION_SIGN
-import com.github.zero9178.mlirods.color.PARENTHESES
-import com.github.zero9178.mlirods.color.SEMICOLON
-import com.github.zero9178.mlirods.color.STRING
-import com.github.zero9178.mlirods.color.STRING_ESCAPE
+import com.github.zero9178.mlirods.color.*
 import com.github.zero9178.mlirods.language.KEYWORDS
 import com.github.zero9178.mlirods.language.PUNCTUATION
 import com.github.zero9178.mlirods.language.STRING_LITERALS
+import com.github.zero9178.mlirods.language.PREPROCESSOR_TOKENS
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.intellij.lexer.Lexer
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.fileTypes.SyntaxHighlighterBase
 import com.intellij.psi.StringEscapesTokenTypes
@@ -62,6 +48,7 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
             KEYWORDS.contains(tokenType) -> arrayOf(KEYWORD)
             PUNCTUATION.contains(tokenType) -> arrayOf(OPERATION_SIGN)
             STRING_LITERALS.contains(tokenType) -> arrayOf(STRING)
+            PREPROCESSOR_TOKENS.contains(tokenType) -> arrayOf(PREPROCESSOR_DIRECTIVE)
             else -> emptyArray()
         }
     }
