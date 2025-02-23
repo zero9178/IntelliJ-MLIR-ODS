@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Added
+- Added resolution of simple identifiers referring to 'defs' and similar.
 
 ## [0.4.0] - 2025-02-18
 ### Added

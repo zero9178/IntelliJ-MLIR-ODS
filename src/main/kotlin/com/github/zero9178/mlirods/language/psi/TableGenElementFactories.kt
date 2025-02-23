@@ -27,5 +27,5 @@ fun createLineStringLiteral(project: Project, text: String): PsiElement {
  */
 fun createEncodedLineStringLiteral(project: Project, encodedText: String): PsiElement {
     val file = createFile(project, "include \"$encodedText\"")
-    return file.firstChild.firstChild.lastChild
+    return file.firstChild.lastChild
 }
