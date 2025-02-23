@@ -107,7 +107,7 @@ class TableGenPsiImplUtil {
         }
 
         /**
-         *
+         * Returns the name of the given [TableGenDefNameIdentifierOwner] or null if it has no name.
          */
         @JvmStatic
         fun getName(element: TableGenDefNameIdentifierOwner): String? {
@@ -117,11 +117,19 @@ class TableGenPsiImplUtil {
             return element.nameIdentifier?.text
         }
 
+        /**
+         * Returns the absolute offset used to navigate to [element].
+         * Always returns the offset of the identifier.
+         */
         @JvmStatic
         fun getTextOffset(element: TableGenDefNameIdentifierOwner): Int {
             return element.nameIdentifier?.textOffset ?: element.startOffset
         }
 
+        /**
+         * Custom representation for any [TableGenDefNameIdentifierOwner] as it appears in 'Find Usages' and the
+         * declaration list.
+         */
         @JvmStatic
         fun getPresentation(element: TableGenDefNameIdentifierOwner) = object : ItemPresentation {
             override fun getPresentableText() = element.name
@@ -132,7 +140,7 @@ class TableGenPsiImplUtil {
                 val projectDir = element.project.guessProjectDir()?.toNioPathOrNull() ?: return null
                 val file = element.containingFile?.virtualFile?.toNioPathOrNull() ?: return null
 
-                //
+                // Only make the path relative to the project directory if it is a subdirectory.
                 if (!file.startsWith(projectDir)) return file.toString()
 
                 return file.relativeToOrNull(projectDir)?.toString()
