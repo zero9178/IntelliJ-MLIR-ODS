@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.MyIcons
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.lang.Language
 import com.intellij.openapi.fileTypes.FileType
@@ -14,7 +15,8 @@ class TableGenLanguage private constructor() : Language("TableGen") {
     }
 }
 
-class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, TableGenLanguage.INSTANCE) {
+class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, TableGenLanguage.INSTANCE),
+    TableGenIdentifierScopeNode {
     override fun getFileType(): FileType = TableGenFileType.INSTANCE
 }
 

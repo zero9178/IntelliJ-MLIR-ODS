@@ -7,7 +7,7 @@ class RenameTest : BasePlatformTestCase() {
     fun `test rename include`() {
         val testFile = myFixture.copyFileToProject("test.td")
         val virtualFile = myFixture.copyFileToProject("HasCompileCommands.td")
-        val inputFile = myFixture.copyFileToProject("ReferenceTestData.td")
+        val inputFile = myFixture.copyFileToProject("IncludeReference.td")
         installCompileCommands(
             project,
             mapOf(
@@ -17,7 +17,7 @@ class RenameTest : BasePlatformTestCase() {
 
         myFixture.configureFromExistingVirtualFile(inputFile)
         myFixture.renameElementAtCaret("tests.td")
-        myFixture.checkResultByFile("ReferenceTestData.td", "ReferenceTestDataAfter.td", false)
+        myFixture.checkResultByFile("IncludeReference.td", "IncludeReferenceAfter.td", false)
     }
 
     override fun getTestDataPath(): String? {

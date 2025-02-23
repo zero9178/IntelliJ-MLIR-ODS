@@ -9,5 +9,11 @@ interface TableGenStubElementTypes {
     companion object {
         @JvmField
         val INCLUDE_DIRECTIVE = TableGenTypes.INCLUDE_DIRECTIVE!!
+
+        @JvmField
+        val DEFVAR_STATEMENT = TableGenTypes.DEFVAR_STATEMENT!!
+
+        @JvmField
+        val DEF_STATEMENT = TableGenTypes.DEF_STATEMENT!!
     }
 }

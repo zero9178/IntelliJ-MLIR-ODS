@@ -35,9 +35,12 @@
                              implementationClass="com.github.zero9178.mlirods.language.TableGenFoldingBuilder"/>
         <lang.elementManipulator forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective"
                                  implementationClass="com.github.zero9178.mlirods.language.psi.TableGenIncludeManipulator"/>
+        <lang.elementManipulator forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue"
+                                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenIdentifierValueManipulator"/>
         <stubElementTypeHolder class="com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes"
                                externalIdPrefix="tablegen."/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenIncludingIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefIndex"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">

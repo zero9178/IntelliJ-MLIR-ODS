@@ -72,17 +72,14 @@
     WHITE_SPACE="regexp:\s*"
   ]
 
-  extends(".*_(statement)")=statement
   extends(".*_type")=type
   extends(".*_body_item")=body_item
   extends(".*_value")=value
 }
 
-tableGenFile ::= statement*
+tableGenFile ::= (statement | include_directive | preprocessor_directive)*
 
-statement ::= include_directive
-            | preprocessor_directive
-            | assert_statement
+statement ::= assert_statement
             | class_statement
             | def_statement
             | defm_statement
@@ -113,14 +110,17 @@ include_directive ::= 'include' LINE_STRING_LITERAL {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStubElementType"
 }
 preprocessor_directive ::= (HASHTAG_DEFINE | HASHTAG_IFDEF | HASHTAG_IFNDEF) IDENTIFIER
-                         | HASHTAG_ENDIF | HASHTAG_ELSE {extends=statement}
-assert_statement ::= 'assert' value ',' value ';' {pin=1}
+                         | HASHTAG_ENDIF | HASHTAG_ELSE
+assert_statement ::= 'assert' value ',' value ';' {pin=1 extends=statement}
 
 private equals_value ::= '=' value {pin=1}
 
 // Fake base class for elements common among 'class' and 'multiclass' statements.
 fake abstract_class_statement ::= template_arg_list? parent_class_list? '{'? '}'? {
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
@@ -130,6 +130,7 @@ fake abstract_class_statement ::= template_arg_list? parent_class_list? '{'? '}'
         getPlaceHolderText
         getFoldingTextRanges
     ]
+    extends=statement
 }
 
 class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
@@ -173,33 +174,74 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
         field_identifier="IDENTIFIER"
     ]
 }
-defvar_body_item ::= 'defvar' IDENTIFIER '=' value ';' {pin=1}
+defvar_body_item ::= 'defvar' IDENTIFIER '=' value ';' {
+    pin=1
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
+    ]
+    methods=[
+        nameIdentifier='IDENTIFIER'
+
+        getName
+        getTextOffset
+    ]
+}
 assert_body_item ::= assert_statement
 
 def_statement ::= 'def' value? record_body {
     pin=1
-    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
     methods=[
         lBrace='LBRACE'
         rBrace='RBRACE'
+
+        toString
+        getName
+        getNameIdentifier
+        getTextOffset
+        getPresentation
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
-defm_statement ::= 'defm' value? parent_class_list? ';' {pin=1}
-defset_statement ::= 'defset' type IDENTIFIER '=' '{' statement* '}' {pin=1}
-deftype_statement ::= 'deftype' IDENTIFIER '=' type ';' {pin=1}
-defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {pin=1}
-dump_statement ::= 'dump' value ';' {pin=1}
+defm_statement ::= 'defm' value? parent_class_list? ';' {pin=1 extends=statement}
+defset_statement ::= 'defset' type IDENTIFIER '=' '{' statement* '}' {pin=1 extends=statement}
+deftype_statement ::= 'deftype' IDENTIFIER '=' type ';' {pin=1 extends=statement}
+defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
+    pin=1
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
+    ]
+    methods=[
+        nameIdentifier='IDENTIFIER'
+
+        toString
+        getName
+        getTextOffset
+    ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
+}
+dump_statement ::= 'dump' value ';' {pin=1 extends=statement}
 
 private statement_block ::= statement | statement_block_list
 private statement_block_list ::= '{' statement* '}' {pin=1}
 
 foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
     pin=1
-    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
     methods = [
         lBrace='LBRACE'
         rBrace='RBRACE'
     ]
+    extends=statement
 }
 foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value)
 
@@ -209,10 +251,14 @@ if_statement ::= 'if' value 'then' if_body else_body? {
         elseBody="if_body[1]"
     ]
     pin=1
+    extends=statement
 }
 private else_body ::= 'else' if_body {pin=1}
 if_body ::= statement_block {
-    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
     methods = [
         lBrace='LBRACE'
         rBrace='RBRACE'
@@ -221,11 +267,15 @@ if_body ::= statement_block {
 
 let_statement ::= 'let' let_list 'in' statement_block {
     pin=1
-    implements="com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
     methods = [
         lBrace='LBRACE'
         rBrace='RBRACE'
     ]
+    extends=statement
 }
 private let_list ::= let_item (',' let_item)*
 let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
@@ -237,6 +287,7 @@ let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
 multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list? statement_block {
     extends=abstract_class_statement
     pin=1
+    extends=statement
 }
 
 type ::= bit_type
@@ -320,7 +371,11 @@ dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
     ]
 }
 dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER
-identifier_value ::= IDENTIFIER
+identifier_value ::= IDENTIFIER {
+    methods=[
+        getReference
+    ]
+}
 
 class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
     pin=2
