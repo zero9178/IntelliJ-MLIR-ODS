@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIfBody
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.psi.PsiFile
@@ -42,6 +43,12 @@ class ReferenceTest : BasePlatformTestCase() {
         val element = doTest<TableGenTemplateArgDecl>()
         assertEquals(element.name, "i")
         assertNotNull(element.parentOfType<TableGenClassStatement>())
+    }
+
+    fun `test LocalDefvarStatementResolution`() {
+        val element = doTest<TableGenDefvarStatement>()
+        assertEquals(element.name, "i")
+        assertNotNull(element.parentOfType<TableGenIfBody>())
     }
 
     override fun getTestDataPath(): String? {
