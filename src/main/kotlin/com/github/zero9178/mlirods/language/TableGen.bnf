@@ -138,7 +138,17 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
     pin=1
 }
 private template_arg_list ::= '<' template_arg_decl (',' template_arg_decl)* '>' {pin=1}
-template_arg_decl ::= type IDENTIFIER equals_value?
+template_arg_decl ::= type IDENTIFIER equals_value? {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
+    ]
+    methods=[
+        nameIdentifier='IDENTIFIER'
+
+        getName
+        getTextOffset
+    ]
+}
 private record_body ::= parent_class_list? body {pin=1}
 parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
 class_ref ::= IDENTIFIER class_ref_suffix? {
