@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parentOfType
@@ -33,6 +34,12 @@ class ReferenceTest : BasePlatformTestCase() {
 
     fun `test LocalDefvarResolution`() {
         val element = doTest<TableGenDefvarBodyItem>()
+        assertEquals(element.name, "i")
+        assertNotNull(element.parentOfType<TableGenClassStatement>())
+    }
+
+    fun `test ClassArgResolution`() {
+        val element = doTest<TableGenTemplateArgDecl>()
         assertEquals(element.name, "i")
         assertNotNull(element.parentOfType<TableGenClassStatement>())
     }
