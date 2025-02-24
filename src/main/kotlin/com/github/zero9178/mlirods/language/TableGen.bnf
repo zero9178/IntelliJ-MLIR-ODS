@@ -79,6 +79,10 @@
 
 tableGenFile ::= (statement | include_directive | preprocessor_directive)*
 
+// Fake base class referring to either body items or statements. Guaranteed to have a [TableGenIdentifierScopeNode] as
+// parent, which is said to be the scope it is contained in.
+fake scope_item ::=
+
 statement ::= assert_statement
             | class_statement
             | def_statement
@@ -93,7 +97,7 @@ statement ::= assert_statement
             | multiclass_statement
             | BLOCK_COMMENT
             | LINE_COMMENT
-            | OTHER
+            | OTHER {extends=scope_item}
 
 include_directive ::= 'include' LINE_STRING_LITERAL {
     pin=1
@@ -169,7 +173,7 @@ body_item ::= field_body_item
             | let_body_item
             | defvar_body_item
             | assert_body_item
-            {recoverWhile=body_recover}
+            {recoverWhile=body_recover extends=scope_item}
 field_body_item ::= 'field'? type IDENTIFIER equals_value? ';' {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
@@ -196,7 +200,7 @@ defvar_body_item ::= 'defvar' IDENTIFIER '=' value ';' {
         getTextOffset
     ]
 }
-assert_body_item ::= assert_statement
+private assert_body_item ::= assert_statement
 
 def_statement ::= 'def' value? record_body {
     pin=1

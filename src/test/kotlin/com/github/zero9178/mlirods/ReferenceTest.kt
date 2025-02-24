@@ -51,6 +51,13 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNotNull(element.parentOfType<TableGenIfBody>())
     }
 
+    fun `test DefVarShadowingResolution`() {
+        val element = doTest<TableGenDefvarStatement>()
+        assertEquals(element.name, "i")
+        assertNotNull(element.parentOfType<TableGenIfBody>())
+        assertNull(element.parentOfType<TableGenIfBody>()?.parentOfType<TableGenIfBody>())
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }
