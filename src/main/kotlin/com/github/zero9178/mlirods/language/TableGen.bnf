@@ -105,12 +105,12 @@ include_directive ::= 'include' LINE_STRING_LITERAL {
         string="LINE_STRING_LITERAL"
 
         toString
-        getReferences
         getIncludeSuffix
     ]
-    implements=["com.intellij.psi.PsiElement"
+    implements=["com.github.zero9178.mlirods.language.psi.impl.TableGenIncludeDirectiveEx"
         "com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStubInterface"]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIncludeDirectiveMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStubElementType"
 }
 preprocessor_directive ::= (HASHTAG_DEFINE | HASHTAG_IFDEF | HASHTAG_IFNDEF) IDENTIFIER

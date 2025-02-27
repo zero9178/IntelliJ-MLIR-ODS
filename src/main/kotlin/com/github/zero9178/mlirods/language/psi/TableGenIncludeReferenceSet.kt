@@ -54,20 +54,11 @@ class TableGenIncludeReferenceSet(
             ): Array<out ResolveResult> {
                 val project = containingFile.project
 
-                val tableGenFile = containingFile as? TableGenFile ?: return emptyArray()
-                val list = mutableListOf<ResolveResult>()
-                for (include in tableGenFile.context.includePaths) {
-                    // TODO: [findFileByRelativePath] only allows forwards slashes. Should backslashes be transformed if
-                    //       on Windows?
-                    val file = include.findFileByRelativePath(element.includeSuffix) ?: continue
-                    list.add(
-                        PsiElementResolveResult(
-                            PsiManager.getInstance(project).findFile(file) ?: continue
-                        )
-                    )
-                    break
-                }
-                return list.toTypedArray()
+                return element.includedFile?.let { file ->
+                    PsiManager.getInstance(project).findFile(file)?.let {
+                        arrayOf(PsiElementResolveResult(it))
+                    }
+                } ?: emptyArray()
             }
         }
     }
