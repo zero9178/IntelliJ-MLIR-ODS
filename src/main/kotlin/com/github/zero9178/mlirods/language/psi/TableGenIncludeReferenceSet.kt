@@ -1,8 +1,7 @@
 package com.github.zero9178.mlirods.language.psi
 
+import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
-import com.github.zero9178.mlirods.model.TableGenIncludeGraph
-import com.intellij.openapi.components.service
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.FileReference
@@ -55,11 +54,9 @@ class TableGenIncludeReferenceSet(
             ): Array<out ResolveResult> {
                 val project = containingFile.project
 
-                val vf = containingFile.virtualFile ?: return emptyArray()
-                val includes = project.service<TableGenIncludeGraph>().getIncludePaths(vf)
-
+                val tableGenFile = containingFile as? TableGenFile ?: return emptyArray()
                 val list = mutableListOf<ResolveResult>()
-                for (include in includes) {
+                for (include in tableGenFile.context.includePaths) {
                     // TODO: [findFileByRelativePath] only allows forwards slashes. Should backslashes be transformed if
                     //       on Windows?
                     val file = include.findFileByRelativePath(element.includeSuffix) ?: continue

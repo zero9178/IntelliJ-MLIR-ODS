@@ -1,6 +1,9 @@
 package com.github.zero9178.mlirods
 
+import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.model.IncludePaths
+import com.intellij.psi.PsiManager
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class RenameTest : BasePlatformTestCase() {
@@ -14,6 +17,12 @@ class RenameTest : BasePlatformTestCase() {
                 virtualFile to IncludePaths(listOf(testFile.parent))
             )
         )
+
+        PlatformTestUtil.waitWhileBusy {
+            val file =
+                PsiManager.getInstance(project).findFile(inputFile) as? TableGenFile ?: return@waitWhileBusy true
+            file.context.includePaths.isEmpty()
+        }
 
         myFixture.configureFromExistingVirtualFile(inputFile)
         myFixture.renameElementAtCaret("tests.td")

@@ -1,6 +1,5 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
-import com.github.zero9178.mlirods.index.INCLUDED_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
@@ -41,7 +40,6 @@ class TableGenIncludeDirectiveStubElementType(debugName: String) :
         stub: TableGenIncludeDirectiveStub,
         sink: IndexSink
     ) {
-        sink.occurrence(INCLUDED_INDEX, stub.includeSuffix.substringAfterLast('/'))
     }
 
     override fun isAlwaysLeaf(root: StubBase<*>) = true
