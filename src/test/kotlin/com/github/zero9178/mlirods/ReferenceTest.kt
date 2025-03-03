@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods
 
+import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
@@ -7,23 +8,30 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIfBody
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.util.parentOfType
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class ReferenceTest : BasePlatformTestCase() {
     fun `test IncludeReference`() {
-        val reference =
-            myFixture.getReferenceAtCaretPositionWithAssertion("IncludeReference.td")
         val testFile = myFixture.copyFileToProject("test.td")
         val virtualFile = myFixture.copyFileToProject("HasCompileCommands.td")
+        val targetFile = myFixture.copyFileToProject("IncludeReference.td")
         installCompileCommands(
-            project,
-            mapOf(
+            project, mapOf(
                 virtualFile to IncludePaths(listOf(testFile.parent))
             )
         )
 
-        val element = assertInstanceOf(reference.resolve(), PsiFile::class.java)
+        PlatformTestUtil.waitWhileBusy {
+            val file =
+                PsiManager.getInstance(project).findFile(targetFile) as? TableGenFile ?: return@waitWhileBusy true
+            file.context.includePaths.isEmpty()
+        }
+
+        myFixture.configureFromExistingVirtualFile(targetFile)
+        val element = assertInstanceOf(myFixture.elementAtCaret, PsiFile::class.java)
         assertEquals(element.viewProvider.virtualFile.name, "test.td")
     }
 
@@ -65,12 +73,10 @@ class ReferenceTest : BasePlatformTestCase() {
     private inline fun <reified T> doTest(vararg additionalFiles: String): T {
         val name = getTestName(false).trim()
 
-        val reference =
-            myFixture.getReferenceAtCaretPositionWithAssertion("${name}.td")
+        val reference = myFixture.getReferenceAtCaretPositionWithAssertion("${name}.td")
         val list = additionalFiles.map { myFixture.copyFileToProject(it).parent }.toList()
         installCompileCommands(
-            project,
-            mapOf(
+            project, mapOf(
                 reference.element.containingFile.viewProvider.virtualFile to IncludePaths(list)
             )
         )
