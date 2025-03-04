@@ -81,7 +81,11 @@ tableGenFile ::= (statement | include_directive | preprocessor_directive)*
 
 // Fake base class referring to either body items or statements. Guaranteed to have a [TableGenIdentifierScopeNode] as
 // parent, which is said to be the scope it is contained in.
-fake scope_item ::=
+fake scope_item ::= {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenScopeItemEx"
+    ]
+}
 
 statement ::= assert_statement
             | class_statement
@@ -154,7 +158,7 @@ template_arg_decl ::= type IDENTIFIER equals_value? {
     ]
 }
 private record_body ::= parent_class_list? body {pin=1}
-parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
+private parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
 class_ref ::= IDENTIFIER class_ref_suffix? {
     implements="com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
     methods = [
@@ -208,6 +212,7 @@ def_statement ::= 'def' value? record_body {
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
         "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        scope_item
     ]
     methods=[
         lBrace='LBRACE'
@@ -229,6 +234,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
     pin=1
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
+        scope_item
     ]
     methods=[
         nameIdentifier='IDENTIFIER'
