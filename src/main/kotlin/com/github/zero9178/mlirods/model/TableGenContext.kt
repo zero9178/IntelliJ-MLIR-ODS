@@ -18,6 +18,7 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter
 import com.intellij.psi.impl.PsiManagerEx
 import com.intellij.psi.search.FileTypeIndex
+import com.intellij.util.AstLoadingFilter
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.jetbrains.rd.util.AtomicInteger
 import com.jetbrains.rd.util.firstOrNull
@@ -156,7 +157,9 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                         // Cancel currently running action when a new request comes in.
                         refreshFlow.collectLatest {
                             readAction {
-                                updateFromNewContext(file)
+                                AstLoadingFilter.disallowTreeLoading<Throwable> {
+                                    updateFromNewContext(file)
+                                }
                             }
                         }
                     }
@@ -183,9 +186,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         tableGenFile.includeDirectives.forEach { includeDirective ->
             ProgressManager.checkCanceled()
 
-            val file = tableGenFile.context.includePaths.firstNotNullOfOrNull {
-                it.findFileByRelativePath(includeDirective.includeSuffix)
-            } ?: return@forEach
+            val file = includeDirective.includedFile ?: return@forEach
 
             // We use the same file as roots for any compile commands, so avoid adding them here.
             if (file == updated) return@forEach

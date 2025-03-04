@@ -64,11 +64,6 @@ class TableGenPsiImplUtil {
         fun getPlaceHolderText(element: TableGenBlockStringValue, textRange: TextRange): String = "[{...}]"
 
         @JvmStatic
-        fun getReferences(element: TableGenIncludeDirective): Array<FileReference>? {
-            return TableGenIncludeReferenceSet(element).allReferences
-        }
-
-        @JvmStatic
         fun getReference(element: TableGenIdentifierValue): PsiReference? {
             return TableGenDefReference(element)
         }
