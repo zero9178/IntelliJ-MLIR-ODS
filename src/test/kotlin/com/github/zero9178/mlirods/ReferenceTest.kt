@@ -53,6 +53,12 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNotNull(element.parentOfType<TableGenClassStatement>())
     }
 
+    fun `test ClassArgInheritanceResolution`() {
+        val element = doTest<TableGenTemplateArgDecl>()
+        assertEquals(element.name, "i")
+        assertNotNull(element.parentOfType<TableGenClassStatement>())
+    }
+
     fun `test LocalDefvarStatementResolution`() {
         val element = doTest<TableGenDefvarStatement>()
         assertEquals(element.name, "i")
