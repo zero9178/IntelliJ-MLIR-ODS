@@ -5,6 +5,8 @@
 ## [Unreleased]
 ### Added
 - Added resolution of simple identifiers referring to 'defs' and similar.
+### Fixed
+- Fixed exception in highlighter when `let` does not yet have a field identifier.
 
 ## [0.4.0] - 2025-02-18
 ### Added

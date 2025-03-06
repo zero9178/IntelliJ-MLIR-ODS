@@ -26,4 +26,13 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting(false, true, false)
     }
+
+    fun `test broken let`() {
+        myFixture.configureByText(
+            "test.td", """
+            let
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting(false, true, false, true)
+    }
 }

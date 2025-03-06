@@ -14,10 +14,12 @@ private class TableGenSemanticTokensAnnotator : Annotator, DumbAware {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         when (element) {
             is TableGenFieldIdentifierNode -> {
-                holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
-                    .range(element.fieldIdentifier)
-                    .textAttributes(FIELD)
-                    .create()
+                element.fieldIdentifier?.let {
+                    holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
+                        .range(it)
+                        .textAttributes(FIELD)
+                        .create()
+                }
             }
 
             is TableGenPreprocessorDirective -> {
