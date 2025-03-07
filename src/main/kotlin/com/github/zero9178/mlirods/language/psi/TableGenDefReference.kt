@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.DEF_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElementResolveResult
@@ -79,8 +80,7 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
             DEF_INDEX,
             name,
             project,
-            // TODO: We should only be searching in files included by the contained file.
-            GlobalSearchScope.allScope(project),
+            TableGenIncludedSearchScope(element, project),
             TableGenDefNameIdentifierOwner::class.java
         ).map { PsiElementResolveResult(it) }.toTypedArray()
     }

@@ -20,7 +20,6 @@ import com.intellij.psi.impl.PsiManagerEx
 import com.intellij.psi.search.FileTypeIndex
 import com.intellij.util.AstLoadingFilter
 import com.intellij.util.concurrency.annotations.RequiresReadLock
-import com.jetbrains.rd.util.AtomicInteger
 import com.jetbrains.rd.util.firstOrNull
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
@@ -34,7 +33,8 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 data class TableGenContext(
-    val includePaths: List<VirtualFile> = emptyList(), val defines: Set<String> = emptySet(),
+    val includePaths: List<VirtualFile> = emptyList(),
+    val defines: Set<String> = emptySet(),
     val inScopeFiles: Set<VirtualFile> = emptySet()
 )
 
@@ -88,8 +88,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                         }
                     }
                 }
-            }
-        )
+            })
         // Refresh the context propagated from a file if its Psi changes.
         PsiManager.getInstance(project).addPsiTreeChangeListener(object : PsiTreeAnyChangeAbstractAdapter() {
             override fun onChange(file: PsiFile?) {
@@ -191,7 +190,11 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
             // We use the same file as roots for any compile commands, so avoid adding them here.
             if (file == updated) return@forEach
 
-            val context = TableGenContext(tableGenFile.context.includePaths, currentDefines, includedSoFar)
+            val context = TableGenContext(
+                tableGenFile.context.includePaths,
+                currentDefines,
+                includedSoFar.toSet()
+            )
             stateFlowForFile(file).update { existing ->
                 existing.put(updated, context)
             }
@@ -214,5 +217,40 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
     fun getActiveContext(virtualFile: VirtualFile) = myLock.read {
         myFileToContexts[virtualFile]?.stateFlow?.value?.firstOrNull()?.value ?: TableGenContext()
+    }
+
+    /**
+     * Returns the set of all files that are included in [file], directly, transitively or as part of the active
+     * context of the file.
+     */
+    fun getIncludedFiles(file: TableGenFile): Set<VirtualFile> {
+        // Worklist of the current tablegen file that we are trying to get all transitive includes of.
+        val workList = mutableListOf(file)
+        val rToT: (VirtualFile) -> TableGenFile? = {
+            PsiManager.getInstance(project).findFile(it) as? TableGenFile
+        }
+        val result = mutableSetOf<VirtualFile>()
+        file.virtualFile?.let { vf ->
+            // Add from context.
+            val context = getActiveContext(vf)
+            result += context.inScopeFiles
+            workList += result.mapNotNull(rToT)
+        }
+
+        while (true) {
+            val current = workList.removeLastOrNull() ?: break
+
+            current.includeDirectives.mapNotNull {
+                it.includedFile
+            }.forEach {
+                // No need to add to worklist again if already seen.
+                if (!result.add(it)) return@forEach
+
+                rToT(it)?.run {
+                    workList.add(this)
+                }
+            }
+        }
+        return result
     }
 }

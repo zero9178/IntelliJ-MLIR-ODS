@@ -5,6 +5,7 @@
 ## [Unreleased]
 ### Added
 - Added resolution of simple identifiers referring to 'defs' and similar.
+- Restrict 'def' search to files which are included (directly or transitively) in the current file.
 ### Fixed
 - Fixed exception in highlighter when `let` does not yet have a field identifier.
 
