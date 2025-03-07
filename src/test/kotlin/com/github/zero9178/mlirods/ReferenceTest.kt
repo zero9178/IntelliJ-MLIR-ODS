@@ -72,6 +72,12 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNull(element.parentOfType<TableGenIfBody>()?.parentOfType<TableGenIfBody>())
     }
 
+    fun `test DefInIncludeResolution`() {
+        val element = doTest<TableGenDefvarStatement>("test2.td", "test.td")
+        assertEquals(element.name, "f")
+        assertEquals(element.containingFile.name, "test2.td")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }
@@ -79,14 +85,21 @@ class ReferenceTest : BasePlatformTestCase() {
     private inline fun <reified T> doTest(vararg additionalFiles: String): T {
         val name = getTestName(false).trim()
 
-        val reference = myFixture.getReferenceAtCaretPositionWithAssertion("${name}.td")
+        val mainVF = myFixture.copyFileToProject("${name}.td")
         val list = additionalFiles.map { myFixture.copyFileToProject(it).parent }.toList()
         installCompileCommands(
             project, mapOf(
-                reference.element.containingFile.viewProvider.virtualFile to IncludePaths(list)
+                mainVF to IncludePaths(list)
             )
         )
-        return assertInstanceOf(reference.resolve(), T::class.java)
+        PlatformTestUtil.waitWhileBusy {
+            val file =
+                PsiManager.getInstance(project).findFile(mainVF) as? TableGenFile ?: return@waitWhileBusy true
+            file.context.includePaths != list
+        }
+
+        myFixture.configureFromExistingVirtualFile(mainVF)
+        return assertInstanceOf(myFixture.elementAtCaret, T::class.java)
     }
 
 }
