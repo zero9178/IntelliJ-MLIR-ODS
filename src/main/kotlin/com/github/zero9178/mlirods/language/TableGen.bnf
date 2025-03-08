@@ -138,11 +138,29 @@ fake abstract_class_statement ::= template_arg_list? parent_class_list? '{'? '}'
         getPlaceHolderText
         getFoldingTextRanges
     ]
-    extends=statement
 }
 
 class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
-    extends=abstract_class_statement
+    methods = [
+        lAngle='LANGLE'
+        rAngle='RANGLE'
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+
+        toString
+        getPlaceHolderText
+        getFoldingTextRanges
+    ]
+    implements=[
+        abstract_class_statement
+        scope_item
+
+        "com.intellij.navigation.NavigationItem"
+        "com.intellij.psi.PsiNameIdentifierOwner"
+    ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassStatementMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStubElementType"
     pin=1
 }
 private template_arg_list ::= '<' template_arg_decl (',' template_arg_decl)* '>' {pin=1}
@@ -159,11 +177,24 @@ template_arg_decl ::= type IDENTIFIER equals_value? {
 }
 private record_body ::= parent_class_list? body {pin=1}
 private parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
+
+fake abstract_class_ref ::= IDENTIFIER {
+    methods=[
+        class_name='IDENTIFIER'
+    ]
+}
+
 class_ref ::= IDENTIFIER class_ref_suffix? {
-    implements="com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+        abstract_class_ref
+    ]
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
+        class_name='IDENTIFIER'
+
+        getReference
     ]
 }
 private class_ref_suffix ::= '<' arg_value_list? '>' {pin=1}
@@ -305,7 +336,16 @@ let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
     ]
 }
 multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list? statement_block {
-    extends=abstract_class_statement
+    methods = [
+        lAngle='LANGLE'
+        rAngle='RANGLE'
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+
+        getPlaceHolderText
+        getFoldingTextRanges
+    ]
+    implements=abstract_class_statement
     pin=1
     extends=statement
 }
@@ -325,7 +365,14 @@ dag_type ::= 'dag'
 code_type ::= 'code'
 bits_type ::= 'bits' '<' INTEGER '>' {pin=1}
 list_type ::= 'list' '<' type '>' {pin=1}
-class_type ::= IDENTIFIER
+class_type ::= IDENTIFIER {
+    methods=[
+        class_name='IDENTIFIER'
+
+        getReference
+    ]
+    implements=abstract_class_ref
+}
 
 value ::= simple_value
         | field_access_value
@@ -399,10 +446,16 @@ identifier_value ::= IDENTIFIER {
 
 class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
     pin=2
-    implements="com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+        abstract_class_ref
+    ]
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
+        class_name='IDENTIFIER'
+
+        getReference
     ]
 }
 // Note: This is a simplification from the official syntax that is easier to parse.

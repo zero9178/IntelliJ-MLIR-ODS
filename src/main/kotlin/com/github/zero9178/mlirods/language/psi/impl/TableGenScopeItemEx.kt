@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
@@ -15,7 +16,8 @@ interface TableGenScopeItemEx : PsiElement {
 
     private val statementOrSelf: PsiElement
         get() = when (this) {
-            is TableGenDefStatement, is TableGenDefvarStatement -> {
+            is TableGenDefStatement, is TableGenDefvarStatement,
+            is TableGenClassStatement -> {
                 // Should be wrapped in a parent [TableGenStatement].
                 parent!!
             }
@@ -31,6 +33,9 @@ interface TableGenScopeItemEx : PsiElement {
                         return@map this
                     }
                     it.defvarStatement?.run {
+                        return@map this
+                    }
+                    it.classStatement?.run {
                         return@map this
                     }
                 }
@@ -55,7 +60,7 @@ interface TableGenScopeItemEx : PsiElement {
             } else {
                 // Both of these statements were the previous items.
                 // Filter out this pure container statement in that case.
-                it.defvarStatement == null && it.defStatement == null
+                it.defvarStatement == null && it.defStatement == null && it.classStatement == null
             }
         }
 

@@ -1,15 +1,15 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.MyIcons
+import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
 import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
+import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenDefReference
-import com.github.zero9178.mlirods.language.psi.TableGenIncludeReferenceSet
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
 import com.intellij.extapi.psi.ASTDelegatePsiElement
@@ -21,10 +21,8 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
-import com.intellij.psi.impl.source.resolve.reference.impl.providers.FileReference
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
-import kotlin.io.path.name
 import kotlin.io.path.relativeToOrNull
 
 class TableGenPsiImplUtil {
@@ -66,6 +64,11 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun getReference(element: TableGenIdentifierValue): PsiReference? {
             return TableGenDefReference(element)
+        }
+
+        @JvmStatic
+        fun getReference(element: TableGenAbstractClassRef): PsiReference? {
+            return TableGenClassReference(element)
         }
 
         @JvmStatic
