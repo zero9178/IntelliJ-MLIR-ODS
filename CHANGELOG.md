@@ -6,6 +6,7 @@
 ### Added
 - Added resolution of simple identifiers referring to 'defs' and similar.
 - Restrict 'def' search to files which are included (directly or transitively) in the current file.
+- Added resolution of class names to class statements.
 ### Fixed
 - Fixed exception in highlighter when `let` does not yet have a field identifier.
 
