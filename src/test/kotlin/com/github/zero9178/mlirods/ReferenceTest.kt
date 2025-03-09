@@ -78,6 +78,27 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.containingFile.name, "test2.td")
     }
 
+    fun `test ParentClassListResolution`() {
+        val element = doTest<TableGenClassStatement>("ParentClassListResolution.td")
+        assertEquals(element.name, "F")
+    }
+
+    fun `test ClassInstantiationResolution`() {
+        val element = doTest<TableGenClassStatement>("ParentClassListResolution.td")
+        assertEquals(element.name, "F")
+    }
+
+    fun `test ClassTypeResolution`() {
+        val element = doTest<TableGenClassStatement>("ParentClassListResolution.td")
+        assertEquals(element.name, "F")
+    }
+
+    fun `test GlobalClassInstantiationResolution`() {
+        val element = doTest<TableGenClassStatement>("GlobalClassInstantiationResolution.td", "test.td")
+        assertEquals(element.name, "F")
+        assertEquals(element.containingFile.name, "test.td")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }
