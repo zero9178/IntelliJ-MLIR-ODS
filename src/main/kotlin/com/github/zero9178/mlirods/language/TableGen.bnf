@@ -212,8 +212,8 @@ private body_recover ::= !('}' | 'field' | 'let' | 'defvar' | 'assert' | 'bit' |
 
 private body_item ::= field_body_item
                     | let_body_item
-                    | defvar_body_item
-                    | assert_body_item
+                    | defvar_statement
+                    | assert_statement
                     {recoverWhile=body_recover}
 field_body_item ::= 'field'? type IDENTIFIER equals_value? ';' {
     implements=[
@@ -239,20 +239,6 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
         field_identifier="IDENTIFIER"
     ]
 }
-defvar_body_item ::= 'defvar' IDENTIFIER '=' value ';' {
-    pin=1
-    implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
-    ]
-    methods=[
-        nameIdentifier='IDENTIFIER'
-
-        getName
-        setName
-        getTextOffset
-    ]
-}
-private assert_body_item ::= assert_statement
 
 def_statement ::= 'def' value? record_body {
     pin=1
