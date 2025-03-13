@@ -2,8 +2,10 @@ package com.github.zero9178.mlirods.model
 
 import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.TableGenFileType
+import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.readAction
+import com.intellij.openapi.application.readAndWriteAction
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -156,7 +158,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                         // Cancel currently running action when a new request comes in.
                         refreshFlow.collectLatest {
                             readAction {
-                                AstLoadingFilter.disallowTreeLoading<Throwable> {
+                                disallowTreeLoading {
                                     updateFromNewContext(file)
                                 }
                             }

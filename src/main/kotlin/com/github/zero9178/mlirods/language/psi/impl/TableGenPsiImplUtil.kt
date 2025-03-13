@@ -86,11 +86,6 @@ class TableGenPsiImplUtil {
             return text.substring(2, text.length - 2)
         }
 
-        @JvmStatic
-        fun getIncludeSuffix(element: TableGenIncludeDirectiveImpl): String {
-            return element.stub?.includeSuffix ?: element.string?.let { getStringValue(it) } ?: ""
-        }
-
         /**
          * Workaround for [ASTDelegatePsiElement] to implement the same [toString] method
          * as [ASTWrapperPsiElement]

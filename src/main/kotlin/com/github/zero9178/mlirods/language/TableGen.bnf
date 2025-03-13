@@ -101,7 +101,6 @@ private statement ::= assert_statement
                 | let_statement
                 | multiclass_statement
                 | others_statement
-                {implements=scope_item}
 
 others_statement ::= BLOCK_COMMENT
                    | LINE_COMMENT
@@ -113,10 +112,8 @@ include_directive ::= 'include' LINE_STRING_LITERAL {
         string="LINE_STRING_LITERAL"
 
         toString
-        getIncludeSuffix
     ]
-    implements=["com.github.zero9178.mlirods.language.psi.impl.TableGenIncludeDirectiveEx"
-        "com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStubInterface"]
+    implements=["com.github.zero9178.mlirods.language.psi.impl.TableGenIncludeDirectiveEx"]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIncludeDirectiveMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStubElementType"

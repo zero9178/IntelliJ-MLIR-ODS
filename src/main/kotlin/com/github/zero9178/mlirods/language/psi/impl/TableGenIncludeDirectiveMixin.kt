@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.psi.impl
 import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.psi.TableGenIncludeReferenceSet
+import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.getStringValue
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStub
 import com.github.zero9178.mlirods.model.TableGenContextService
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -35,6 +36,9 @@ abstract class TableGenIncludeDirectiveMixin : StubBasedPsiElementBase<TableGenI
     override val includedFile: VirtualFile?
         @RequiresReadLock
         get() = myIncludedFileCache.value
+
+    override val includeSuffix: String
+        get() = greenStub?.includeSuffix ?: string?.let { getStringValue(it) } ?: ""
 
     override fun getReferences(): Array<out FileReference?> {
         return TableGenIncludeReferenceSet(this).allReferences
