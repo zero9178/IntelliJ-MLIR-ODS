@@ -29,6 +29,19 @@ class RenameTest : BasePlatformTestCase() {
         myFixture.checkResultByFile("IncludeReference.td", "IncludeReferenceAfter.td", false)
     }
 
+    fun `test LocalDefvarResolution`() {
+        doTest("j")
+    }
+
+    private fun doTest(newName: String) {
+        val name = getTestName(false).trim()
+
+        val mainVF = myFixture.copyFileToProject("${name}.td")
+        myFixture.configureFromExistingVirtualFile(mainVF)
+        myFixture.renameElementAtCaret(newName)
+        myFixture.checkResultByFile("${name}.td", "${name}After.td", false)
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }
