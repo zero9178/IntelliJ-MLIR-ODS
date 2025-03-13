@@ -7,10 +7,13 @@ import com.intellij.psi.AbstractElementManipulator
 private class TableGenIdentifierValueManipulator : AbstractElementManipulator<TableGenIdentifierValue>() {
 
     override fun handleContentChange(
-        element: TableGenIdentifierValue, range: TextRange, newContent: String?
-    ): TableGenIdentifierValue? {
-        TODO()
-    }
+        element: TableGenIdentifierValue, range: TextRange, newContent: String
+    ) = element.replace(
+        createIdentifierValue(
+            element.project,
+            range.replace(element.text, newContent)
+        )
+    ) as TableGenIdentifierValue
 
     override fun getRangeInElement(element: TableGenIdentifierValue): TextRange {
         return element.identifier.textRangeInParent

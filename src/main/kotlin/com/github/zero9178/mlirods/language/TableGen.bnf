@@ -177,6 +177,7 @@ template_arg_decl ::= type IDENTIFIER equals_value? {
         nameIdentifier='IDENTIFIER'
 
         getName
+        setName
         getTextOffset
     ]
 }
@@ -247,6 +248,7 @@ defvar_body_item ::= 'defvar' IDENTIFIER '=' value ';' {
         nameIdentifier='IDENTIFIER'
 
         getName
+        setName
         getTextOffset
     ]
 }
@@ -266,6 +268,7 @@ def_statement ::= 'def' value? record_body {
 
         toString
         getName
+        setName
         getTextOffset
         getPresentation
     ]
@@ -287,6 +290,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
 
         toString
         getName
+        setName
         getTextOffset
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub"

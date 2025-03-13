@@ -9,6 +9,7 @@ import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDi
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
 import com.github.zero9178.mlirods.language.psi.TableGenDefReference
+import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
 import com.intellij.extapi.psi.ASTDelegatePsiElement
@@ -16,6 +17,7 @@ import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.psi.PsiElement
@@ -107,6 +109,15 @@ class TableGenPsiImplUtil {
                 return it.name
             }
             return element.nameIdentifier?.text
+        }
+
+        /**
+         * Replaces the name within [element] using [name].
+         */
+        @JvmStatic
+        fun setName(element: TableGenDefNameIdentifierOwner, name: @NlsSafe String): PsiElement? {
+            element.nameIdentifier?.replace(createIdentifier(element.project, name))
+            return element
         }
 
         /**
