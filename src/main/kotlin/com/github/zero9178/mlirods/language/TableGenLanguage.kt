@@ -27,20 +27,20 @@ class TableGenFile(viewProvider: FileViewProvider, var context: TableGenContext)
     /**
      * Returns a sequence of all stub elements that is one of the given [elementTypes].
      */
-    fun stubStream(vararg elementTypes: IStubElementType<*, *>): Sequence<PsiElement> {
+    inline fun <reified T> stubStream(vararg elementTypes: IStubElementType<*, T>): Sequence<T> {
         val spine = stubbedSpine
         return (0 until spine.stubCount).asSequence().filter {
             elementTypes.contains(spine.getStubType(it))
         }.mapNotNull {
             spine.getStubPsi(it)
-        }
+        }.filterIsInstance<T>()
     }
 
     /**
      * Returns a sequence of all include directives in the file.
      */
     val includeDirectives: Sequence<TableGenIncludeDirective>
-        get() = stubStream(TableGenStubElementTypes.INCLUDE_DIRECTIVE).filterIsInstance<TableGenIncludeDirective>()
+        get() = stubStream(TableGenStubElementTypes.INCLUDE_DIRECTIVE)
 }
 
 class TableGenFileType : LanguageFileType(TableGenLanguage.INSTANCE) {

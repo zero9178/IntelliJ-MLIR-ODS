@@ -161,6 +161,7 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
 
         "com.intellij.navigation.NavigationItem"
         "com.intellij.psi.PsiNameIdentifierOwner"
+        "com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode"
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassStatementMixin"
@@ -212,12 +213,22 @@ private body_item ::= field_body_item
                     | let_body_item
                     | defvar_body_item
                     | assert_body_item
-                    { recoverWhile=body_recover }
+                    {recoverWhile=body_recover}
 field_body_item ::= 'field'? type IDENTIFIER equals_value? ';' {
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+
+        "com.intellij.navigation.NavigationItem"
+        "com.intellij.psi.PsiNameIdentifierOwner"
+    ]
     methods=[
         field_identifier="IDENTIFIER"
+
+        toString
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenFieldBodyItemMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStubElementType"
     pin=2
 }
 let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
@@ -246,7 +257,7 @@ def_statement ::= 'def' value? record_body {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
         "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode"
         scope_item
     ]
     methods=[
@@ -255,11 +266,11 @@ def_statement ::= 'def' value? record_body {
 
         toString
         getName
-        getNameIdentifier
         getTextOffset
         getPresentation
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
 defm_statement ::= 'defm' value? parent_class_list? ';' {pin=1}

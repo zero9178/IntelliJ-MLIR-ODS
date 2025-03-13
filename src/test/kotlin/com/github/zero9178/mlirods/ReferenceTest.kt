@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIfBody
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.model.IncludePaths
@@ -97,6 +98,26 @@ class ReferenceTest : BasePlatformTestCase() {
         val element = doTest<TableGenClassStatement>("GlobalClassInstantiationResolution.td", "test.td")
         assertEquals(element.name, "F")
         assertEquals(element.containingFile.name, "test.td")
+    }
+
+    fun `test FieldDefResolution`() {
+        val element = doTest<TableGenFieldBodyItem>()
+        assertEquals(element.name, "i")
+    }
+
+    fun `test ParentClassFieldDefResolution`() {
+        val element = doTest<TableGenFieldBodyItem>()
+        assertEquals(element.name, "i")
+        val parentClass = assertInstanceOf(element.parent, TableGenClassStatement::class.java)
+        assertEquals(parentClass.name, "A")
+    }
+
+    fun `test GlobalFieldDefResolution`() {
+        val element = doTest<TableGenFieldBodyItem>("test.td")
+        assertEquals(element.name, "i")
+        val parentClass = assertInstanceOf(element.parent, TableGenClassStatement::class.java)
+        assertEquals(parentClass.name, "A")
+        assertEquals(parentClass.containingFile.name, "test.td")
     }
 
     override fun getTestDataPath(): String? {

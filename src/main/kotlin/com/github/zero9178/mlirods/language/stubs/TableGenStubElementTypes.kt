@@ -18,5 +18,8 @@ interface TableGenStubElementTypes {
 
         @JvmField
         val CLASS_STATEMENT = TableGenTypes.CLASS_STATEMENT!!
+
+        @JvmField
+        val FIELD_BODY_ITEM = TableGenTypes.FIELD_BODY_ITEM!!
     }
 }

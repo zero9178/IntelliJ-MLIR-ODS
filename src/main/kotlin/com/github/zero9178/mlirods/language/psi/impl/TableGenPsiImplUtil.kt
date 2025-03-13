@@ -4,11 +4,10 @@ import com.github.zero9178.mlirods.MyIcons
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
-import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
+import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
 import com.github.zero9178.mlirods.language.psi.TableGenDefReference
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
@@ -71,11 +70,6 @@ class TableGenPsiImplUtil {
             return TableGenClassReference(element)
         }
 
-        @JvmStatic
-        fun getNameIdentifier(element: TableGenDefStatement): PsiElement? {
-            return element.value as? TableGenIdentifierValue
-        }
-
         /**
          * Returns the string value that the TableGen string element corresponds to.
          */
@@ -129,7 +123,7 @@ class TableGenPsiImplUtil {
          * declaration list.
          */
         @JvmStatic
-        fun getPresentation(element: TableGenDefNameIdentifierOwner) = object : ItemPresentation {
+        fun getPresentation(element: TableGenDefNameIdentifierOwner): ItemPresentation? = object : ItemPresentation {
             override fun getPresentableText() = element.name
 
             override fun getIcon(unused: Boolean) = MyIcons.TableGenIcon
