@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.psi.computeDirectFields
+import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
@@ -28,7 +29,8 @@ abstract class TableGenClassStatementMixin : StubBasedPsiElementBase<TableGenCla
     }
 
     override fun setName(name: String): PsiElement {
-        TODO("not implemented")
+        nameIdentifier?.replace(createIdentifier(project, name))
+        return this
     }
 
     override fun getNameIdentifier(): PsiElement? {
