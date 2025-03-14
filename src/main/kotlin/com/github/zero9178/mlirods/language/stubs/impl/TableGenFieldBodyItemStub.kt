@@ -16,10 +16,7 @@ interface TableGenFieldBodyItemStub : StubElement<TableGenFieldBodyItem> {
 }
 
 class TableGenFieldBodyItemStubElementType(debugName: String) :
-    TableGenStubElementType<TableGenFieldBodyItemStub, TableGenFieldBodyItem>(debugName) {
-    override fun createPsi(stub: TableGenFieldBodyItemStub): TableGenFieldBodyItem? {
-        return TableGenFieldBodyItemImpl(stub, this)
-    }
+    TableGenStubElementType<TableGenFieldBodyItemStub, TableGenFieldBodyItem>(debugName, ::TableGenFieldBodyItemImpl) {
 
     override fun shouldCreateStub(node: ASTNode): Boolean {
         return TableGenFieldBodyItemImpl(node).fieldIdentifier != null
@@ -43,7 +40,7 @@ class TableGenFieldBodyItemStubElementType(debugName: String) :
         return TableGenFieldBodyItemStubImpl(dataStream.readUTFFast(), parentStub)
     }
 
-    override fun indexStub(stub: TableGenFieldBodyItemStub, sink: IndexSink) {}
+    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenFieldBodyItemStubImpl(

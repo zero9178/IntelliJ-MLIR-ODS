@@ -8,10 +8,16 @@ import com.intellij.psi.stubs.*
  * Base class of all stub element types used within TableGen.
  */
 abstract class TableGenStubElementType<StubT : StubElement<PsiT>, PsiT : PsiElement>(
-    debugName: String
+    debugName: String, private val constructor: (StubT, TableGenStubElementType<StubT, PsiT>) -> PsiT
 ) : IStubElementType<StubT, PsiT>(debugName, TableGenLanguage.INSTANCE) {
+
+    final override fun createPsi(stub: StubT): PsiT? {
+        return constructor.invoke(stub, this)
+    }
 
     override fun getExternalId(): String {
         return "tablegen." + toString()
     }
+
+    override fun indexStub(stub: StubT, sink: IndexSink) {}
 }
