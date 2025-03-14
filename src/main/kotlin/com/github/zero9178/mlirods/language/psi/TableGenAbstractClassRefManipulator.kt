@@ -12,9 +12,12 @@ private abstract class TableGenAbstractClassRefManipulator<T : TableGenAbstractC
     override fun handleContentChange(
         element: T,
         range: TextRange,
-        newContent: String?
+        newContent: String
     ): T? {
-        TODO("Not yet implemented")
+        val newClassName =
+            range.shiftLeft(getRangeInElement(element).startOffset).replace(element.className.text, newContent)
+        element.className.replace(createIdentifier(element.project, newClassName))
+        return element
     }
 
     override fun getRangeInElement(element: T): TextRange {

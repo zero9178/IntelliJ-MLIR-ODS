@@ -33,6 +33,18 @@ class RenameTest : BasePlatformTestCase() {
         doTest("j")
     }
 
+    fun `test ClassInstantiationResolution`() {
+        doTest("J")
+    }
+
+    fun `test ClassTypeResolution`() {
+        doTest("J")
+    }
+
+    fun `test ParentClassListResolution`() {
+        doTest("J")
+    }
+
     private fun doTest(newName: String) {
         val name = getTestName(false).trim()
 
