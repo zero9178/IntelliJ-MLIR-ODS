@@ -115,6 +115,20 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(parentClass.containingFile.name, "test.td")
     }
 
+    fun `test ClassTemplateArgFieldResolutionPos`() {
+        val element = doTest<TableGenTemplateArgDecl>()
+        assertEquals(element.name, "i")
+        val parentClass = assertInstanceOf(element.parent, TableGenClassStatement::class.java)
+        assertEquals(parentClass.name, "Foobar")
+    }
+
+    fun `test ClassTemplateArgFieldResolutionNeg`() {
+        val element = doTest<TableGenFieldBodyItem>()
+        assertEquals(element.name, "i")
+        val parentClass = assertInstanceOf(element.parent, TableGenClassStatement::class.java)
+        assertEquals(parentClass.name, "Bar")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }

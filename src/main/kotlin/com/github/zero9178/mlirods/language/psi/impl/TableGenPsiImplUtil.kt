@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.MyIcons
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
@@ -70,6 +71,11 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun getReference(element: TableGenAbstractClassRef): PsiReference? {
             return TableGenClassReference(element)
+        }
+
+        @JvmStatic
+        fun getReferencedClass(element: TableGenAbstractClassRef): TableGenClassStatement? {
+            return element.reference?.resolve() as? TableGenClassStatement
         }
 
         /**

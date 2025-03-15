@@ -1,21 +1,43 @@
 package com.github.zero9178.mlirods.language.psi
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.intellij.extapi.psi.StubBasedPsiElementBase
-import com.intellij.util.AstLoadingFilter
+import com.intellij.psi.PsiElement
+import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.startOffset
 
 /**
  * Map used to lookup fields within a [TableGenFieldScopeNode].
  * Will perform the lookup not only in [myRoot], but also any of its base classes.
  */
 class FieldMap(private val myRoot: TableGenFieldScopeNode) {
-    operator fun get(fieldName: String): TableGenFieldBodyItem? {
-        myRoot.directFields[fieldName]?.let { return it }
 
-        return myRoot.baseClasses.firstNotNullOfOrNull {
+    /**
+     *
+     */
+    operator fun get(fieldName: PsiElement): TableGenFieldBodyItem? {
+        val differentFile = myRoot.containingFile != fieldName.containingFile
+
+        // Compute lazily as this performs a traversal up to the parent file.
+        val startOffset = lazy(LazyThreadSafetyMode.PUBLICATION) {
+            fieldName.startOffset
+        }
+
+        // Only consider fields defined before 'fieldName'.
+        myRoot.directFields[fieldName.text]?.let {
+            if (differentFile || it.endOffset < startOffset.value) return it
+        }
+
+        // Only consider base classes referenced before 'fieldName'.
+        return myRoot.baseClassRefs.takeWhile {
+            differentFile || it.endOffset < startOffset.value
+        }.mapNotNull {
+            it.referencedClass
+        }.firstNotNullOfOrNull {
             FieldMap(it)[fieldName]
         }
     }
@@ -31,9 +53,9 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     val directFields: Map<String, TableGenFieldBodyItem>
 
     /**
-     * Returns a sequence returning all base classes of this that should be used for field lookup.
+     * Returns a sequence of all references to base classes that should be used for field lookup.
      */
-    val baseClasses: Sequence<TableGenFieldScopeNode>
+    val baseClassRefs: Sequence<TableGenClassRef>
 
     /**
      * Returns a map for field lookup.
