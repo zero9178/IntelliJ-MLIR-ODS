@@ -1,9 +1,9 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
-import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.psi.computeDirectFields
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -33,10 +33,8 @@ abstract class TableGenDefStatementMixin : StubBasedPsiElementBase<TableGenDefNa
             return fields
         }
 
-    override val baseClasses: Sequence<TableGenFieldScopeNode>
-        get() = classRefList.asSequence().mapNotNull {
-            it.reference?.resolve() as? TableGenFieldScopeNode
-        }
+    override val baseClassRefs: Sequence<TableGenClassRef>
+        get() = classRefList.asSequence()
 
     override fun subtreeChanged() {
         super.subtreeChanged()

@@ -184,6 +184,11 @@ private parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
 fake abstract_class_ref ::= IDENTIFIER {
     methods=[
         class_name='IDENTIFIER'
+
+        getReferencedClass
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractClassRefEx"
     ]
 }
 
@@ -198,6 +203,7 @@ class_ref ::= IDENTIFIER class_ref_suffix? {
         class_name='IDENTIFIER'
 
         getReference
+        getReferencedClass
     ]
 }
 private class_ref_suffix ::= '<' arg_value_list? '>' {pin=1}
@@ -368,6 +374,7 @@ class_type ::= IDENTIFIER {
         class_name='IDENTIFIER'
 
         getReference
+        getReferencedClass
     ]
     implements=abstract_class_ref
 }
@@ -454,6 +461,7 @@ class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
         class_name='IDENTIFIER'
 
         getReference
+        getReferencedClass
     ]
 }
 // Note: This is a simplification from the official syntax that is easier to parse.

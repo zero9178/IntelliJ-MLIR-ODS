@@ -21,7 +21,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
  * These must act as if defined at the very beginning of that scope (i.e. are found only after any elements within the
  * body).
  */
-private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: String) = sequence<PsiElement> {
+private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: TableGenIdentifierValue) = sequence<PsiElement> {
     // Lookup is done for fields before template arguments.
     if (parent is TableGenFieldScopeNode) parent.fields[name]?.let {
         yield(it)
@@ -34,7 +34,7 @@ private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: String) =
  * Returns all [TableGenDefNameIdentifierOwner] by performing a backwards traversal starting from [root] and walking up
  * parents whenever the start has been reached.
  */
-private fun traverse(root: TableGenScopeItem, name: String): Sequence<PsiElement> = sequence {
+private fun traverse(root: TableGenScopeItem, name: TableGenIdentifierValue): Sequence<PsiElement> = sequence {
     yieldAll(root.itemsBefore(withSelf = true))
 
     root.parentItem?.let {
@@ -77,12 +77,12 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
                 } as? TableGenScopeItem ?: return@run emptySequence()
 
                 // Implement different sequences depending on where in the Psi we are.
-                var sequence = traverse(scopeItem, name)
+                var sequence = traverse(scopeItem, element)
                 when (scopeItem) {
                     is TableGenClassStatement ->
                         // If coming from the template decl, we do not care to add other template arguments to the search.
                         // Otherwise, i.e., coming from the parent class list, we must add any template arguments.
-                        if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, name) + sequence
+                        if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, element) + sequence
 
                     // Definitions should be skipped.
                     is TableGenDefNameIdentifierOwner -> sequence = sequence.drop(1)
