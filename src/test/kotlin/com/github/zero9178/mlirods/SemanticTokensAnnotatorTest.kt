@@ -1,10 +1,13 @@
 package com.github.zero9178.mlirods
 
+import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
 
     fun `test let identifier`() {
+        IndexingTestUtil.waitUntilIndexesAreReady(project)
+        
         myFixture.configureByText(
             "test.td", """
             let <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = 5 in {
@@ -22,6 +25,10 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
             
             #endif
             #endif
+            class Bar {
+                int <text_attr textAttributesKey="TABLEGEN_FIELD">i</text_attr> = 0;
+                defvar j = <text_attr textAttributesKey="TABLEGEN_FIELD">i</text_attr>;
+            }
         """.trimIndent()
         )
         myFixture.checkHighlighting(false, true, false)
