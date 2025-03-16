@@ -8,4 +8,11 @@ interface TableGenFieldIdentifierNode : PsiElement {
      * The latter may be due to an AST containing an error for example.
      */
     val fieldIdentifier: PsiElement?
+
+    /**
+     * Returns the name of the field being referenced.
+     * May be implemented only using stub interfaces.
+     */
+    val fieldName: String?
+        get() = fieldIdentifier?.text
 }

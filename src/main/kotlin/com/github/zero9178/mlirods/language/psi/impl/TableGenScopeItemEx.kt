@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentsOfType
@@ -19,6 +20,13 @@ interface TableGenScopeItemEx : PsiElement {
      * syntactically.
      */
     fun itemsBefore(withSelf: Boolean = false) = itemSiblings(forward = false, withSelf)
+
+    /**
+     * Specialization of [itemsBefore] for [TableGenClassStatement]s.
+     * May be implemented faster using only stub interfaces.
+     */
+    fun classStatementsBefore(withSelf: Boolean = false) =
+        itemsBefore(withSelf).filterIsInstance<TableGenClassStatement>()
 
     /**
      * Returns a sequence of all scope items that are a parent of this starting from the immediate parent.

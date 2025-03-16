@@ -12,16 +12,20 @@ import com.intellij.util.AstLoadingFilter
  */
 inline fun <reified C : PsiElement, T : StubElement<*>> StubBasedPsiElementBase<T>.stubbedChildren(elementType: TableGenStubElementType<*, C>): Sequence<C> {
     greenStub?.let { stub ->
-        return stub.childrenStubs.asSequence().filter {
-            it?.stubType == elementType
-        }.mapNotNull {
-            it.psi
-        }.filterIsInstance<C>()
+        return stub.stubbedChildren(elementType)
     }
 
     return childrenOfType<C>().asSequence().filter {
         elementType.shouldCreateStub(it.node)
     }
+}
+
+inline fun <reified C : PsiElement, T : PsiElement> StubElement<T>.stubbedChildren(elementType: TableGenStubElementType<*, C>): Sequence<C> {
+    return childrenStubs.asSequence().filter {
+        it?.stubType == elementType
+    }.mapNotNull {
+        it.psi
+    }.filterIsInstance<C>()
 }
 
 /**

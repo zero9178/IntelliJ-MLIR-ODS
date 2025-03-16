@@ -19,7 +19,7 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode) {
     /**
      *
      */
-    operator fun get(fieldName: PsiElement): TableGenFieldBodyItem? {
+    operator fun get(fieldName: PsiElement): TableGenFieldBodyItem? = disallowTreeLoading {
         val differentFile = myRoot.containingFile != fieldName.containingFile
 
         // Compute lazily as this performs a traversal up to the parent file.
@@ -29,11 +29,11 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode) {
 
         // Only consider fields defined before 'fieldName'.
         myRoot.directFields[fieldName.text]?.let {
-            if (differentFile || it.endOffset < startOffset.value) return it
+            if (differentFile || it.endOffset < startOffset.value) return@disallowTreeLoading it
         }
 
         // Only consider base classes referenced before 'fieldName'.
-        return myRoot.baseClassRefs.takeWhile {
+        myRoot.baseClassRefs.takeWhile {
             differentFile || it.endOffset < startOffset.value
         }.mapNotNull {
             it.referencedClass
@@ -70,6 +70,6 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
 fun <T> T.computeDirectFields(): Map<String, TableGenFieldBodyItem> where T : TableGenFieldScopeNode, T : StubBasedPsiElementBase<*> =
     disallowTreeLoading {
         stubbedChildren(TableGenStubElementTypes.FIELD_BODY_ITEM).associateBy {
-            it.fieldIdentifier!!.text
+            it.fieldName!!
         }
     }

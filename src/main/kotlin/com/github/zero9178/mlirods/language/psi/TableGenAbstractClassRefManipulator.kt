@@ -15,13 +15,13 @@ private abstract class TableGenAbstractClassRefManipulator<T : TableGenAbstractC
         newContent: String
     ): T? {
         val newClassName =
-            range.shiftLeft(getRangeInElement(element).startOffset).replace(element.className.text, newContent)
-        element.className.replace(createIdentifier(element.project, newClassName))
+            range.shiftLeft(getRangeInElement(element).startOffset).replace(element.className, newContent)
+        element.classIdentifier.replace(createIdentifier(element.project, newClassName))
         return element
     }
 
     override fun getRangeInElement(element: T): TextRange {
-        return element.className.textRangeInParent
+        return element.classIdentifier.textRangeInParent
     }
 }
 

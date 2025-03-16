@@ -8,4 +8,9 @@ interface TableGenAbstractClassRefEx : PsiElement {
      * Returns the class being referenced or null if resolution failed.
      */
     val referencedClass: TableGenClassStatement?
+
+    /**
+     * Returns the name of the class being referenced.
+     */
+    val className: String
 }
