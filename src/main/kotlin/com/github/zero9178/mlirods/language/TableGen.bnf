@@ -245,6 +245,8 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
         field_identifier="IDENTIFIER"
+
+        getReference
     ]
 }
 
