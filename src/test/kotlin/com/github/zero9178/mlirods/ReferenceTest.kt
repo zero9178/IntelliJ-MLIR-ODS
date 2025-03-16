@@ -129,6 +129,11 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(parentClass.name, "Bar")
     }
 
+    fun `test LetBodyItemResolution`() {
+        val element = doTest<TableGenFieldBodyItem>()
+        assertEquals(element.name, "i")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }

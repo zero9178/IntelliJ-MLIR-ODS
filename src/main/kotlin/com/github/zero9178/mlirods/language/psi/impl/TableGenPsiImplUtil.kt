@@ -7,11 +7,13 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringVal
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassRefImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
 import com.github.zero9178.mlirods.language.psi.TableGenDefReference
+import com.github.zero9178.mlirods.language.psi.TableGenLetReference
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
@@ -90,6 +92,11 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun getClassName(element: TableGenClassRefImpl): String {
             return element.greenStub?.name ?: getClassName(element as TableGenAbstractClassRef)
+        }
+
+        @JvmStatic
+        fun getReference(element: TableGenLetBodyItem): PsiReference? {
+            return TableGenLetReference(element)
         }
 
         /**
