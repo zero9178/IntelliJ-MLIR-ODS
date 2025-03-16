@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
@@ -20,22 +21,23 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
     PsiReferenceBase.Poly<TableGenAbstractClassRef>(element) {
 
     @RequiresReadLock
-    override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> {
-        val name = element.className.text
+    override fun multiResolve(incompleteCode: Boolean) = disallowTreeLoading {
+        val name = element.className
         val topLevelElement =
-            element.parentsOfType<TableGenScopeItem>(withSelf = false).lastOrNull() ?: return emptyArray()
-        val klass = topLevelElement.itemsBefore(withSelf = false).filterIsInstance<TableGenClassStatement>().find {
+            element.parentsOfType<TableGenScopeItem>(withSelf = false).lastOrNull()
+                ?: return@disallowTreeLoading emptyArray()
+        val klass = topLevelElement.classStatementsBefore().find {
             it.name == name
         }
 
         // Lookup in the same file succeeded.
-        if (klass != null) return arrayOf(PsiElementResolveResult(klass))
+        if (klass != null) return@disallowTreeLoading arrayOf(PsiElementResolveResult(klass))
 
         val project = element.project
         if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
 
         // Otherwise, use the index to search in TableGen files included by this file.
-        return CLASS_INDEX.getElements(
+        CLASS_INDEX.getElements(
             name,
             project,
             TableGenIncludedSearchScope(element, project)

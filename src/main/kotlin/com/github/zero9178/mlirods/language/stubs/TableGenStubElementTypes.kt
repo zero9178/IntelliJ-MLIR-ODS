@@ -21,5 +21,8 @@ interface TableGenStubElementTypes {
 
         @JvmField
         val FIELD_BODY_ITEM = TableGenTypes.FIELD_BODY_ITEM!!
+
+        @JvmField
+        val CLASS_REF = TableGenTypes.CLASS_REF!!
     }
 }

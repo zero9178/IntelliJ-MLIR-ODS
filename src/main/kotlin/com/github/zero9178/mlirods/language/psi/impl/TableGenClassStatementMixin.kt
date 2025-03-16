@@ -6,12 +6,15 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.psi.computeDirectFields
 import com.github.zero9178.mlirods.language.psi.createIdentifier
+import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
+import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import com.intellij.util.takeWhileInclusive
 
 abstract class TableGenClassStatementMixin : StubBasedPsiElementBase<TableGenClassStatementStub>,
     TableGenClassStatement {
@@ -60,6 +63,18 @@ abstract class TableGenClassStatementMixin : StubBasedPsiElementBase<TableGenCla
 
     override val baseClassRefs: Sequence<TableGenClassRef>
         get() = classRefList.asSequence()
+
+    override fun classStatementsBefore(withSelf: Boolean): Sequence<TableGenClassStatement> {
+        greenStub?.let { stub ->
+            return stub.parentStub.stubbedChildren(
+                TableGenStubElementTypes.CLASS_STATEMENT
+            ).takeWhileInclusive {
+                it !== this
+            }.toList().asReversed().asSequence().drop(if (withSelf) 0 else 1)
+        }
+
+        return super.classStatementsBefore(withSelf)
+    }
 
     override fun subtreeChanged() {
         super.subtreeChanged()

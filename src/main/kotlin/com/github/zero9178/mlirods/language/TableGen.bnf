@@ -183,9 +183,10 @@ private parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
 
 fake abstract_class_ref ::= IDENTIFIER {
     methods=[
-        class_name='IDENTIFIER'
+        class_identifier='IDENTIFIER'
 
         getReferencedClass
+        getClassName
     ]
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractClassRefEx"
@@ -200,11 +201,15 @@ class_ref ::= IDENTIFIER class_ref_suffix? {
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
-        class_name='IDENTIFIER'
+        class_identifier='IDENTIFIER'
 
+        toString
+        getClassName
         getReference
         getReferencedClass
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStubElementType"
 }
 private class_ref_suffix ::= '<' arg_value_list? '>' {pin=1}
 private body ::= ';' | body_list
@@ -371,8 +376,9 @@ bits_type ::= 'bits' '<' INTEGER '>' {pin=1}
 list_type ::= 'list' '<' type '>' {pin=1}
 class_type ::= IDENTIFIER {
     methods=[
-        class_name='IDENTIFIER'
+        class_identifier='IDENTIFIER'
 
+        getClassName
         getReference
         getReferencedClass
     ]
@@ -458,8 +464,9 @@ class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
-        class_name='IDENTIFIER'
+        class_identifier='IDENTIFIER'
 
+        getClassName
         getReference
         getReferencedClass
     ]

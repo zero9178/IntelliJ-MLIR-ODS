@@ -19,13 +19,13 @@ class TableGenFieldBodyItemStubElementType(debugName: String) :
     TableGenStubElementType<TableGenFieldBodyItemStub, TableGenFieldBodyItem>(debugName, ::TableGenFieldBodyItemImpl) {
 
     override fun shouldCreateStub(node: ASTNode): Boolean {
-        return TableGenFieldBodyItemImpl(node).fieldIdentifier != null
+        return TableGenFieldBodyItemImpl(node).fieldName != null
     }
 
     override fun createStub(
         psi: TableGenFieldBodyItem, parentStub: StubElement<out PsiElement?>?
     ): TableGenFieldBodyItemStub {
-        return TableGenFieldBodyItemStubImpl(psi.fieldIdentifier!!.text, parentStub)
+        return TableGenFieldBodyItemStubImpl(psi.fieldName!!, parentStub)
     }
 
     override fun serialize(

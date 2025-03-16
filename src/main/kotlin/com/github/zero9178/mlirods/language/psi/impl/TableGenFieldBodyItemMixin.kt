@@ -28,6 +28,9 @@ abstract class TableGenFieldBodyItemMixin : StubBasedPsiElementBase<TableGenFiel
         return fieldIdentifier
     }
 
+    override val fieldName: String?
+        get() = name
+
     override fun getTextOffset(): Int {
         return nameIdentifier?.textOffset ?: super.getTextOffset()
     }

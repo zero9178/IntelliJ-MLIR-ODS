@@ -4,8 +4,10 @@ import com.github.zero9178.mlirods.MyIcons
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassRefImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
@@ -23,6 +25,8 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
+import com.intellij.psi.StubBasedPsiElement
+import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 import kotlin.io.path.relativeToOrNull
@@ -78,6 +82,16 @@ class TableGenPsiImplUtil {
             return element.reference?.resolve() as? TableGenClassStatement
         }
 
+        @JvmStatic
+        fun getClassName(element: TableGenAbstractClassRef): String {
+            return element.classIdentifier.text
+        }
+
+        @JvmStatic
+        fun getClassName(element: TableGenClassRefImpl): String {
+            return element.greenStub?.name ?: getClassName(element as TableGenAbstractClassRef)
+        }
+
         /**
          * Returns the string value that the TableGen string element corresponds to.
          */
@@ -98,7 +112,13 @@ class TableGenPsiImplUtil {
          */
         @JvmStatic
         fun toString(element: ASTDelegatePsiElement): String {
-            return element.javaClass.simpleName + "(" + element.node.elementType + ")"
+            var name = element.javaClass.simpleName + "("
+            name += if (element is StubBasedPsiElement<*>)
+                element.elementType
+            else
+                element.node.elementType
+            name += ")"
+            return name
         }
 
         /**
