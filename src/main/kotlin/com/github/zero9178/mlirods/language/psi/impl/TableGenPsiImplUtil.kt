@@ -1,22 +1,14 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.MyIcons
-import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
-import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassRefImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIncludeDirectiveImpl
-import com.github.zero9178.mlirods.language.psi.TableGenClassReference
-import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
-import com.github.zero9178.mlirods.language.psi.TableGenDefReference
-import com.github.zero9178.mlirods.language.psi.TableGenLetReference
-import com.github.zero9178.mlirods.language.psi.createIdentifier
+import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassTypeNodeImpl
+import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassTypeNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
+import com.github.zero9178.mlirods.language.types.*
 import com.intellij.extapi.psi.ASTDelegatePsiElement
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -28,7 +20,6 @@ import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
-import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 import kotlin.io.path.relativeToOrNull
@@ -95,6 +86,12 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
+        fun getClassName(element: TableGenClassTypeNodeImpl): String {
+            return (element.greenStub as? TableGenClassTypeNodeStub)?.className
+                ?: getClassName(element as TableGenAbstractClassRef)
+        }
+
+        @JvmStatic
         fun getReference(element: TableGenLetBodyItem): PsiReference? {
             return TableGenLetReference(element)
         }
@@ -112,6 +109,9 @@ class TableGenPsiImplUtil {
             // TODO: Check whether something needs to be done for code blocks.
             return text.substring(2, text.length - 2)
         }
+
+        @JvmStatic
+        fun getIntegerValue(integerElement: PsiElement?) = integerElement?.text?.toIntOrNull()
 
         /**
          * Workaround for [ASTDelegatePsiElement] to implement the same [toString] method
@@ -177,5 +177,35 @@ class TableGenPsiImplUtil {
                 return file.relativeToOrNull(projectDir)?.toString()
             }
         }
+
+        @JvmStatic
+        fun toType(element: TableGenBitTypeNode) = TableGenBitType
+
+        @JvmStatic
+        fun toType(element: TableGenIntTypeNode) = TableGenIntType
+
+        @JvmStatic
+        fun toType(element: TableGenStringTypeNode) = TableGenStringType
+
+        @JvmStatic
+        fun toType(element: TableGenDagTypeNode) = TableGenDagType
+
+        @JvmStatic
+        fun toType(element: TableGenCodeTypeNode) = TableGenStringType
+
+        @JvmStatic
+        fun toType(element: TableGenBitsTypeNode) = element.integer?.let {
+            TableGenBitsType(getIntegerValue(it))
+        } ?: TableGenUnknownType
+
+        @JvmStatic
+        fun toType(element: TableGenListTypeNode) = element.typeNode?.let {
+            TableGenListType(it.toType())
+        } ?: TableGenUnknownType
+
+        @JvmStatic
+        fun toType(element: TableGenClassTypeNode) = TableGenClassType(
+            element.className
+        )
     }
 }

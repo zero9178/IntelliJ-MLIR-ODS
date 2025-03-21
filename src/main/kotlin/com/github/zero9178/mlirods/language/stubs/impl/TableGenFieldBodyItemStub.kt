@@ -6,7 +6,10 @@ import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
-import com.intellij.psi.stubs.*
+import com.intellij.psi.stubs.StubBase
+import com.intellij.psi.stubs.StubElement
+import com.intellij.psi.stubs.StubInputStream
+import com.intellij.psi.stubs.StubOutputStream
 
 /**
  * Stub interface for [TableGenFieldBodyItem].
@@ -39,8 +42,6 @@ class TableGenFieldBodyItemStubElementType(debugName: String) :
     ): TableGenFieldBodyItemStub {
         return TableGenFieldBodyItemStubImpl(dataStream.readUTFFast(), parentStub)
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenFieldBodyItemStubImpl(
