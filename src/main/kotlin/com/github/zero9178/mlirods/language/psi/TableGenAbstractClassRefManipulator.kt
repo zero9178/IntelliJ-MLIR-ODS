@@ -29,4 +29,4 @@ private class TableGenClassRefManipulator : TableGenAbstractClassRefManipulator<
 private class TableGenClassInstantiationValueManipulator :
     TableGenAbstractClassRefManipulator<TableGenClassInstantiationValue>()
 
-private class TableGenClassTypeManipulator : TableGenAbstractClassRefManipulator<TableGenClassTypeNode>()
+private class TableGenClassTypeNodeManipulator : TableGenAbstractClassRefManipulator<TableGenClassTypeNode>()

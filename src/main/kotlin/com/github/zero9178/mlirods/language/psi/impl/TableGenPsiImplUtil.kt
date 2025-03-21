@@ -21,6 +21,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.startOffset
 import kotlin.io.path.relativeToOrNull
 
@@ -41,16 +42,14 @@ class TableGenPsiImplUtil {
             list.apply {
                 add(
                     TextRange(
-                        element.lAngle?.startOffset ?: return@apply,
-                        element.rAngle?.endOffset ?: return@apply
+                        element.lAngle?.startOffset ?: return@apply, element.rAngle?.endOffset ?: return@apply
                     )
                 )
             }
             list.apply {
                 add(
                     TextRange(
-                        element.lBrace?.startOffset ?: return@apply,
-                        element.rBrace?.endOffset ?: return@apply
+                        element.lBrace?.startOffset ?: return@apply, element.rBrace?.endOffset ?: return@apply
                     )
                 )
             }
@@ -68,11 +67,6 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun getReference(element: TableGenAbstractClassRef): PsiReference? {
             return TableGenClassReference(element)
-        }
-
-        @JvmStatic
-        fun getReferencedClass(element: TableGenAbstractClassRef): TableGenClassStatement? {
-            return element.reference?.resolve() as? TableGenClassStatement
         }
 
         @JvmStatic
@@ -94,6 +88,11 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun getReference(element: TableGenLetBodyItem): PsiReference? {
             return TableGenLetReference(element)
+        }
+
+        @JvmStatic
+        fun getReference(element: TableGenFieldIdentifier): PsiReference? {
+            return TableGenFieldAccessReference(element)
         }
 
         /**
@@ -120,10 +119,8 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun toString(element: ASTDelegatePsiElement): String {
             var name = element.javaClass.simpleName + "("
-            name += if (element is StubBasedPsiElement<*>)
-                element.elementType
-            else
-                element.node.elementType
+            name += if (element is StubBasedPsiElement<*>) element.elementType
+            else element.node.elementType
             name += ")"
             return name
         }
@@ -204,8 +201,57 @@ class TableGenPsiImplUtil {
         } ?: TableGenUnknownType
 
         @JvmStatic
-        fun toType(element: TableGenClassTypeNode) = TableGenClassType(
-            element.className
+        fun toType(element: TableGenClassTypeNode) = element.referencedClass?.let {
+            TableGenRecordType(
+                it
+            )
+        } ?: TableGenUnknownType
+
+        @JvmStatic
+        fun getType(element: TableGenIntegerValue) = TableGenIntType
+
+        @JvmStatic
+        fun getType(element: TableGenStringValue) = TableGenStringType
+
+        @JvmStatic
+        fun getType(element: TableGenBlockStringValue) = TableGenStringType
+
+        @JvmStatic
+        fun getType(element: TableGenBoolValue) = TableGenBitType
+
+        @JvmStatic
+        fun getType(element: TableGenListInitValue) = TableGenListType(
+            element.typeNode?.toType() ?: element.valueList.firstOrNull()?.type ?: TableGenUnknownType
         )
+
+        @JvmStatic
+        fun getType(element: TableGenDagInitValue) = TableGenDagType
+
+        @JvmStatic
+        fun getType(element: TableGenIdentifierValue): TableGenType {
+            val resolve = element.reference?.resolve()
+            return when (resolve) {
+                is TableGenDefvarStatement -> resolve.value?.type ?: TableGenUnknownType
+                is TableGenFieldBodyItem -> resolve.typeNode.toType()
+                is TableGenTemplateArgDecl -> resolve.typeNode.toType()
+
+                is TableGenDefStatement -> TableGenRecordType(resolve)
+                else -> TableGenUnknownType
+            }
+        }
+
+        @JvmStatic
+        fun getType(element: TableGenFieldAccessValue): TableGenType {
+            val identifier = element.fieldIdentifier ?: return TableGenUnknownType
+            val type = element.value.type
+            return when (type) {
+                is TableGenRecordType -> {
+                    val field = type.record.fields[identifier] ?: return TableGenUnknownType
+                    field.typeNode.toType()
+                }
+
+                else -> TableGenUnknownType
+            }
+        }
     }
 }

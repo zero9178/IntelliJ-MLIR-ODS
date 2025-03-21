@@ -213,7 +213,7 @@ class TableGenClassTypeNodeStubElementType(
     }
 
     override fun serialize(stub: TableGenClassTypeNodeStub, dataStream: StubOutputStream) {
-        dataStream.writeName(stub.className)
+        dataStream.writeUTFFast(stub.className)
     }
 
     override fun deserialize(

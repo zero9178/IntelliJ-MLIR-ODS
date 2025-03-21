@@ -185,7 +185,6 @@ fake abstract_class_ref ::= IDENTIFIER {
     methods=[
         class_identifier='IDENTIFIER'
 
-        getReferencedClass
         getClassName
     ]
     implements=[
@@ -206,7 +205,6 @@ class_ref ::= IDENTIFIER class_ref_suffix? {
         toString
         getClassName
         getReference
-        getReferencedClass
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStubElementType"
@@ -372,6 +370,9 @@ type_node ::= bit_type_node
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenTypeNodeEx"
     ]
+    methods=[
+        toString
+    ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
 }
 bit_type_node ::= 'bit' {
@@ -424,7 +425,6 @@ class_type_node ::= IDENTIFIER {
 
         getClassName
         getReference
-        getReferencedClass
         toType
     ]
     implements=abstract_class_ref
@@ -442,12 +442,14 @@ value ::= simple_value
 }
 
 concat_value ::= value '#' value {pin=2}
-field_access_value ::= value '.' IDENTIFIER {
+field_access_value ::= value '.' field_identifier {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
-    methods=[
-        field_identifier="IDENTIFIER"
-    ]
     pin=2
+}
+field_identifier ::= IDENTIFIER {
+    methods=[
+        getReference
+    ]
 }
 
 bit_access_value ::= value '{' range_list '}' {pin=2}
@@ -478,30 +480,56 @@ private simple_value ::= integer_value
 
 private value_list_ne ::= value (',' value)*
 
-integer_value ::= INTEGER
+integer_value ::= INTEGER {
+    methods=[
+        getType
+    ]
+}
 string_value ::= block_string_value
                | LINE_STRING_LITERAL+
-               | LINE_STRING_LITERAL_BAD
+               | LINE_STRING_LITERAL_BAD {
+    methods=[
+        getType
+    ]
+}
 block_string_value ::= BLOCK_STRING_LITERAL {
     extends=string_value
     implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
     methods = [
         getPlaceHolderText
+        getType
     ]
 }
-bool_value ::= 'true' | 'false'
-undef_value ::= '?'
-list_init_value ::= '[' value_list_ne? ','? ']' ('<' type_node '>')? {pin=1}
+bool_value ::= 'true' | 'false' {
+    methods=[
+        getType
+    ]
+}
+undef_value ::= '?' {
+    methods=[
+        getType
+    ]
+}
+list_init_value ::= '[' value_list_ne? ','? ']' ('<' type_node '>')? {
+    pin=1
+    methods=[
+        getType
+    ]
+}
 dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
     pin=1
     methods=[
         operator="dag_arg[0]"
+
+        getType
     ]
 }
 dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER
 identifier_value ::= IDENTIFIER {
     methods=[
         getReference
+
+        getType
     ]
 }
 
@@ -518,7 +546,6 @@ class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
 
         getClassName
         getReference
-        getReferencedClass
     ]
 }
 // Note: This is a simplification from the official syntax that is easier to parse.
