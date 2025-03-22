@@ -387,13 +387,13 @@ class_type ::= IDENTIFIER {
     implements=abstract_class_ref
 }
 
-value ::= simple_value
+value ::= concat_value
         | field_access_value
         | bit_access_value
         | slice_access_value
-        | concat_value
+        | simple_value
 
-concat_value ::= value '#' value {pin=2}
+concat_value ::= value '#' value? {pin=2}
 field_access_value ::= value '.' IDENTIFIER {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[

@@ -31,3 +31,4 @@ defvar test29 = !cond(
     true : false,
     false : true
 );
+defvar test30 = "text" # 5.lol;
