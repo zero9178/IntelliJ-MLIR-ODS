@@ -69,13 +69,3 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     val fields: FieldMap
         get() = FieldMap(this)
 }
-
-/**
- * Computes the direct fields of a [TableGenFieldScopeNode] that is a parent stub of fields.
- */
-fun <T> T.computeDirectFields(): Map<String, TableGenFieldBodyItem> where T : TableGenFieldScopeNode, T : StubBasedPsiElementBase<*> =
-    disallowTreeLoading {
-        stubbedChildren(TableGenStubElementTypes.FIELD_BODY_ITEM).associateBy {
-            it.fieldName!!
-        }
-    }

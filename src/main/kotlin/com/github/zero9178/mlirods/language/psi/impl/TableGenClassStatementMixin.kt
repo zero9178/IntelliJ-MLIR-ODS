@@ -1,25 +1,17 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
-import com.github.zero9178.mlirods.MyIcons
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.psi.computeDirectFields
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
-import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub
-import com.intellij.extapi.psi.StubBasedPsiElementBase
+import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.intellij.lang.ASTNode
-import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.util.takeWhileInclusive
 
-abstract class TableGenClassStatementMixin : StubBasedPsiElementBase<TableGenClassStatementStub>,
+abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableGenClassStatementStub>,
     TableGenClassStatement {
-
-    private var myDirectFieldsCache: Map<String, TableGenFieldBodyItem>? = null
 
     constructor(node: ASTNode) : super(node)
 
@@ -44,26 +36,6 @@ abstract class TableGenClassStatementMixin : StubBasedPsiElementBase<TableGenCla
         return nameIdentifier?.textOffset ?: super.getTextOffset()
     }
 
-    override fun getPresentation(): ItemPresentation {
-        return object : ItemPresentation {
-            override fun getPresentableText() = name
-
-            override fun getIcon(unused: Boolean) = MyIcons.TableGenIcon
-        }
-    }
-
-    override val directFields: Map<String, TableGenFieldBodyItem>
-        get() {
-            myDirectFieldsCache?.let { return it }
-
-            val fields = computeDirectFields()
-            myDirectFieldsCache = fields
-            return fields
-        }
-
-    override val baseClassRefs: Sequence<TableGenClassRef>
-        get() = classRefList.asSequence()
-
     override fun classStatementsBefore(withSelf: Boolean): Sequence<TableGenClassStatement> {
         greenStub?.let { stub ->
             return stub.parentStub.stubbedChildren(
@@ -74,10 +46,5 @@ abstract class TableGenClassStatementMixin : StubBasedPsiElementBase<TableGenCla
         }
 
         return super.classStatementsBefore(withSelf)
-    }
-
-    override fun subtreeChanged() {
-        super.subtreeChanged()
-        myDirectFieldsCache = null
     }
 }
