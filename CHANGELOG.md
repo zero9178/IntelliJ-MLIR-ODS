@@ -3,12 +3,20 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+
+## [0.5.0] - 2025-03-23
 ### Added
-- Added resolution of simple identifiers referring to 'defs' and similar.
-- Restrict 'def' search to files which are included (directly or transitively) in the current file.
+- Added resolution of simple identifiers referring to `def`s and similar.
+- Restrict `def` search to files which are included (directly or transitively) in the current file.
 - Added resolution of class names to class statements.
+- Added resolution of field names.
+- Identifiers referencing fields are now highlighted as such.
+- Implemented renaming of `def`s
+- Implemented renaming of classes
+- Implemented renaming of fields
 ### Fixed
 - Fixed exception in highlighter when `let` does not yet have a field identifier.
+- Parsing priority of the `#` operator
 
 ## [0.4.0] - 2025-02-18
 ### Added
