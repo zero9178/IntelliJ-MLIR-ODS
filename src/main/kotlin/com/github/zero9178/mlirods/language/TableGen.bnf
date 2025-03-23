@@ -151,6 +151,7 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
         toString
         getPlaceHolderText
         getFoldingTextRanges
+        getPresentation
     ]
     implements=[
         abstract_class_statement
@@ -232,6 +233,7 @@ field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
         field_identifier="IDENTIFIER"
 
         toString
+        getPresentation
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenFieldBodyItemMixin"
@@ -286,6 +288,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
         getName
         setName
         getTextOffset
+        getPresentation
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
