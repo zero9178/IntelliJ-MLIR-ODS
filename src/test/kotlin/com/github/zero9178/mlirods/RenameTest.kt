@@ -45,6 +45,10 @@ class RenameTest : BasePlatformTestCase() {
         doTest("J")
     }
 
+    fun `test FieldAccessResolution`() {
+        doTest("j")
+    }
+
     private fun doTest(newName: String) {
         val name = getTestName(false).trim()
 

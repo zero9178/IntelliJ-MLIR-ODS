@@ -9,7 +9,11 @@ private class TableGenFieldAccessValueManipulator :
     override fun handleContentChange(
         element: TableGenFieldAccessValue, range: TextRange, newContent: String
     ): TableGenFieldAccessValue? {
-        TODO()
+        val fieldIdentifier = element.fieldIdentifier ?: return null
+
+        val newName = range.shiftLeft(getRangeInElement(element).startOffset).replace(fieldIdentifier.text, newContent)
+        fieldIdentifier.replace(createIdentifier(element.project, newName))
+        return element
     }
 
     override fun getRangeInElement(element: TableGenFieldAccessValue): TextRange {
