@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStub
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
@@ -21,7 +22,8 @@ abstract class TableGenFieldBodyItemMixin : StubBasedPsiElementBase<TableGenFiel
     }
 
     override fun setName(name: String): PsiElement {
-        TODO("not implemented")
+        fieldIdentifier?.replace(createIdentifier(project, name))
+        return this
     }
 
     override fun getNameIdentifier(): PsiElement? {
