@@ -7,7 +7,7 @@ import com.intellij.psi.stubs.*
 /**
  * Base class of all stub element types used within TableGen.
  */
-abstract class TableGenStubElementType<StubT : StubElement<PsiT>, PsiT : PsiElement>(
+abstract class TableGenStubElementType<StubT : StubElement<*>, PsiT : PsiElement>(
     debugName: String, private val constructor: (StubT, TableGenStubElementType<StubT, PsiT>) -> PsiT
 ) : IStubElementType<StubT, PsiT>(debugName, TableGenLanguage.INSTANCE) {
 

@@ -17,18 +17,19 @@ import com.intellij.psi.util.startOffset
 class FieldMap(private val myRoot: TableGenFieldScopeNode) {
 
     /**
-     *
+     * Returns the field named [fieldName] within [myRoot] or null if no such field exists.
+     * If [element] is not null, null is returned if the field has not yet been defined at the location of [element].
      */
-    operator fun get(fieldName: PsiElement): TableGenFieldBodyItem? = disallowTreeLoading {
-        val differentFile = myRoot.containingFile != fieldName.containingFile
+    operator fun get(fieldName: String, element: PsiElement? = null): TableGenFieldBodyItem? = disallowTreeLoading {
+        val differentFile = myRoot.containingFile != element?.containingFile
 
         // Compute lazily as this performs a traversal up to the parent file.
         val startOffset = lazy(LazyThreadSafetyMode.PUBLICATION) {
-            fieldName.startOffset
+            element?.startOffset ?: Int.MAX_VALUE
         }
 
         // Only consider fields defined before 'fieldName'.
-        myRoot.directFields[fieldName.text]?.let {
+        myRoot.directFields[fieldName]?.let {
             if (differentFile || it.endOffset < startOffset.value) return@disallowTreeLoading it
         }
 
@@ -38,9 +39,14 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode) {
         }.mapNotNull {
             it.referencedClass
         }.firstNotNullOfOrNull {
-            FieldMap(it)[fieldName]
+            FieldMap(it)[fieldName, element]
         }
     }
+
+    /**
+     * Returns the field named [fieldName] within [myRoot] or null if no such field exists.
+     */
+    operator fun get(fieldName: PsiElement) = get(fieldName.text, fieldName)
 }
 
 /**
