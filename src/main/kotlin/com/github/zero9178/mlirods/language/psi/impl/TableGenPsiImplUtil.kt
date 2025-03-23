@@ -18,6 +18,7 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.toNioPathOrNull
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.util.endOffset
@@ -154,11 +155,11 @@ class TableGenPsiImplUtil {
         }
 
         /**
-         * Custom representation for any [TableGenDefNameIdentifierOwner] as it appears in 'Find Usages' and the
+         * Custom representation for any [PsiNamedElement] as it appears in 'Find Usages' and the
          * declaration list.
          */
         @JvmStatic
-        fun getPresentation(element: TableGenDefNameIdentifierOwner): ItemPresentation? = object : ItemPresentation {
+        fun getPresentation(element: PsiNamedElement): ItemPresentation? = object : ItemPresentation {
             override fun getPresentableText() = element.name
 
             override fun getIcon(unused: Boolean) = MyIcons.TableGenIcon
@@ -173,6 +174,9 @@ class TableGenPsiImplUtil {
                 return file.relativeToOrNull(projectDir)?.toString()
             }
         }
+
+        @JvmStatic
+        fun getPresentation(element: TableGenDefNameIdentifierOwner) = getPresentation(element as PsiNamedElement)
 
         @JvmStatic
         fun toType(element: TableGenBitTypeNode) = TableGenBitType
