@@ -3,7 +3,7 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassType
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.AbstractElementManipulator
 
@@ -29,4 +29,4 @@ private class TableGenClassRefManipulator : TableGenAbstractClassRefManipulator<
 private class TableGenClassInstantiationValueManipulator :
     TableGenAbstractClassRefManipulator<TableGenClassInstantiationValue>()
 
-private class TableGenClassTypeManipulator : TableGenAbstractClassRefManipulator<TableGenClassType>()
+private class TableGenClassTypeNodeManipulator : TableGenAbstractClassRefManipulator<TableGenClassTypeNode>()

@@ -72,7 +72,7 @@
     WHITE_SPACE="regexp:\s*"
   ]
 
-  extends(".*_type")=type
+  extends(".*_type_node")=type_node
   implements(".*_body_item")=scope_item
   implements(".*_statement")=scope_item
   extends(".*_value")=value
@@ -166,7 +166,7 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
     pin=1
 }
 private template_arg_list ::= '<' template_arg_decl (',' template_arg_decl)* '>' {pin=1}
-template_arg_decl ::= type IDENTIFIER equals_value? {
+template_arg_decl ::= type_node IDENTIFIER equals_value? {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
     ]
@@ -185,7 +185,6 @@ fake abstract_class_ref ::= IDENTIFIER {
     methods=[
         class_identifier='IDENTIFIER'
 
-        getReferencedClass
         getClassName
     ]
     implements=[
@@ -206,7 +205,6 @@ class_ref ::= IDENTIFIER class_ref_suffix? {
         toString
         getClassName
         getReference
-        getReferencedClass
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStubElementType"
@@ -223,7 +221,7 @@ private body_item ::= field_body_item
                     | defvar_statement
                     | assert_statement
                     {recoverWhile=body_recover}
-field_body_item ::= 'field'? type IDENTIFIER equals_value? ';' {
+field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
 
@@ -273,8 +271,8 @@ def_statement ::= 'def' value? record_body {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
 defm_statement ::= 'defm' value? parent_class_list? ';' {pin=1}
-defset_statement ::= 'defset' type IDENTIFIER '=' '{' statement* '}' {pin=1}
-deftype_statement ::= 'deftype' IDENTIFIER '=' type ';' {pin=1}
+defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {pin=1}
+deftype_statement ::= 'deftype' IDENTIFIER '=' type_node ';' {pin=1}
 defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
     pin=1
     implements=[
@@ -361,43 +359,95 @@ multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class
     pin=1
 }
 
-type ::= bit_type
-       | int_type
-       | string_type
-       | dag_type
-       | code_type
-       | bits_type
-       | list_type
-       | class_type
-bit_type ::= 'bit'
-int_type ::= 'int'
-string_type ::= 'string'
-dag_type ::= 'dag'
-code_type ::= 'code'
-bits_type ::= 'bits' '<' INTEGER '>' {pin=1}
-list_type ::= 'list' '<' type '>' {pin=1}
-class_type ::= IDENTIFIER {
+type_node ::= bit_type_node
+          | int_type_node
+          | string_type_node
+          | dag_type_node
+          | code_type_node
+          | bits_type_node
+          | list_type_node
+          | class_type_node {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenTypeNodeEx"
+    ]
+    methods=[
+        toString
+    ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
+}
+bit_type_node ::= 'bit' {
+    methods=[
+        toType
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitTypeNodeStubElementType"
+}
+int_type_node ::= 'int' {
+    methods=[
+        toType
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIntTypeNodeStubElementType"
+}
+string_type_node ::= 'string' {
+    methods=[
+        toType
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStringTypeNodeStubElementType"
+}
+dag_type_node ::= 'dag' {
+    methods=[
+        toType
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDagTypeNodeStubElementType"
+}
+code_type_node ::= 'code' {
+    methods=[
+        toType
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCodeTypeNodeStubElementType"
+}
+bits_type_node ::= 'bits' '<' INTEGER '>' {
+    pin=1
+    methods=[
+        toType
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitsTypeNodeStubElementType"
+}
+list_type_node ::= 'list' '<' type_node '>' {
+    pin=1
+    methods=[
+        toType
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenListTypeNodeStubElementType"
+}
+class_type_node ::= IDENTIFIER {
     methods=[
         class_identifier='IDENTIFIER'
 
         getClassName
         getReference
-        getReferencedClass
+        toType
     ]
     implements=abstract_class_ref
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassTypeNodeStubElementType"
 }
 
 value ::= concat_value
         | field_access_value
         | bit_access_value
         | slice_access_value
-        | simple_value
+        | simple_value {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenValueEx"
+    ]
+}
 
 concat_value ::= value '#' value? {pin=2}
 field_access_value ::= value '.' IDENTIFIER {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
-    methods=[
+    methods = [
         field_identifier="IDENTIFIER"
+
+        getReference
     ]
     pin=2
 }
@@ -430,30 +480,52 @@ private simple_value ::= integer_value
 
 private value_list_ne ::= value (',' value)*
 
-integer_value ::= INTEGER
+integer_value ::= INTEGER {
+    methods=[
+        getType
+    ]
+}
 string_value ::= block_string_value
                | LINE_STRING_LITERAL+
-               | LINE_STRING_LITERAL_BAD
+               | LINE_STRING_LITERAL_BAD {
+    methods=[
+        getType
+    ]
+}
 block_string_value ::= BLOCK_STRING_LITERAL {
     extends=string_value
     implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
     methods = [
         getPlaceHolderText
+        getType
     ]
 }
-bool_value ::= 'true' | 'false'
+bool_value ::= 'true' | 'false' {
+    methods=[
+        getType
+    ]
+}
 undef_value ::= '?'
-list_init_value ::= '[' value_list_ne? ','? ']' ('<' type '>')? {pin=1}
+list_init_value ::= '[' value_list_ne? ','? ']' ('<' type_node '>')? {
+    pin=1
+    methods=[
+        getType
+    ]
+}
 dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
     pin=1
     methods=[
         operator="dag_arg[0]"
+
+        getType
     ]
 }
 dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER
 identifier_value ::= IDENTIFIER {
     methods=[
         getReference
+
+        getType
     ]
 }
 
@@ -470,14 +542,14 @@ class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
 
         getClassName
         getReference
-        getReferencedClass
+        getType
     ]
 }
 // Note: This is a simplification from the official syntax that is easier to parse.
 private arg_value_list ::= arg_value_item (',' arg_value_item)*
 arg_value_item ::= value equals_value?
 
-bang_operator_value ::= BANG_OPERATOR ('<' type '>')? '(' value_list_ne ')' {pin=1}
+bang_operator_value ::= BANG_OPERATOR ('<' type_node '>')? '(' value_list_ne ')' {pin=1}
 cond_operator_value ::= '!cond' '(' cond_clause (',' cond_clause)* ')' {pin=1}
 cond_clause ::= value ':' value {
     methods=[

@@ -134,6 +134,11 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.name, "i")
     }
 
+    fun `test FieldAccessResolution`() {
+        val element = doTest<TableGenFieldBodyItem>()
+        assertEquals(element.name, "i")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }

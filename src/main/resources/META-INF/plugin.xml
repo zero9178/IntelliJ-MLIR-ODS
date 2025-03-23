@@ -45,11 +45,14 @@
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValue"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenClassInstantiationValueManipulator"/>
         <lang.elementManipulator
-                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenClassType"
-                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenClassTypeManipulator"/>
+                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode"
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenClassTypeNodeManipulator"/>
         <lang.elementManipulator
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenLetBodyItemManipulator"/>
+        <lang.elementManipulator
+                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValue"
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenFieldAccessValueManipulator"/>
         <stubElementTypeHolder class="com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes"
                                externalIdPrefix="tablegen."/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefIndex"/>

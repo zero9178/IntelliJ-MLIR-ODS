@@ -24,5 +24,29 @@ interface TableGenStubElementTypes {
 
         @JvmField
         val CLASS_REF = TableGenTypes.CLASS_REF!!
+
+        @JvmField
+        val BIT_TYPE_NODE = TableGenTypes.BIT_TYPE_NODE!!
+
+        @JvmField
+        val INT_TYPE_NODE = TableGenTypes.INT_TYPE_NODE!!
+
+        @JvmField
+        val STRING_TYPE_NODE = TableGenTypes.STRING_TYPE_NODE!!
+
+        @JvmField
+        val DAG_TYPE_NODE = TableGenTypes.DAG_TYPE_NODE!!
+
+        @JvmField
+        val CODE_TYPE_NODE = TableGenTypes.CODE_TYPE_NODE!!
+
+        @JvmField
+        val BITS_TYPE_NODE = TableGenTypes.BITS_TYPE_NODE!!
+
+        @JvmField
+        val LIST_TYPE_NODE = TableGenTypes.LIST_TYPE_NODE!!
+
+        @JvmField
+        val CLASS_TYPE_NODE = TableGenTypes.CLASS_TYPE_NODE!!
     }
 }
