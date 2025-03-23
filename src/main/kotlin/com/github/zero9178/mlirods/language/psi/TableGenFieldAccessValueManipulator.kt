@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessVal
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.AbstractElementManipulator
 
-private class TableGenFieldIdentifierManipulator :
+private class TableGenFieldAccessValueManipulator :
     AbstractElementManipulator<TableGenFieldAccessValue>() {
     override fun handleContentChange(
         element: TableGenFieldAccessValue, range: TextRange, newContent: String

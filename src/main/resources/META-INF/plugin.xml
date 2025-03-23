@@ -52,7 +52,7 @@
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenLetBodyItemManipulator"/>
         <lang.elementManipulator
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValue"
-                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierManipulator"/>
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenFieldAccessValueManipulator"/>
         <stubElementTypeHolder class="com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes"
                                externalIdPrefix="tablegen."/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefIndex"/>
