@@ -211,6 +211,9 @@ jobs:
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+            # Caching the IDE downloads is too expensive.
+            cache-read-only: true
 
       # Cache Plugin Verifier IDEs
       - name: Setup Plugin Verifier IDEs Cache
