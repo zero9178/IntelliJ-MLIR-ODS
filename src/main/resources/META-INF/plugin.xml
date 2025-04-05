@@ -57,6 +57,8 @@
                                externalIdPrefix="tablegen."/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
+        <elementDescriptionProvider
+                implementation="com.github.zero9178.mlirods.language.TableGenElementDescriptionProvider"/>
         <usageTypeProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenUsageTypeProvider"/>
     </extensions>
