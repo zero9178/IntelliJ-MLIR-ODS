@@ -50,6 +50,23 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
     }
 
+    private val myIncludeResultsModificationTracker = SimpleModificationTracker()
+
+    /**
+     * Modification tracker which gets incremented each time an 'include' directive may resolve to a new file.
+     */
+    val includeResultModificationTracker: ModificationTracker
+        get() = myIncludeResultsModificationTracker
+
+    private data class Value(
+        val stateFlow: MutableStateFlow<PersistentMap<VirtualFile, TableGenContext>>,
+        val reactiveJob: Job,
+        val refreshFlow: MutableSharedFlow<TableGenContext?>
+    )
+
+    private val myFileToContexts: MutableMap<VirtualFile, Value> = mutableMapOf()
+    private val myLock = ReentrantReadWriteLock()
+
     init {
         cs.launch {
             // Apply value changes to all files mentioned in the compile commands.
@@ -103,23 +120,6 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
             }
         }, this)
     }
-
-    private val myIncludeResultsModificationTracker = SimpleModificationTracker()
-
-    /**
-     * Modification tracker which gets incremented each time an 'include' directive may resolve to a new file.
-     */
-    val includeResultModificationTracker: ModificationTracker
-        get() = myIncludeResultsModificationTracker
-
-    private data class Value(
-        val stateFlow: MutableStateFlow<PersistentMap<VirtualFile, TableGenContext>>,
-        val reactiveJob: Job,
-        val refreshFlow: MutableSharedFlow<TableGenContext?>
-    )
-
-    private val myFileToContexts: MutableMap<VirtualFile, Value> = mutableMapOf()
-    private val myLock = ReentrantReadWriteLock()
 
     private fun stateFlowForFile(file: VirtualFile) = myLock.read {
         myFileToContexts[file]?.let { return@read it.stateFlow }
