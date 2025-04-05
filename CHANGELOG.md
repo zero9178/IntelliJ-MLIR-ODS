@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Added
+- Added usage type categories in `Find Usage`
 
 ## [0.5.0] - 2025-03-23
 ### Added
