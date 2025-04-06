@@ -13,6 +13,7 @@ import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes.Compa
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes.Companion.DEF_STATEMENT
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.stubs.IndexSink
 import com.intellij.psi.stubs.StubBase
 import com.intellij.psi.stubs.StubElement
@@ -38,15 +39,15 @@ class TableGenDefNameIdentifierStubElementType(debugName: String) :
                 else -> error("Unexpected stub type")
             }
         }) {
-        
+
     override fun shouldCreateStub(node: ASTNode): Boolean {
         val psi = TableGenTypes.Factory.createElement(node)
-        return when (psi) {
-            // 'def' statements are always globally visible if they have a name.
-            is TableGenDefStatement -> psi.name != null
-            // Other elements are only visible if top-level.
-            else -> psi.parentsOfType<TableGenIdentifierScopeNode>(withSelf = false).all { it is TableGenFile }
-        }
+        if (psi !is TableGenDefNameIdentifierOwner || psi.name == null) return false
+
+        // Def statements are always indexed.
+        if (psi is TableGenDefStatement) return true
+
+        return psi.parentsOfType<TableGenIdentifierScopeNode>(withSelf = false).all { it is TableGenFile }
     }
 
     override fun createStub(
