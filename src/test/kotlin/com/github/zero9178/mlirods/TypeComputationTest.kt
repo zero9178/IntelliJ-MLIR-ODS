@@ -1,0 +1,35 @@
+package com.github.zero9178.mlirods
+
+
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
+import com.github.zero9178.mlirods.language.types.TableGenIntType
+import com.github.zero9178.mlirods.language.types.TableGenListType
+import com.github.zero9178.mlirods.language.types.TableGenType
+import com.intellij.psi.util.parentOfType
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+
+class TypeComputationTest : BasePlatformTestCase() {
+    fun `test list single slice`() {
+        doTest(
+            """
+            defvar x = [5];
+            defvar <caret>v = x[0];
+        """.trimIndent(), TableGenIntType
+        )
+    }
+
+    fun `test list multi slice`() {
+        doTest(
+            """
+            defvar x = [5];
+            defvar <caret>v = x[0, 1];
+        """.trimIndent(), TableGenListType(TableGenIntType)
+        )
+    }
+
+    fun doTest(source: String, expectedType: TableGenType) {
+        myFixture.configureByText("test.td", source)
+        val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))
+        assertEquals(statement.value?.type, expectedType)
+    }
+}
