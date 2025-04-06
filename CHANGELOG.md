@@ -5,6 +5,8 @@
 ## [Unreleased]
 ### Added
 - Added usage type categories in `Find Usage`
+### Fixed
+- Fix null pointer exception on `defvar`s without a name.
 
 ## [0.5.0] - 2025-03-23
 ### Added
