@@ -4,6 +4,7 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.types.TableGenIntType
 import com.github.zero9178.mlirods.language.types.TableGenListType
+import com.github.zero9178.mlirods.language.types.TableGenStringType
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -27,9 +28,23 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test field access`() {
+        doTest(
+            """
+            class Foo {
+                string i = "";
+            }
+            def Bar {
+                Foo foo = Foo<>;
+            }
+            defvar <caret>v = Bar.foo.i;
+        """.trimIndent(), TableGenStringType
+        )
+    }
+
     fun doTest(source: String, expectedType: TableGenType) {
         myFixture.configureByText("test.td", source)
         val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))
-        assertEquals(statement.value?.type, expectedType)
+        assertEquals(expectedType, statement.value?.type)
     }
 }
