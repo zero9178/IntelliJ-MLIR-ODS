@@ -276,5 +276,8 @@ class TableGenPsiImplUtil {
                 else -> TableGenStringType
             }
         }
+
+        @JvmStatic
+        fun getType(element: TableGenForeachOperatorValue): TableGenType = element.iterable?.type ?: TableGenUnknownType
     }
 }
