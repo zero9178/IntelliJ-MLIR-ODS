@@ -255,5 +255,15 @@ class TableGenPsiImplUtil {
 
         @JvmStatic
         fun getType(element: TableGenClassInstantiationValue) = TableGenRecordType.create(element)
+
+        @JvmStatic
+        fun getType(element: TableGenSliceAccessValue): TableGenType {
+            val listType = element.value.type as? TableGenListType ?: return TableGenUnknownType
+            val sliceElements = element.sliceElementList
+            return when (sliceElements.singleOrNull()) {
+                is TableGenSingleSliceElement -> listType.elementType
+                else -> listType
+            }
+        }
     }
 }

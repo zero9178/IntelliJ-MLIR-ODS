@@ -464,7 +464,12 @@ bit_range ::= INTEGER ('...' | '-')? INTEGER {
     extends=range_piece
 }
 
-slice_access_value ::= value '[' slice_element (',' slice_element)* ']' {pin=2}
+slice_access_value ::= value '[' slice_element (',' slice_element)* ']' {
+    pin=2
+    methods=[
+        getType
+    ]
+}
 slice_element ::= slice_element_range
                 | single_slice_element
 single_slice_element ::= value {extends=slice_element}

@@ -33,12 +33,12 @@ object TableGenDagType : TableGenType()
  * Bits type with the given number of bits.
  * [numberOfBits] may be zero if it is unknown, due to e.g. errors in the code.
  */
-class TableGenBitsType(val numberOfBits: Int?) : TableGenType()
+data class TableGenBitsType(val numberOfBits: Int?) : TableGenType()
 
 /**
  * List type containing [elementType] elements.
  */
-class TableGenListType(val elementType: TableGenType) : TableGenType()
+data class TableGenListType(val elementType: TableGenType) : TableGenType()
 
 /**
  * Type representing either a 'def' or 'class' containing fields.
@@ -77,6 +77,10 @@ class TableGenRecordType private constructor(
      */
     val record: TableGenFieldScopeNode?
         get() = myRecord.invoke()
+
+    override fun equals(other: Any?) = recordName == (other as? TableGenRecordType)?.recordName
+
+    override fun hashCode() = recordName.hashCode()
 }
 
 /**
