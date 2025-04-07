@@ -444,7 +444,15 @@ value ::= concat_value
     ]
 }
 
-concat_value ::= value '#' value? {pin=2}
+concat_value ::= value '#' value? {
+    pin=2
+    methods = [
+        left_operand="/value[0]"
+        right_operand="/value[1]"
+
+        getType
+    ]
+}
 field_access_value ::= value '.' IDENTIFIER {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods = [
