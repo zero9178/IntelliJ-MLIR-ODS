@@ -241,7 +241,7 @@ class TableGenPsiImplUtil {
 
         @JvmStatic
         fun getType(element: TableGenFieldAccessValue): TableGenType {
-            val identifier = element.fieldIdentifier ?: return TableGenUnknownType
+            val identifier = element.fieldName ?: return TableGenUnknownType
             val type = element.value.type
             return when (type) {
                 is TableGenRecordType -> {

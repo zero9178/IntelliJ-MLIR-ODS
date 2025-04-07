@@ -451,6 +451,7 @@ field_access_value ::= value '.' IDENTIFIER {
         field_identifier="IDENTIFIER"
 
         getReference
+        getType
     ]
     pin=2
 }
