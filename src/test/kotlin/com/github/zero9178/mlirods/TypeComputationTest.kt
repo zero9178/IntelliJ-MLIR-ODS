@@ -42,6 +42,14 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test concat`() {
+        doTest(
+            """
+            defvar <caret>v = [5] # [3];
+        """.trimIndent(), TableGenListType(TableGenIntType)
+        )
+    }
+
     fun doTest(source: String, expectedType: TableGenType) {
         myFixture.configureByText("test.td", source)
         val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))

@@ -265,5 +265,16 @@ class TableGenPsiImplUtil {
                 else -> listType
             }
         }
+
+        @JvmStatic
+        fun getType(element: TableGenConcatValue): TableGenType {
+            val lhsType = element.leftOperand.type
+            // Note: This ignores a lot of error cases for the sake of trying to guess user intent regarding the actual
+            // intent.
+            return when (lhsType) {
+                is TableGenListType -> lhsType
+                else -> TableGenStringType
+            }
+        }
     }
 }
