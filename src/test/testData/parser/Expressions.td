@@ -32,3 +32,4 @@ defvar test29 = !cond(
     false : true
 );
 defvar test30 = "text" # 5.lol;
+defvar test31 = !foreach(a, [5], a);

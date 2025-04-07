@@ -67,6 +67,7 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 ("then")                                        { return TableGenTypes.THEN; }
 ("true")                                        { return TableGenTypes.TRUE; }
 ("!cond")                                       { return TableGenTypes.BANG_COND; }
+("!foreach")                                    { return TableGenTypes.BANG_FOREACH; }
 ("!"[a-zA-Z]+)                                  { return TableGenTypes.BANG_OPERATOR; }
 ("#ifdef")                                      { return TableGenTypes.HASHTAG_IFDEF; }
 ("#ifndef")                                     { return TableGenTypes.HASHTAG_IFNDEF; }

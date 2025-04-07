@@ -68,6 +68,7 @@
     INTEGER="regexp:(([+\-])?[0-9]+)|(0x[0-9a-fA-F]+)|(0b[01]+)"
     BANG_OPERATOR="regexp:![a-zA-Z]+"
     BANG_COND="!cond"
+    BANG_FOREACH="!foreach"
     // Used by live preview only.
     WHITE_SPACE="regexp:\s*"
   ]
@@ -492,8 +493,9 @@ private simple_value ::= integer_value
                | dag_init_value
                | class_instantiation_value
                | identifier_value
-               | bang_operator_value
                | cond_operator_value
+               | foreach_operator_value
+               | bang_operator_value
 
 private value_list_ne ::= value (',' value)*
 
@@ -565,6 +567,16 @@ class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
 // Note: This is a simplification from the official syntax that is easier to parse.
 private arg_value_list ::= arg_value_item (',' arg_value_item)*
 arg_value_item ::= value equals_value?
+
+foreach_operator_value ::= '!foreach' '(' IDENTIFIER ',' value ',' value ')' {
+    pin=1
+    methods=[
+        iterable="/value[0]"
+        predicate="/value[1]"
+
+        getType
+    ]
+}
 
 bang_operator_value ::= BANG_OPERATOR ('<' type_node '>')? '(' value_list_ne ')' {pin=1}
 cond_operator_value ::= '!cond' '(' cond_clause (',' cond_clause)* ')' {pin=1}
