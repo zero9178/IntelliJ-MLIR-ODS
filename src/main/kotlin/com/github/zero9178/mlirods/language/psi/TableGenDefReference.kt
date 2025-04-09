@@ -69,9 +69,11 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
 
             val def = run {
                 var hadTemplateArg = false
+                val prefix = mutableListOf<PsiElement>()
                 val scopeItem = element.parents(withSelf = false).find {
                     when (it) {
                         is TableGenTemplateArgDecl -> hadTemplateArg = true
+                        is TableGenForeachOperatorValue -> prefix.add(it)
                     }
                     it is TableGenScopeItem
                 } as? TableGenScopeItem ?: return@run emptySequence()
@@ -87,7 +89,7 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
                     // Definitions should be skipped.
                     is TableGenDefNameIdentifierOwner -> sequence = sequence.drop(1)
                 }
-                sequence
+                prefix.asSequence() + sequence
             }.firstNotNullOfOrNull {
                 if (it is TableGenDefNameIdentifierOwner || it is TableGenFieldBodyItem) if (it.name == name) return@firstNotNullOfOrNull it
 
