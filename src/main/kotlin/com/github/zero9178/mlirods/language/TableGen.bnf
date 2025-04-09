@@ -9,7 +9,7 @@
   psiImplPackage="com.github.zero9178.mlirods.language.generated.psi.impl"
   psiImplUtilClass="com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil"
 
-  generate=[exact-types="all"]
+  generate=[exact-types="all" visitor="no"]
   elementTypeHolderClass="com.github.zero9178.mlirods.language.generated.TableGenTypes"
   elementTypeClass="com.github.zero9178.mlirods.language.TableGenElementType"
   tokenTypeClass="com.github.zero9178.mlirods.language.TableGenTokenType"
@@ -573,8 +573,15 @@ foreach_operator_value ::= '!foreach' '(' IDENTIFIER ',' value ',' value ')' {
     methods=[
         iterable="/value[0]"
         predicate="/value[1]"
+        name_identifier="IDENTIFIER"
 
         getType
+        getName
+        setName
+        getTextOffset
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
     ]
 }
 
