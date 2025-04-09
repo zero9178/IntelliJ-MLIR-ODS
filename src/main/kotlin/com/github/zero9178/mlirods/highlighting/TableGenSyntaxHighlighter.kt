@@ -42,7 +42,7 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
         TableGenTypes.COMMA -> arrayOf(COMMA)
         TableGenTypes.SEMICOLON -> arrayOf(SEMICOLON)
         TableGenTypes.DOT -> arrayOf(DOT)
-        TableGenTypes.BANG_OPERATOR, TableGenTypes.BANG_COND -> arrayOf(BANG_OPERATOR)
+        TableGenTypes.BANG_OPERATOR, TableGenTypes.BANG_COND, TableGenTypes.BANG_FOREACH -> arrayOf(BANG_OPERATOR)
         StringEscapesTokenTypes.VALID_STRING_ESCAPE_TOKEN -> arrayOf(STRING_ESCAPE)
         else -> when {
             KEYWORDS.contains(tokenType) -> arrayOf(KEYWORD)
