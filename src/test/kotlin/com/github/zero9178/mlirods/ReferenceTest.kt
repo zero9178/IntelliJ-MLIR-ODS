@@ -139,6 +139,11 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.name, "i")
     }
 
+    fun `test ForeachDefvarResolution`() {
+        val element = doTest<TableGenForeachOperatorValue>()
+        assertEquals(element.name, "i")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }
