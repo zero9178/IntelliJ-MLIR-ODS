@@ -69,6 +69,7 @@
     BANG_OPERATOR="regexp:![a-zA-Z]+"
     BANG_COND="!cond"
     BANG_FOREACH="!foreach"
+    BANG_FOLDL="!foldl"
     // Used by live preview only.
     WHITE_SPACE="regexp:\s*"
   ]
@@ -495,6 +496,7 @@ private simple_value ::= integer_value
                | identifier_value
                | cond_operator_value
                | foreach_operator_value
+               | foldl_operator_value
                | bang_operator_value
 
 private value_list_ne ::= value (',' value)*
@@ -573,6 +575,37 @@ foreach_operator_value ::= '!foreach' '(' IDENTIFIER ',' value ',' value ')' {
     methods=[
         iterable="/value[0]"
         predicate="/value[1]"
+        name_identifier="IDENTIFIER"
+
+        getType
+        getName
+        setName
+        getTextOffset
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
+    ]
+}
+
+foldl_accumulator ::= IDENTIFIER {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
+    ]
+    methods=[
+        name_identifier="IDENTIFIER"
+
+        getType
+        getName
+        setName
+        getTextOffset
+    ]
+}
+foldl_operator_value ::= '!foldl' '(' value ',' value ',' foldl_accumulator ',' IDENTIFIER ',' value ')' {
+    pin=1
+    methods=[
+        start="/value[0]"
+        iterable="/value[1]"
+        body="/value[2]"
         name_identifier="IDENTIFIER"
 
         getType

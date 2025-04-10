@@ -74,6 +74,10 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
                     when (it) {
                         is TableGenTemplateArgDecl -> hadTemplateArg = true
                         is TableGenForeachOperatorValue -> prefix.add(it)
+                        is TableGenFoldlOperatorValue -> {
+                            prefix.add(it)
+                            it.foldlAccumulator?.let { it1 -> prefix.add(it1) }
+                        }
                     }
                     it is TableGenScopeItem
                 } as? TableGenScopeItem ?: return@run emptySequence()
