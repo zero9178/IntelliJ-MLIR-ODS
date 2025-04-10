@@ -144,6 +144,16 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.name, "i")
     }
 
+    fun `test FoldlIteratorDefvarResolution`() {
+        val element = doTest<TableGenFoldlOperatorValue>()
+        assertEquals(element.name, "i")
+    }
+
+    fun `test FoldlAccDefvarResolution`() {
+        val element = doTest<TableGenFoldlAccumulator>()
+        assertEquals(element.name, "acc")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }
