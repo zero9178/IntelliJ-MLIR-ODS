@@ -574,7 +574,7 @@ foreach_operator_value ::= '!foreach' '(' IDENTIFIER ',' value ',' value ')' {
     pin=1
     methods=[
         iterable="/value[0]"
-        predicate="/value[1]"
+        body="/value[1]"
         name_identifier="IDENTIFIER"
 
         getType
@@ -594,7 +594,6 @@ foldl_accumulator ::= IDENTIFIER {
     methods=[
         name_identifier="IDENTIFIER"
 
-        getType
         getName
         setName
         getTextOffset

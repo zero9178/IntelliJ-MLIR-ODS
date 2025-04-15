@@ -50,11 +50,27 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
-    fun `test foreach`() {
+    fun `test foreach iterable type`() {
         doTest(
             """
             defvar <caret>v = !foreach(a, [5], a);
         """.trimIndent(), TableGenListType(TableGenIntType)
+        )
+    }
+
+    fun `test foreach result type`() {
+        doTest(
+            """
+            defvar <caret>v = !foreach(a, [5], [5]);
+        """.trimIndent(), TableGenListType(TableGenListType(TableGenIntType))
+        )
+    }
+
+    fun `test foldl`() {
+        doTest(
+            """
+            defvar <caret>v = !foldl(0, [5], acc, i, i);
+        """.trimIndent(), TableGenIntType
         )
     }
 
