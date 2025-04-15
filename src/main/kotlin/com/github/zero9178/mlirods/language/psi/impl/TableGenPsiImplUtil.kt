@@ -233,6 +233,14 @@ class TableGenPsiImplUtil {
                 is TableGenDefvarStatement -> resolve.value?.type ?: TableGenUnknownType
                 is TableGenFieldBodyItem -> resolve.typeNode.toType()
                 is TableGenTemplateArgDecl -> resolve.typeNode.toType()
+                is TableGenForeachOperatorValue -> (resolve.iterable?.type as? TableGenListType)?.elementType
+                    ?: TableGenUnknownType
+
+                is TableGenFoldlOperatorValue -> (resolve.iterable?.type as? TableGenListType)?.elementType
+                    ?: TableGenUnknownType
+
+                is TableGenFoldlAccumulator -> (resolve.parent as? TableGenFoldlOperatorValue)?.type
+                    ?: TableGenUnknownType
 
                 is TableGenDefStatement -> TableGenRecordType.create(resolve)
                 else -> TableGenUnknownType
@@ -278,6 +286,9 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getType(element: TableGenForeachOperatorValue): TableGenType = element.iterable?.type ?: TableGenUnknownType
+        fun getType(element: TableGenForeachOperatorValue) = TableGenListType(element.body?.type ?: TableGenUnknownType)
+
+        @JvmStatic
+        fun getType(element: TableGenFoldlOperatorValue): TableGenType = element.start?.type ?: TableGenUnknownType
     }
 }

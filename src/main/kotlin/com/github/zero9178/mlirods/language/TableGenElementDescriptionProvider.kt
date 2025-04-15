@@ -3,6 +3,8 @@ package com.github.zero9178.mlirods.language
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFoldlAccumulator
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFoldlOperatorValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachOperatorValue
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.ElementDescriptionLocation
@@ -33,7 +35,8 @@ private class TableGenElementDescriptionProvider : ElementDescriptionProvider {
             is TableGenFieldBodyItem -> "field"
             is TableGenDefStatement -> "record"
             is TableGenClassStatement -> "class"
-            is TableGenForeachOperatorValue -> "iterator"
+            is TableGenForeachOperatorValue, is TableGenFoldlOperatorValue -> "iterator"
+            is TableGenFoldlAccumulator -> "accumulator"
             else -> null
         }
     }
