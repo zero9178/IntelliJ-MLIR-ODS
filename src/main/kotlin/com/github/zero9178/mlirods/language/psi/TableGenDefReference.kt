@@ -15,6 +15,7 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.parents
 import com.intellij.util.concurrency.annotations.RequiresReadLock
+import com.intellij.util.containers.withPrevious
 
 /**
  * Add extra names that are defined by the parent but visible only within its scope.
@@ -56,6 +57,44 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
         return element === (other as? TableGenDefReference)?.element
     }
 
+    override fun getVariants(): Array<out Any?> {
+        return localResolveSequence().toList().toTypedArray()
+    }
+
+    private fun localResolveSequence(): Sequence<PsiElement> {
+        var hadTemplateArg = false
+        val prefix = mutableListOf<PsiElement>()
+        val scopeItem = element.parents(withSelf = true).withPrevious().mapNotNull { (it, prev) ->
+            when (it) {
+                is TableGenTemplateArgDecl -> hadTemplateArg = true
+                is TableGenForeachOperatorValue ->
+                    if (prev == it.body)
+                        prefix.add(it)
+
+                is TableGenFoldlOperatorValue -> {
+                    if (prev == it.body) {
+                        prefix.add(it)
+                        it.foldlAccumulator?.let { it1 -> prefix.add(it1) }
+                    }
+                }
+            }
+            it as? TableGenScopeItem
+        }.firstOrNull() ?: return emptySequence()
+
+        // Implement different sequences depending on where in the Psi we are.
+        var sequence = traverse(scopeItem, element)
+        when (scopeItem) {
+            is TableGenClassStatement ->
+                // If coming from the template decl, we do not care to add other template arguments to the search.
+                // Otherwise, i.e., coming from the parent class list, we must add any template arguments.
+                if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, element) + sequence
+
+            // Definitions should be skipped.
+            is TableGenDefNameIdentifierOwner -> sequence = sequence.drop(1)
+        }
+        return prefix.asSequence() + sequence
+    }
+
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
         CachedValuesManager.getProjectPsiDependentCache(element) {
@@ -67,34 +106,7 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
 
             val name = element.identifier.text
 
-            val def = run {
-                var hadTemplateArg = false
-                val prefix = mutableListOf<PsiElement>()
-                val scopeItem = element.parents(withSelf = false).find {
-                    when (it) {
-                        is TableGenTemplateArgDecl -> hadTemplateArg = true
-                        is TableGenForeachOperatorValue -> prefix.add(it)
-                        is TableGenFoldlOperatorValue -> {
-                            prefix.add(it)
-                            it.foldlAccumulator?.let { it1 -> prefix.add(it1) }
-                        }
-                    }
-                    it is TableGenScopeItem
-                } as? TableGenScopeItem ?: return@run emptySequence()
-
-                // Implement different sequences depending on where in the Psi we are.
-                var sequence = traverse(scopeItem, element)
-                when (scopeItem) {
-                    is TableGenClassStatement ->
-                        // If coming from the template decl, we do not care to add other template arguments to the search.
-                        // Otherwise, i.e., coming from the parent class list, we must add any template arguments.
-                        if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, element) + sequence
-
-                    // Definitions should be skipped.
-                    is TableGenDefNameIdentifierOwner -> sequence = sequence.drop(1)
-                }
-                prefix.asSequence() + sequence
-            }.firstNotNullOfOrNull {
+            val def = localResolveSequence().firstNotNullOfOrNull {
                 if (it is TableGenDefNameIdentifierOwner || it is TableGenFieldBodyItem) if (it.name == name) return@firstNotNullOfOrNull it
 
                 null
