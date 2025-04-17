@@ -22,7 +22,7 @@ inline fun <reified C : PsiElement, T : StubElement<*>> StubBasedPsiElementBase<
 
 inline fun <reified C : PsiElement, T : PsiElement> StubElement<T>.stubbedChildren(elementType: TableGenStubElementType<*, C>): Sequence<C> {
     return childrenStubs.asSequence().filter {
-        it?.stubType == elementType
+        it?.elementType == elementType
     }.mapNotNull {
         it.psi
     }.filterIsInstance<C>()

@@ -210,6 +210,7 @@ class_ref ::= IDENTIFIER class_ref_suffix? {
         getReference
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassRefMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStubElementType"
 }
 private class_ref_suffix ::= '<' arg_value_list? '>' {pin=1}
@@ -293,6 +294,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
         getPresentation
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefvarStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
 dump_statement ::= 'dump' value ';' {pin=1}
@@ -379,6 +381,7 @@ type_node ::= bit_type_node
         toString
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenTypeNodeMixin"
 }
 bit_type_node ::= 'bit' {
     methods=[
