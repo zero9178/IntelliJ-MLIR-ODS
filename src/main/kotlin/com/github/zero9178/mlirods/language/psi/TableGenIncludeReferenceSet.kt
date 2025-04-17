@@ -64,7 +64,7 @@ class TableGenIncludeReferenceSet(
     }
 
     override fun isCaseSensitive(): Boolean {
-        return element.containingFile.virtualFile.isCaseSensitive
+        return element.containingFile?.virtualFile?.isCaseSensitive ?: super.isCaseSensitive()
     }
 
     override fun couldBeConvertedTo(relative: Boolean): Boolean {
