@@ -22,25 +22,30 @@ import com.intellij.util.containers.withPrevious
  * These must act as if defined at the very beginning of that scope (i.e. are found only after any elements within the
  * body).
  */
-private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: TableGenIdentifierValue) = sequence<PsiElement> {
-    // Lookup is done for fields before template arguments.
-    if (parent is TableGenFieldScopeNode) parent.fields[name]?.let {
-        yield(it)
-    }
+private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: TableGenIdentifierValue, useIndex: Boolean) =
+    sequence<PsiElement> {
+        // Lookup is done for fields before template arguments.
+        if (useIndex && parent is TableGenFieldScopeNode) parent.fields[name]?.let {
+            yield(it)
+        }
 
-    if (parent is TableGenAbstractClassStatement) yieldAll(parent.templateArgDeclList.asReversed())
-}
+        if (parent is TableGenAbstractClassStatement) yieldAll(parent.templateArgDeclList.asReversed())
+    }
 
 /**
  * Returns all [TableGenDefNameIdentifierOwner] by performing a backwards traversal starting from [root] and walking up
  * parents whenever the start has been reached.
  */
-private fun traverse(root: TableGenScopeItem, name: TableGenIdentifierValue): Sequence<PsiElement> = sequence {
+private fun traverse(
+    root: TableGenScopeItem,
+    name: TableGenIdentifierValue,
+    useIndex: Boolean
+): Sequence<PsiElement> = sequence {
     yieldAll(root.itemsBefore(withSelf = true))
 
     root.parentItem?.let {
-        yieldAll(addExtraDefNamesForParent(it, name))
-        yieldAll(traverse(it, name))
+        yieldAll(addExtraDefNamesForParent(it, name, useIndex))
+        yieldAll(traverse(it, name, useIndex))
     }
 }
 
@@ -58,10 +63,12 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
     }
 
     override fun getVariants(): Array<out Any?> {
-        return localResolveSequence().toList().toTypedArray()
+        return localResolveSequence(false).filter {
+            it is TableGenDefNameIdentifierOwner || it is TableGenFieldBodyItem
+        }.toList().toTypedArray()
     }
 
-    private fun localResolveSequence(): Sequence<PsiElement> {
+    private fun localResolveSequence(useIndex: Boolean = true): Sequence<PsiElement> {
         var hadTemplateArg = false
         val prefix = mutableListOf<PsiElement>()
         val scopeItem = element.parents(withSelf = true).withPrevious().mapNotNull { (it, prev) ->
@@ -82,15 +89,15 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
         }.firstOrNull() ?: return emptySequence()
 
         // Implement different sequences depending on where in the Psi we are.
-        var sequence = traverse(scopeItem, element)
+        var sequence = traverse(scopeItem, element, useIndex)
         when (scopeItem) {
             is TableGenClassStatement ->
                 // If coming from the template decl, we do not care to add other template arguments to the search.
                 // Otherwise, i.e., coming from the parent class list, we must add any template arguments.
-                if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, element) + sequence
+                if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, element, useIndex) + sequence
 
             // Definitions should be skipped.
-            is TableGenDefNameIdentifierOwner -> sequence = sequence.drop(1)
+            is TableGenFieldBodyItem, is TableGenDefNameIdentifierOwner -> sequence = sequence.drop(1)
         }
         return prefix.asSequence() + sequence
     }
