@@ -12,6 +12,7 @@ import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
+import com.intellij.platform.lsp.api.customization.LspDocumentLinkSupport
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
 import java.io.File
@@ -113,6 +114,9 @@ class TableGenLspServerDescriptor(
      * See https://github.com/llvm/llvm-project/blob/05b907f66b6aed06b8ad3b27883b9108a77858d2/mlir/lib/Tools/tblgen-lsp-server/LSPServer.cpp#L196
      */
     override val lspCodeActionsSupport: LspCodeActionsSupport?
+        get() = null
+
+    override val lspDocumentLinkSupport: LspDocumentLinkSupport?
         get() = null
 }
 

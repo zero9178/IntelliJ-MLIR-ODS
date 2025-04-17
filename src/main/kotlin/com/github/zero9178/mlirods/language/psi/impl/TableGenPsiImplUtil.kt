@@ -119,7 +119,7 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun toString(element: ASTDelegatePsiElement): String {
             var name = element.javaClass.simpleName + "("
-            name += if (element is StubBasedPsiElement<*>) element.elementType
+            name += if (element is StubBasedPsiElement<*>) element.iElementType
             else element.node.elementType
             name += ")"
             return name
