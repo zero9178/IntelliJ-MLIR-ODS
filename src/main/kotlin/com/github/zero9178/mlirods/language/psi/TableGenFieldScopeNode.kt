@@ -59,6 +59,16 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     val directFields: Map<String, TableGenFieldBodyItem>
 
     /**
+     * Returns a sequence of all fields of this class, including inherited fields.
+     */
+    val allFields: Sequence<TableGenFieldBodyItem>
+        get() = directFields.values.asSequence() + baseClassRefs.mapNotNull {
+            it.referencedClass
+        }.flatMap {
+            it.allFields
+        }
+
+    /**
      * Returns a sequence of all references to base classes that should be used for field lookup.
      */
     val baseClassRefs: Sequence<TableGenClassRef>

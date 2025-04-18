@@ -63,6 +63,8 @@
                 implementation="com.github.zero9178.mlirods.language.TableGenUsageTypeProvider"/>
         <gotoClassContributor implementation="com.github.zero9178.mlirods.language.TableGenGotoClassContributor"/>
         <gotoSymbolContributor implementation="com.github.zero9178.mlirods.language.TableGenGotoSymbolContributor"/>
+        <completion.contributor language="TableGen"
+                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenFieldCompletionContributor"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">

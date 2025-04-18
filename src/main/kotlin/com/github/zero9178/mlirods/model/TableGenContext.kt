@@ -5,7 +5,6 @@ import com.github.zero9178.mlirods.language.TableGenFileType
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.readAction
-import com.intellij.openapi.application.readAndWriteAction
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -15,12 +14,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.originalFileOrSelf
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter
 import com.intellij.psi.impl.PsiManagerEx
 import com.intellij.psi.search.FileTypeIndex
-import com.intellij.util.AstLoadingFilter
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.jetbrains.rd.util.firstOrNull
 import kotlinx.collections.immutable.PersistentMap
@@ -218,7 +217,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     }
 
     fun getActiveContext(virtualFile: VirtualFile) = myLock.read {
-        myFileToContexts[virtualFile]?.stateFlow?.value?.firstOrNull()?.value ?: TableGenContext()
+        myFileToContexts[virtualFile.originalFileOrSelf()]?.stateFlow?.value?.firstOrNull()?.value ?: TableGenContext()
     }
 
     /**
