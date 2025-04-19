@@ -1,12 +1,9 @@
 package com.github.zero9178.mlirods
 
-import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiManager
 import com.intellij.psi.util.parentOfType
-import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class ReferenceTest : BasePlatformTestCase() {
@@ -17,14 +14,11 @@ class ReferenceTest : BasePlatformTestCase() {
         installCompileCommands(
             project, mapOf(
                 virtualFile to IncludePaths(listOf(testFile.parent))
+            ),
+            listOf(
+                targetFile to IncludePaths(listOf(testFile.parent))
             )
         )
-
-        PlatformTestUtil.waitWhileBusy {
-            val file =
-                PsiManager.getInstance(project).findFile(targetFile) as? TableGenFile ?: return@waitWhileBusy true
-            file.context.includePaths.isEmpty()
-        }
 
         myFixture.configureFromExistingVirtualFile(targetFile)
         val element = assertInstanceOf(myFixture.elementAtCaret, PsiFile::class.java)
@@ -168,11 +162,6 @@ class ReferenceTest : BasePlatformTestCase() {
                 mainVF to IncludePaths(list)
             )
         )
-        PlatformTestUtil.waitWhileBusy {
-            val file =
-                PsiManager.getInstance(project).findFile(mainVF) as? TableGenFile ?: return@waitWhileBusy true
-            file.context.includePaths != list
-        }
 
         myFixture.configureFromExistingVirtualFile(mainVF)
         return assertInstanceOf(myFixture.elementAtCaret, T::class.java)

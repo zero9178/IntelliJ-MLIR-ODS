@@ -9,6 +9,7 @@ import com.github.zero9178.mlirods.model.TableGenContextService
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.FileReference
 import com.intellij.psi.stubs.IStubElementType
@@ -18,7 +19,9 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 abstract class TableGenIncludeDirectiveMixin : StubBasedPsiElementBase<TableGenIncludeDirectiveStub>,
     TableGenIncludeDirective {
-    private val myIncludedFileCache =
+
+    private val mySubtreeModificationTracker = SimpleModificationTracker()
+    private val myIncludedFileCache = lazy {
         CachedValuesManager.getManager(project)
             .createCachedValue {
                 val tableGenFile = containingFile as? TableGenFile
@@ -29,13 +32,20 @@ abstract class TableGenIncludeDirectiveMixin : StubBasedPsiElementBase<TableGenI
                 }
                 CachedValueProvider.Result.create(
                     result,
-                    project.service<TableGenContextService>().includeResultModificationTracker
+                    project.service<TableGenContextService>().includeResultModificationTracker,
+                    mySubtreeModificationTracker
                 )
             }
+    }
+
+    override fun subtreeChanged() {
+        super.subtreeChanged()
+        mySubtreeModificationTracker.incModificationCount()
+    }
 
     override val includedFile: VirtualFile?
         @RequiresReadLock
-        get() = myIncludedFileCache.value
+        get() = myIncludedFileCache.value.value
 
     override val includeSuffix: String
         get() = greenStub?.includeSuffix ?: string?.let { getStringValue(it) } ?: ""
