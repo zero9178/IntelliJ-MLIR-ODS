@@ -38,3 +38,8 @@ def Foo {
   int i = 0;
 }
 
+class Foo<string s = "", Bar>;
+
+class Foo<string s = "", > {
+  int i = 0;
+}
