@@ -23,6 +23,7 @@ import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
+import javax.swing.Icon
 import kotlin.io.path.relativeToOrNull
 
 class TableGenPsiImplUtil {
@@ -154,15 +155,13 @@ class TableGenPsiImplUtil {
             return element.nameIdentifier?.textOffset ?: element.startOffset
         }
 
-        /**
-         * Custom representation for any [PsiNamedElement] as it appears in 'Find Usages' and the
-         * declaration list.
-         */
-        @JvmStatic
-        fun getPresentation(element: PsiNamedElement): ItemPresentation? = object : ItemPresentation {
+        private class TableGenItemPresentation(
+            private val element: PsiNamedElement,
+            private val icon: Icon = MyIcons.TableGenIcon
+        ) : ItemPresentation {
             override fun getPresentableText() = element.name
 
-            override fun getIcon(unused: Boolean) = MyIcons.TableGenIcon
+            override fun getIcon(unused: Boolean) = icon
 
             override fun getLocationString(): String? {
                 val projectDir = element.project.guessProjectDir()?.toNioPathOrNull() ?: return null
@@ -175,8 +174,20 @@ class TableGenPsiImplUtil {
             }
         }
 
+        /**
+         * Custom representation for any [PsiNamedElement] as it appears in 'Find Usages' and the
+         * declaration list.
+         */
         @JvmStatic
-        fun getPresentation(element: TableGenDefNameIdentifierOwner) = getPresentation(element as PsiNamedElement)
+        fun getPresentation(element: PsiNamedElement): ItemPresentation? = TableGenItemPresentation(element)
+
+        @JvmStatic
+        fun getPresentation(element: TableGenDefNameIdentifierOwner): ItemPresentation? =
+            TableGenItemPresentation(element, MyIcons.TableGenDef)
+
+        @JvmStatic
+        fun getPresentation(element: TableGenClassStatement): ItemPresentation? =
+            TableGenItemPresentation(element, MyIcons.TableGenClass)
 
         @JvmStatic
         fun toType(element: TableGenBitTypeNode) = TableGenBitType

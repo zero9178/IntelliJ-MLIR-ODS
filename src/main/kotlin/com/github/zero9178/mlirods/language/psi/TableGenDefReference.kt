@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElement
@@ -63,8 +64,10 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
     }
 
     override fun getVariants(): Array<out Any?> {
-        return localResolveSequence(false).filter {
-            it is TableGenDefNameIdentifierOwner || it is TableGenFieldBodyItem
+        return localResolveSequence(false).mapNotNull {
+            it as? TableGenDefNameIdentifierOwner ?: it as? TableGenFieldBodyItem
+        }.map {
+            LookupElementBuilder.createWithIcon(it)
         }.toList().toTypedArray()
     }
 
