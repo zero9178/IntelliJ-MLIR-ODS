@@ -168,8 +168,9 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStubElementType"
     pin=1
 }
-private template_arg_list ::= '<' template_arg_decl (',' template_arg_decl)* '>' {pin=1}
+private template_arg_list ::= '<' template_arg_decl (',' template_arg_decl)* '>' {pin(".*")=1}
 template_arg_decl ::= type_node IDENTIFIER equals_value? {
+    pin=1
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
     ]
