@@ -3,10 +3,24 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+
+## [0.6.0] - 2025-04-20
 ### Added
 - Added usage type categories in `Find Usage`
+- Local code completion of class types
+- Local code completion of `def` values
+- Code completion of field names
+- Code completion of paths in `include` directives
+- Added `def`s and `class`s to the GoTo menu (pressing shift twice)
+- Resolve `def`s to `!foldl` and `!foreach` operators
 ### Fixed
-- Fix null pointer exception on `defvar`s without a name.
+- Fix null pointer exception on `defvar`s without a name
+- Null pointer exception while typing `include` strings
+- Parser recovery in class template definitions
+- Compilation against 2025 IDE versions
+### Removed
+- Disabled use of LSP for `Find usage` and `Goto Definition`. The IDE is more accurate at this point and having two
+items in the `Find usage` functionality confusing for users.
 
 ## [0.5.0] - 2025-03-23
 ### Added
