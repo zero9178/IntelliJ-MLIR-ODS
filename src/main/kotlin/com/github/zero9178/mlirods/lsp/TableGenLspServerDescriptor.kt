@@ -12,7 +12,10 @@ import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
+import com.intellij.platform.lsp.api.customization.LspCompletionSupport
 import com.intellij.platform.lsp.api.customization.LspDocumentLinkSupport
+import com.intellij.platform.lsp.api.customization.LspFindReferencesSupport
+import com.intellij.platform.lsp.api.customization.LspSemanticTokensSupport
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
 import java.io.File
@@ -117,6 +120,21 @@ class TableGenLspServerDescriptor(
         get() = null
 
     override val lspDocumentLinkSupport: LspDocumentLinkSupport?
+        get() = null
+
+    override val lspCompletionSupport: LspCompletionSupport?
+        get() = null
+
+    override val lspFindReferencesSupport: LspFindReferencesSupport?
+        get() = null
+
+    override val lspGoToDefinitionSupport: Boolean
+        get() = false
+
+    override val lspGoToTypeDefinitionSupport: Boolean
+        get() = false
+
+    override val lspSemanticTokensSupport: LspSemanticTokensSupport?
         get() = null
 }
 
