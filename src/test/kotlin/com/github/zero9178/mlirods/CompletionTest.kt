@@ -12,50 +12,35 @@ import com.intellij.testFramework.utils.vfs.createFile
 import kotlinx.coroutines.runBlocking
 
 class CompletionTest : BasePlatformTestCase() {
-    fun `test foldl completion`() {
-        myFixture.configureByText(
-            "test.td", """
+    fun `test foldl completion`() = doTest(
+        """
             defvar values = [1];
             defvar test = !foldl(0, <caret>, acc, i, i);
-        """.trimIndent()
+        """.trimIndent(), "values"
         )
-        myFixture.completeBasic()
-        val list = requireNotNull(myFixture.lookupElementStrings)
-        assertSameElements(list, "values")
-    }
 
-    fun `test foreach completion`() {
-        myFixture.configureByText(
-            "test.td", """
+
+    fun `test foreach completion`() = doTest(
+        """
             defvar values = [1];
             defvar test = !foreach(i, <caret>, i);
-        """.trimIndent()
-        )
-        myFixture.completeBasic()
-        val list = requireNotNull(myFixture.lookupElementStrings)
-        assertSameElements(list, "values")
-    }
+        """.trimIndent(), "values"
+    )
 
-    fun `test dumb field lookup`() {
-        myFixture.configureByText(
-            "test.td", """
+
+    fun `test dumb field lookup`() = doDumbTest(
+        """
             defvar v = 0;
             
             class A : B {
                 int i = <caret>;
             }
-        """.trimIndent()
-        )
+        """.trimIndent(), "v"
+    )
 
-        DumbModeTestUtils.computeInDumbModeSynchronously(project) {
-            myFixture.completeBasic()
-            assertSameElements(requireNotNull(myFixture.lookupElementStrings), "v")
-        }
-    }
 
-    fun `test field access lookup`() {
-        myFixture.configureByText(
-            "test.td", """
+    fun `test field access lookup`() = doTest(
+        """
             defvar v = 0;
             
             class B {
@@ -63,15 +48,9 @@ class CompletionTest : BasePlatformTestCase() {
             }
             
             defvar l = B<>.<caret>
-        """.trimIndent()
-        )
-
-        myFixture.completeBasic()
-        assertSameElements(
-            requireNotNull(myFixture.lookupElementStrings),
+        """.trimIndent(),
             "j"
         )
-    }
 
     fun `test field cross file access lookup`() {
         val otherTD = myFixture.configureByText(
@@ -169,4 +148,49 @@ class CompletionTest : BasePlatformTestCase() {
         """.trimIndent()
         )
     }
+
+    fun `test dumb class completion`() {
+        doDumbTest(
+            """
+            class A;
+            
+            class B<<caret>
+        """.trimIndent(), "A"
+        )
+
+        doDumbTest(
+            """
+            class A;
+            
+            class B {
+                <caret>
+            }
+        """.trimIndent(), "A"
+        )
+
+
+        doDumbTest(
+            """
+            class A;
+            
+            class B : <caret>
+        """.trimIndent(), "A"
+        )
+    }
+
+
+    private fun doTest(source: String, vararg expected: String) {
+        myFixture.configureByText(
+            "test.td", source
+        )
+
+
+        myFixture.completeBasic()
+        assertSameElements(requireNotNull(myFixture.lookupElementStrings), *expected)
+    }
+
+    private fun doDumbTest(source: String, vararg expected: String) =
+        DumbModeTestUtils.runInDumbModeSynchronously(project) {
+            doTest(source, *expected)
+        }
 }
