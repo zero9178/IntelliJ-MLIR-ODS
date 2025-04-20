@@ -2,15 +2,17 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
-import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.intellij.codeInsight.lookup.LookupElement
+import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
-import com.intellij.psi.stubs.StubIndex
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
@@ -29,15 +31,24 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
         return element === (other as? TableGenClassReference)?.element
     }
 
+    private fun localSearchOrder() = run {
+        val topLevelElement =
+            element.parentsOfType<TableGenScopeItem>(withSelf = false).lastOrNull()
+                ?: return@run emptySequence()
+
+        topLevelElement.classStatementsBefore()
+    }
+
+    override fun getVariants() = localSearchOrder().map {
+        LookupElementBuilder.createWithIcon(it)
+    }.toList().toTypedArray()
+
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
         CachedValuesManager.getProjectPsiDependentCache(element) {
             disallowTreeLoading {
                 val name = element.className
-                val topLevelElement =
-                    element.parentsOfType<TableGenScopeItem>(withSelf = false).lastOrNull()
-                        ?: return@disallowTreeLoading emptyArray()
-                val klass = topLevelElement.classStatementsBefore().find {
+                val klass = localSearchOrder().find {
                     it.name == name
                 }
 
