@@ -50,6 +50,21 @@ class CompletionTest : BasePlatformTestCase() {
             "j"
         )
 
+    fun `test let field lookup`() = doTest(
+        """
+            defvar v = 0;
+            
+            class B {
+                int j = 0;
+            }
+            
+            class C : B {
+                let <caret>
+            }
+        """.trimIndent(),
+        "j"
+    )
+
     fun `test field cross file access lookup`() {
         val otherTD = myFixture.configureByText(
             "other.td", """   
