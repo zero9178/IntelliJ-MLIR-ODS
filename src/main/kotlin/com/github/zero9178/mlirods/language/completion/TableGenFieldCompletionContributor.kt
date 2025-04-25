@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.completion
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
 import com.intellij.codeInsight.completion.CompletionContributor
@@ -11,6 +12,7 @@ import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.PlatformPatterns
+import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
 
@@ -19,7 +21,12 @@ private class TableGenFieldCompletionContributor : CompletionContributor() {
 
         extend(
             null,
-            PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(TableGenIdentifierValue::class.java),
+            PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(
+                StandardPatterns.or(
+                    PlatformPatterns.psiElement(TableGenIdentifierValue::class.java),
+                    PlatformPatterns.psiElement(TableGenLetBodyItem::class.java),
+                )
+            ),
             object : CompletionProvider<CompletionParameters>() {
                 override fun addCompletions(
                     parameters: CompletionParameters,
