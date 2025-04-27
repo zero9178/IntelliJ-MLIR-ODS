@@ -4,7 +4,6 @@ import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.intellij.lang.BracePair
 import com.intellij.lang.PairedBraceMatcher
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 
 private val PAIRS = arrayOf(
@@ -20,14 +19,7 @@ private class TableGenBraceMatcher : PairedBraceMatcher {
         return PAIRS
     }
 
-    override fun isPairedBracesAllowedBeforeType(lbraceType: IElementType, contextType: IElementType?): Boolean {
-        when (contextType) {
-            null, is PsiWhiteSpace -> return true
-        }
-        return PAIRS.find {
-            it.rightBraceType == contextType
-        } != null
-    }
+    override fun isPairedBracesAllowedBeforeType(lbraceType: IElementType, contextType: IElementType?) = true
 
     override fun getCodeConstructStart(file: PsiFile?, openingBraceOffset: Int): Int {
         return openingBraceOffset
