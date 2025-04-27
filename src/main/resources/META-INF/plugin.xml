@@ -68,6 +68,10 @@
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenKeywordCompletionContributor"/>
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>
+        <lang.formatter language="TableGen"
+                        implementationClass="com.github.zero9178.mlirods.language.format.TableGenFormattingModelBuilder"/>
+        <fileTypeIndentOptionsProvider
+                implementation="com.github.zero9178.mlirods.language.format.TableGenFileTypeIndentOptionsProvider"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">

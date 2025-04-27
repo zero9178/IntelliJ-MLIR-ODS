@@ -9,6 +9,38 @@ class TableGenTokenType(@NonNls debugName: String) : IElementType(debugName, Tab
 
 class TableGenElementType(@NonNls debugName: String) : IElementType(debugName, TableGenLanguage.INSTANCE)
 
+val BANG_VALUES = TokenSet.create(
+    TableGenTypes.BANG_OPERATOR_VALUE,
+    TableGenTypes.FOREACH_OPERATOR_VALUE,
+    TableGenTypes.FOLDL_OPERATOR_VALUE,
+)
+val BANG_OPERATORS = TokenSet.create(
+    TableGenTypes.BANG_OPERATOR,
+    TableGenTypes.BANG_FOREACH,
+    TableGenTypes.BANG_FOLDL,
+    TableGenTypes.BANG_COND,
+)
+val VALUES = TokenSet.create(
+    TableGenTypes.BANG_OPERATOR_VALUE,
+    TableGenTypes.FOREACH_OPERATOR_VALUE,
+    TableGenTypes.FOLDL_OPERATOR_VALUE,
+    TableGenTypes.UNDEF_VALUE,
+    TableGenTypes.STRING_VALUE,
+    TableGenTypes.SLICE_ACCESS_VALUE,
+    TableGenTypes.LIST_INIT_VALUE,
+    TableGenTypes.INTEGER_VALUE,
+    TableGenTypes.IDENTIFIER_VALUE,
+    TableGenTypes.FIELD_ACCESS_VALUE,
+    TableGenTypes.DAG_INIT_VALUE,
+    TableGenTypes.CONCAT_VALUE,
+    TableGenTypes.BLOCK_STRING_VALUE,
+    TableGenTypes.CLASS_INSTANTIATION_VALUE,
+)
+val RECORDS = TokenSet.create(
+    TableGenTypes.CLASS_STATEMENT,
+    TableGenTypes.DEF_STATEMENT,
+    TableGenTypes.MULTICLASS_STATEMENT,
+)
 val COMMENTS = TokenSet.create(TableGenTypes.LINE_COMMENT, TableGenTypes.BLOCK_COMMENT)
 val STRING_LITERALS = TokenSet.create(
     TableGenTypes.BLOCK_STRING_LITERAL,
