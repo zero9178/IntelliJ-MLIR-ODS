@@ -1,7 +1,9 @@
 package com.github.zero9178.mlirods.language.format
 
-import com.github.zero9178.mlirods.language.BANG_OPERATORS
+import com.github.zero9178.mlirods.language.BANG_OPERATORS_TOKENS
 import com.github.zero9178.mlirods.language.TableGenLanguage
+import com.github.zero9178.mlirods.language.VALUES
+import com.github.zero9178.mlirods.language.VALUES_TOKEN
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.intellij.formatting.*
 import com.intellij.psi.codeStyle.CodeStyleSettings
@@ -11,7 +13,7 @@ class TableGenFormattingModelBuilder : FormattingModelBuilder {
 
     private fun createSpacingBuilder(codeStyleSettings: CodeStyleSettings): SpacingBuilder {
         return SpacingBuilder(codeStyleSettings, TableGenLanguage.INSTANCE).apply {
-            after(BANG_OPERATORS).none()
+            after(BANG_OPERATORS_TOKENS).none()
             around(TableGenTypes.LANGLE).none()
             before(TableGenTypes.RANGLE).none()
 
@@ -47,6 +49,7 @@ class TableGenFormattingModelBuilder : FormattingModelBuilder {
             around(TableGenTypes.THEN).spaces(1)
             around(TableGenTypes.IN).spaces(1)
             after(TableGenTypes.IF).spaces(1)
+            between(TableGenTypes.BLOCK_COMMENT, VALUES_TOKEN).none()
         }
     }
 

@@ -14,7 +14,7 @@ val BANG_VALUES = TokenSet.create(
     TableGenTypes.FOREACH_OPERATOR_VALUE,
     TableGenTypes.FOLDL_OPERATOR_VALUE,
 )
-val BANG_OPERATORS = TokenSet.create(
+val BANG_OPERATORS_TOKENS = TokenSet.create(
     TableGenTypes.BANG_OPERATOR,
     TableGenTypes.BANG_FOREACH,
     TableGenTypes.BANG_FOLDL,
@@ -35,6 +35,18 @@ val VALUES = TokenSet.create(
     TableGenTypes.CONCAT_VALUE,
     TableGenTypes.BLOCK_STRING_VALUE,
     TableGenTypes.CLASS_INSTANTIATION_VALUE,
+)
+val VALUES_TOKEN = TokenSet.orSet(
+    BANG_OPERATORS_TOKENS, TokenSet.create(
+        TableGenTypes.QUESTION_MARK,
+        TableGenTypes.LINE_STRING_LITERAL,
+        TableGenTypes.LINE_STRING_LITERAL_BAD,
+        TableGenTypes.LBRACKET,
+        TableGenTypes.LPAREN,
+        TableGenTypes.INTEGER,
+        TableGenTypes.IDENTIFIER,
+        TableGenTypes.BLOCK_STRING_VALUE,
+    )
 )
 val RECORDS = TokenSet.create(
     TableGenTypes.CLASS_STATEMENT,
