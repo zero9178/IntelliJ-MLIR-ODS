@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-05-29
+### Added
+- Code completion for keywords
+- Code completion for `let` targets in bodies
+- Always inserting matching braces
+### Fixed
+- Compatibility with future IDE versions
+
 ## [0.6.0] - 2025-04-20
 ### Added
 - Added usage type categories in `Find Usage`
