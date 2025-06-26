@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.clion
 
 import com.github.zero9178.mlirods.lsp.restartTableGenLSPAsync
 import com.intellij.execution.*
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -48,9 +49,13 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
 
     init {
         project.messageBus.connect(cs).subscribe(CMakeWorkspaceListener.TOPIC, object : CMakeWorkspaceListener {
-            override fun generationFinished() {
-                myProfileListFlow.value =
-                    project.service<CMakeWorkspace>().profileInfos.toList()
+            override fun afterApplyingNoLocks() {
+                cs.launch {
+                    readAction {
+                        myProfileListFlow.value =
+                            project.service<CMakeWorkspace>().profileInfos.toList()
+                    }
+                }
             }
         })
 
@@ -59,6 +64,7 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
                 restartTableGenLSPAsync(project)
             }
         }
+        initFromExecutionManager()
     }
 
     /**
