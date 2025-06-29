@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFoldlAccumulator
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFoldlOperatorValue
@@ -34,6 +35,7 @@ private class TableGenElementDescriptionProvider : ElementDescriptionProvider {
         return when (element) {
             is TableGenFieldBodyItem -> "field"
             is TableGenDefStatement -> "record"
+            is TableGenDefvarStatement -> "variable"
             is TableGenClassStatement -> "class"
             is TableGenForeachOperatorValue, is TableGenFoldlOperatorValue -> "iterator"
             is TableGenFoldlAccumulator -> "accumulator"
