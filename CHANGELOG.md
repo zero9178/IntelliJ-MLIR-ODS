@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Fixed
+- Find usage action no longer working
 
 ## [0.7.0] - 2025-05-29
 ### Added
