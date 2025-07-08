@@ -2,10 +2,13 @@ package com.github.zero9178.mlirods.clion
 
 import com.github.zero9178.mlirods.lsp.restartTableGenLSPAsync
 import com.intellij.execution.*
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.jetbrains.cidr.cpp.cmake.workspace.CMakeProfileInfo
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspaceListener
 import com.jetbrains.cidr.cpp.execution.CMakeBuildProfileExecutionTarget
@@ -17,14 +20,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 private val LOG = logger<CMakeActiveProfileService>()
-
-private class RunManagerInitializedListener(private val project: Project) : RunManagerListener {
-    override fun stateLoaded(runManager: RunManager, isFirstLoadState: Boolean) {
-        if (!isFirstLoadState) return
-
-        project.service<CMakeActiveProfileService>().initFromExecutionManager()
-    }
-}
 
 private class CMakeExecutionTargetListener(private val project: Project) : ExecutionTargetListener {
     override fun activeTargetChanged(newTarget: ExecutionTarget) {
@@ -42,32 +37,39 @@ private class CMakeExecutionTargetListener(private val project: Project) : Execu
 class CMakeActiveProfileService(private val project: Project, private val cs: CoroutineScope) {
 
     private val myProfileNameFlow = MutableStateFlow("")
-    internal val myProfileListFlow = MutableStateFlow(
-        project.service<CMakeWorkspace>().profileInfos.toList()
-    )
+    private val myProfileListFlow = MutableStateFlow(emptyList<CMakeProfileInfo>())
 
     init {
+        val block: suspend CoroutineScope.() -> Unit = {
+            val workspace = project.serviceAsync<CMakeWorkspace>()
+            myProfileListFlow.value = readAction {
+                workspace.profileInfos.toList()
+            }
+        }
+
         project.messageBus.connect(cs).subscribe(CMakeWorkspaceListener.TOPIC, object : CMakeWorkspaceListener {
-            override fun generationFinished() {
-                myProfileListFlow.value =
-                    project.service<CMakeWorkspace>().profileInfos.toList()
+            override fun afterApplyingNoLocks() {
+                cs.launch(block = block)
             }
         })
+        cs.launch(block = block)
 
         cs.launch {
             myProfileNameFlow.filter { !it.isEmpty() }.collect {
                 restartTableGenLSPAsync(project)
             }
         }
+        initFromExecutionManager()
     }
 
     /**
      * Starts an asynchronous operation to initialize the profile from the currently active target.
      */
-    internal fun initFromExecutionManager() = cs.launch {
-        // TODO: Use serviceAsync once the API is public.
-        val manager = project.service<ExecutionTargetManager>()
-        val target = manager.activeTarget as? CMakeBuildProfileExecutionTarget ?: return@launch
+    private fun initFromExecutionManager() = cs.launch {
+        val manager = project.serviceAsync<ExecutionTargetManager>()
+        val target = readAction {
+            manager.activeTarget as? CMakeBuildProfileExecutionTarget
+        } ?: return@launch
 
         profileName = target.profileName
         LOG.info("Restarting LSP due to run manager being initialized")

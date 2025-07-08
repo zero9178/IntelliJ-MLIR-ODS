@@ -12,8 +12,6 @@
     <projectListeners>
         <listener class="com.github.zero9178.mlirods.clion.CMakeTableGenBuildListener"
                   topic="com.jetbrains.cidr.execution.build.CidrBuildListener"/>
-        <listener class="com.github.zero9178.mlirods.clion.RunManagerInitializedListener"
-                  topic="com.intellij.execution.RunManagerListener"/>
         <listener class="com.github.zero9178.mlirods.clion.CMakeExecutionTargetListener"
                   topic="com.intellij.execution.ExecutionTargetListener"/>
     </projectListeners>

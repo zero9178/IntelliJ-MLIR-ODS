@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
@@ -13,6 +14,7 @@ import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.util.messages.impl.subscribeAsFlow
+import com.jetbrains.cidr.cpp.toolchains.CPPEnvironment
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +36,15 @@ data class FileInfoDto(
 
 private val LOG = logger<CMakeTableGenCompilationCommandsProvider>()
 
+private fun CPPEnvironment.toLocalVFS(path: String): VirtualFile? {
+    val instance = VirtualFileManager.getInstance()
+    return toLocalPathAndCopyIfDoesNotExist(
+        path
+    )?.let { localPath ->
+        instance.findFileByNioPath(Path(localPath))
+    }
+}
+
 class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProvider {
 
     override fun getCompilationCommandsFlow(project: Project): Flow<CompilationCommandsState> {
@@ -50,14 +61,16 @@ class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProv
         }
 
         return project.service<CMakeActiveProfileService>().profileFlow.filterNotNull().map {
-            it.generationDir.resolve("tablegen_compile_commands.yml")
-        }.transform { file ->
+            it.generationDir.resolve("tablegen_compile_commands.yml") to it.environment
+        }.transform { (file, env) ->
+            if (env == null) return@transform
+
             try {
                 val result = file.inputStream().use { inputStream ->
                     Yaml(Constructor(FileInfoDto::class.java, LoaderOptions())).loadAll(inputStream)
                         .filterIsInstance<FileInfoDto>()
                 }
-                emit(result)
+                emit(result to env)
             } catch (_: FileNotFoundException) {
                 // Swallow completely.
             } catch (e: Throwable) {
@@ -66,10 +79,9 @@ class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProv
                 // Otherwise just warn.
                 LOG.warn(e)
             }
-        }.combine(vfsChangeFlow) { dtos, _ ->
-            val instance = VirtualFileManager.getInstance()
+        }.combine(vfsChangeFlow) { (dtos, env), _ ->
             val map = dtos.flatMap {
-                val virtualFile = instance.findFileByNioPath(Path(it.filepath))
+                val virtualFile = env.toLocalVFS(it.filepath)
                 if (virtualFile == null) {
                     LOG.warn("failed to find virtual file for ${it.filepath}")
                     return@flatMap emptyList()
@@ -80,7 +92,7 @@ class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProv
                         it.includes.split(
                             ';'
                         ).flatMap { it ->
-                            val virtualFile = instance.findFileByNioPath(Path(it))
+                            val virtualFile = env.toLocalVFS(it)
                             if (virtualFile == null) {
                                 LOG.warn("failed to find virtual file for $it")
                                 return@flatMap emptyList()
