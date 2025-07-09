@@ -43,3 +43,11 @@ class Foo<string s = "", Bar>;
 class Foo<string s = "", > {
   int i = 0;
 }
+
+
+defvar value = [
+def
+      "GenerateOp", "PragmaOp",
+class
+      "IfOp", "ReduceOp", "ScanOp"
+];
