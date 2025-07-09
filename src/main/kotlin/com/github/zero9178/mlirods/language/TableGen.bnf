@@ -449,6 +449,7 @@ value ::= concat_value
         "com.github.zero9178.mlirods.language.psi.impl.TableGenValueEx"
     ]
 }
+private value_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';'
 
 concat_value ::= value '#' value? {
     pin=2
@@ -531,7 +532,28 @@ bool_value ::= 'true' | 'false' {
     ]
 }
 undef_value ::= '?'
-list_init_value ::= '[' value_list_ne? ','? ']' ('<' type_node '>')? {
+
+// Exit early if this is a trailing comma before closing. Otherwise, we assume a value is meant to come after.
+// If a value failed to parse we recover by finding either the next comma or a closing square bracket.
+private trailing_list_init_value_item ::= !(',' ']') ',' value  {
+    pin=2
+    recoverWhile=list_init_value_item_recover
+}
+private list_init_value_item_recover ::= !(']' | ',')
+private list_init_value_body ::= value trailing_list_init_value_item* {
+    pin=1
+}
+
+// Initial rule to first attempt to parse ']' and recover to the first item if not. This effectively implements a
+// "assume anything within the square brackets should be a value" error recovery strategy.
+// Recovery rule runs regardless of result and must therefore halt if either a value or something in the follow set of
+// 'list_init_value' appears.
+private list_init_value_closing ::= ']' {
+    recoverWhile=list_init_value_closing_recover
+}
+private list_init_value_closing_recover ::= !('<' | value_follows | value)
+
+list_init_value ::= '[' (list_init_value_closing | list_init_value_body ','? ']') ('<' type_node '>')? {
     pin=1
     methods=[
         getType
