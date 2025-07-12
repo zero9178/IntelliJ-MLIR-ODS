@@ -2,9 +2,16 @@
 
 # MLIR ODS Changelog
 
-## [Unreleased]
+## [0.8.0] - 2025-07-12
+### Added
+- Support for remote CLion toolchains in include resolution
+- Preprocessor support with conditional compilation and highlighting
 ### Fixed
 - Find usage action no longer working
+- Parser error recovery in list inits
+- Parser error recovery in the top level file
+- LSP build prompt is no longer shown for unsupported toolchains
+- Fixed exception when include directory is deleted
 
 ## [0.7.0] - 2025-05-29
 ### Added
