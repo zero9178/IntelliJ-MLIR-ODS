@@ -82,7 +82,7 @@
 
 tableGenFile ::= table_gen_file_item*
 // For error recovery purposes, assume the user meant to write a statement and pin that choice to parse the entire file.
-private table_gen_file_item ::= (include_directive | preprocessor_directive | table_gen_file_item_statement)
+private table_gen_file_item ::= (include_directive | table_gen_file_item_statement)
 private table_gen_file_item_statement ::= !<<eof>> statement {
     pin=1
 }
@@ -112,8 +112,7 @@ private statement ::= assert_statement
 }
 private statement_recover ::= !(statement_follows)
 private statement_follows ::= 'def' | 'include' | 'class' | 'defm' | 'defset' | 'defvar' | 'dump' | 'foreach'
-                            | 'if' | 'let' | 'multiclass' | 'assert' | '}' | 'else' | '#define' | '#ifdef' | '#else'
-                            | '#ifndef' | '#endif'
+                            | 'if' | 'let' | 'multiclass' | 'assert' | '}' | 'else'
 
 others_statement ::= BLOCK_COMMENT
                    | LINE_COMMENT
@@ -131,8 +130,33 @@ include_directive ::= 'include' LINE_STRING_LITERAL {
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIncludeDirectiveMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStubElementType"
 }
-preprocessor_directive ::= (HASHTAG_DEFINE | HASHTAG_IFDEF | HASHTAG_IFNDEF) IDENTIFIER
-                         | HASHTAG_ENDIF | HASHTAG_ELSE
+//noinspection BnfUnusedRule
+preprocessor_directive ::= define_directive
+                         | ifdef_ifndef_directive
+                         | else_directive
+                         | endif_directive
+
+//noinspection BnfUnusedRule
+skipped_code_block ::=
+
+define_directive ::= '#define' IDENTIFIER {
+    extends=preprocessor_directive
+    pin=1
+}
+
+ifdef_ifndef_directive ::= ('#ifdef' | '#ifndef') IDENTIFIER {
+    extends=preprocessor_directive
+    pin=1
+}
+
+else_directive ::= '#else' {
+    extends=preprocessor_directive
+}
+
+endif_directive ::= '#endif' {
+    extends=preprocessor_directive
+}
+
 assert_statement ::= 'assert' value ',' value ';' {pin=1}
 
 private equals_value ::= '=' value {pin=1}

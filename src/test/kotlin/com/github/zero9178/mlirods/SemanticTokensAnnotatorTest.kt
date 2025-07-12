@@ -23,7 +23,7 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
             #ifdef <text_attr textAttributesKey="TABLEGEN_PREPROCESSOR_MACRO_NAME">FOO</text_attr>
             #ifndef <text_attr textAttributesKey="TABLEGEN_PREPROCESSOR_MACRO_NAME">FOO</text_attr>
             
-            #endif
+            <text_attr textAttributesKey="TABLEGEN_SKIPPED_CODE"></text_attr>#endif
             #endif
             class Bar {
                 int <text_attr textAttributesKey="TABLEGEN_FIELD">i</text_attr> = 0;

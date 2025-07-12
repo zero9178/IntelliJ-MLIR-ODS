@@ -2,9 +2,8 @@ package com.github.zero9178.mlirods.language.highlighting
 
 import com.github.zero9178.mlirods.color.FIELD
 import com.github.zero9178.mlirods.color.PREPROCESSOR_MACRO_NAME
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenPreprocessorDirective
+import com.github.zero9178.mlirods.color.SKIPPED_CODE
+import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
@@ -24,11 +23,26 @@ private class TableGenDumbAwareSemanticTokensAnnotator : Annotator, DumbAware {
                 }
             }
 
-            is TableGenPreprocessorDirective -> {
+            is TableGenDefineDirective -> {
                 val identifier = element.identifier ?: return
                 holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
                     .range(identifier)
                     .textAttributes(PREPROCESSOR_MACRO_NAME)
+                    .create()
+            }
+
+            is TableGenIfdefIfndefDirective -> {
+                val identifier = element.identifier ?: return
+                holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
+                    .range(identifier)
+                    .textAttributes(PREPROCESSOR_MACRO_NAME)
+                    .create()
+            }
+
+            is TableGenSkippedCodeBlock -> {
+                holder.newSilentAnnotation(HighlightSeverity.TEXT_ATTRIBUTES)
+                    .range(element)
+                    .textAttributes(SKIPPED_CODE)
                     .create()
             }
         }

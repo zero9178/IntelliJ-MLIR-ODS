@@ -19,6 +19,9 @@ import com.intellij.psi.TokenType;
 CRLF=\R
 WHITE_SPACE=[\ \n\t\f]
 ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
+LINE_COMMENT=("//")[^\r\n]*
+BLOCK_COMMENT=("/*")!([^]* "*/" [^]*)("*/")
+WHITE_SPACE_OR_CC_COMMENT=({WHITE_SPACE}|{BLOCK_COMMENT})
 
 %%
 ("+")                                           { return TableGenTypes.PLUS; }
@@ -70,11 +73,11 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 ("!foreach")                                    { return TableGenTypes.BANG_FOREACH; }
 ("!foldl")                                      { return TableGenTypes.BANG_FOLDL; }
 ("!"[a-zA-Z]+)                                  { return TableGenTypes.BANG_OPERATOR; }
-("#ifdef")                                      { return TableGenTypes.HASHTAG_IFDEF; }
-("#ifndef")                                     { return TableGenTypes.HASHTAG_IFNDEF; }
-("#define")                                     { return TableGenTypes.HASHTAG_DEFINE; }
-("#else")                                       { return TableGenTypes.HASHTAG_ELSE; }
-("#endif")                                      { return TableGenTypes.HASHTAG_ENDIF; }
+^({WHITE_SPACE_OR_CC_COMMENT}*"#ifdef")         { return TableGenTypes.HASHTAG_IFDEF; }
+^({WHITE_SPACE_OR_CC_COMMENT}*"#ifndef")        { return TableGenTypes.HASHTAG_IFNDEF; }
+^({WHITE_SPACE_OR_CC_COMMENT}*"#define")        { return TableGenTypes.HASHTAG_DEFINE; }
+^({WHITE_SPACE_OR_CC_COMMENT}*"#else")          { return TableGenTypes.HASHTAG_ELSE; }
+^({WHITE_SPACE_OR_CC_COMMENT}*"#endif")         { return TableGenTypes.HASHTAG_ENDIF; }
 
 ((\+|-)?[0-9]+)                                 { return TableGenTypes.INTEGER; }
 (0x[0-9a-fA-F]+)                                { return TableGenTypes.INTEGER; }
@@ -87,7 +90,7 @@ ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 (("\"")(([^\"\r\n])|{ESCAPES})*("\""))          { return TableGenTypes.LINE_STRING_LITERAL; }
 (("\"")(([^\"\r\n])|{ESCAPES})*)                { return TableGenTypes.LINE_STRING_LITERAL_BAD; }
 
-(("//")[^\r\n]*)                                { return TableGenTypes.LINE_COMMENT; }
+({LINE_COMMENT})                                { return TableGenTypes.LINE_COMMENT; }
 
 ({CRLF}|{WHITE_SPACE})+                         { return TokenType.WHITE_SPACE; }
 
