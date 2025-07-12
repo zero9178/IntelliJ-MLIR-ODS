@@ -2,6 +2,8 @@
 
 # MLIR ODS Changelog
 
+## [Unreleased]
+
 ## [0.8.0] - 2025-07-12
 ### Added
 - Support for remote CLion toolchains in include resolution
