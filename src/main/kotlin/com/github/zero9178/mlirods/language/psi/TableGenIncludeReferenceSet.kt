@@ -78,6 +78,8 @@ class TableGenIncludeReferenceSet(
             if (index == 0) {
                 val file = fileReferenceSet.containingFile as? TableGenFile ?: return emptyList()
                 return file.context.includePaths.mapNotNull {
+                    if (!it.isValid) return@mapNotNull null
+
                     PsiManager.getInstance(file.project).findDirectory(it)
                 }
             }

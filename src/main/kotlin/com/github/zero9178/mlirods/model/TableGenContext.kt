@@ -8,6 +8,7 @@ import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
@@ -69,7 +70,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     init {
         cs.launch {
             // Apply value changes to all files mentioned in the compile commands.
-            project.service<CompilationCommands>().stateFlow.collectLatest { state ->
+            project.serviceAsync<CompilationCommands>().stateFlow.collectLatest { state ->
                 val updated = mutableSetOf<VirtualFile>()
                 state.map.forEach {
                     if (it.key.fileType != TableGenFileType.INSTANCE) return@forEach
