@@ -22,6 +22,8 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
             project.service<CMakeWorkspace>().modelTargets.firstOrNull(CMakeTarget::isTableGenLspServer)
         if (target == null) {
             thisLogger().info("Project has no 'tblgen-lsp-server' cmake target")
+            project.service<CMakeTableGenBuildNotificationProviderService>()
+                .clearNotifications()
             return false
         }
 
@@ -31,12 +33,12 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
         }
         if (buildConfig == null) {
             thisLogger().info("'tblgen-lsp-server' has no build configuration called '$activeConfig'")
+            project.service<CMakeTableGenBuildNotificationProviderService>()
+                .clearNotifications()
             return false
         }
 
         val productFile = buildConfig.productFile ?: return false
-
-        // TODO: Check whether the LSP has been built and notify the user otherwise.
 
         /// TODO: This assumes layout as in the LLVM monorepo. No clue whether this holds!
         val compileCommands = buildConfig.configurationGenerationDir.resolve("tablegen_compile_commands.yml")
