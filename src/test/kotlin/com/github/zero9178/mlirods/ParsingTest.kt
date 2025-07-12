@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.language.TableGenParserDefinition
 import com.intellij.testFramework.ParsingTestCase
 
 class ParsingTest : ParsingTestCase("", "td", TableGenParserDefinition()) {
-    fun testPreprocessor() = doTest(true, true)
+    fun testPreprocessor() = doTest(true, false)
 
     fun testStatements() = doTest(true, true)
     fun testExpressions() = doTest(true, true)

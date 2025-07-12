@@ -1,5 +1,5 @@
 FILE(0,459)
-  PsiErrorElement:<others statement>, <preprocessor directive>, assert, class, def, defm, defset, deftype, defvar, dump, foreach, if, include, let or multiclass expected, got '0'(0,1)
+  PsiErrorElement:<others statement>, assert, class, def, defm, defset, deftype, defvar, dump, foreach, if, include, let or multiclass expected, got '0'(0,1)
     PsiElement(INTEGER)('0')(0,1)
   PsiWhiteSpace('\n\n')(1,3)
   TableGenDefStatementImpl(DEF_STATEMENT)(3,6)

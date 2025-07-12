@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.colors.TextAttributesKey.createTextAttributes
 
 val LINE_COMMENT = createTextAttributesKey("TABLEGEN_LINE_COMMENT", DefaultLanguageHighlighterColors.LINE_COMMENT)
 val BLOCK_COMMENT = createTextAttributesKey("TABLEGEN_BLOCK_COMMENT", DefaultLanguageHighlighterColors.BLOCK_COMMENT)
+val SKIPPED_CODE = createTextAttributesKey("TABLEGEN_SKIPPED_CODE", DefaultLanguageHighlighterColors.BLOCK_COMMENT)
 val NUMBER = createTextAttributesKey("TABLEGEN_NUMBER", DefaultLanguageHighlighterColors.NUMBER)
 val BRACES = createTextAttributesKey("TABLEGEN_BRACES", DefaultLanguageHighlighterColors.BRACES)
 val PARENTHESES = createTextAttributesKey("TABLEGEN_PARENTHESES", DefaultLanguageHighlighterColors.PARENTHESES)
