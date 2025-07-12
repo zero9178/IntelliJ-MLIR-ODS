@@ -2,8 +2,10 @@ package com.github.zero9178.mlirods.clion
 
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.lsp.isTableGenFile
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.progress.blockingContext
 import com.intellij.openapi.project.DumbAware
@@ -16,6 +18,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.getValue
 import com.intellij.util.setValue
 import com.jetbrains.cidr.cpp.cmake.model.CMakeConfiguration
+import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
 import com.jetbrains.cidr.cpp.execution.CMakeAppRunConfiguration
 import com.jetbrains.cidr.cpp.execution.build.CMakeBuild
 import kotlinx.coroutines.CoroutineScope
@@ -40,8 +43,20 @@ class CMakeTableGenBuildNotificationProviderService(private val project: Project
      *
      * May be called from any thread.
      */
-    fun showBuildNotification(configuration: CMakeConfiguration) {
-        myConfiguration = configuration
+    fun showBuildNotification(configuration: CMakeConfiguration) = cs.launch {
+        val workSpace = project.serviceAsync<CMakeWorkspace>()
+        val hostMachine = readAction {
+            workSpace
+                .profileInfos
+        }.find {
+            it.profile.name == configuration.profileName
+        }?.environment?.hostMachine
+        // Do not show notification for remote machines. We do not support running LSPs on them.
+        myConfiguration = if (hostMachine?.isRemote ?: true) {
+            null
+        } else {
+            configuration
+        }
         EditorNotifications.getInstance(project).updateAllNotifications()
     }
 
@@ -76,7 +91,7 @@ class CMakeTableGenBuildNotificationProviderService(private val project: Project
     }
 }
 
-internal class CMakeTableGenBuildNotificationProvider : EditorNotificationProvider, DumbAware {
+private class CMakeTableGenBuildNotificationProvider : EditorNotificationProvider, DumbAware {
 
     @RequiresReadLock
     override fun collectNotificationData(
