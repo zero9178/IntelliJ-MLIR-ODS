@@ -80,7 +80,12 @@
   extends(".*_value")=value
 }
 
-tableGenFile ::= (statement | include_directive | preprocessor_directive)*
+tableGenFile ::= table_gen_file_item*
+// For error recovery purposes, assume the user meant to write a statement and pin that choice to parse the entire file.
+private table_gen_file_item ::= (include_directive | preprocessor_directive | table_gen_file_item_statement)
+private table_gen_file_item_statement ::= !<<eof>> statement {
+    pin=1
+}
 
 // Fake base class referring to either body items or statements. Guaranteed to have a [TableGenIdentifierScopeNode] as
 // parent, which is said to be the scope it is contained in.
@@ -102,7 +107,13 @@ private statement ::= assert_statement
                 | if_statement
                 | let_statement
                 | multiclass_statement
-                | others_statement
+                | others_statement {
+    recoverWhile=statement_recover
+}
+private statement_recover ::= !(statement_follows)
+private statement_follows ::= 'def' | 'include' | 'class' | 'defm' | 'defset' | 'defvar' | 'dump' | 'foreach'
+                            | 'if' | 'let' | 'multiclass' | 'assert' | '}' | 'else' | '#define' | '#ifdef' | '#else'
+                            | '#ifndef' | '#endif'
 
 others_statement ::= BLOCK_COMMENT
                    | LINE_COMMENT
@@ -300,7 +311,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
 }
 dump_statement ::= 'dump' value ';' {pin=1}
 
-private statement_block ::= statement | statement_block_list
+private statement_block ::= statement_block_list | statement
 private statement_block_list ::= '{' statement* '}' {pin=1}
 
 foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {

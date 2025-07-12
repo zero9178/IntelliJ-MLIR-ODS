@@ -1,3 +1,5 @@
+0
+
 def
 
 def Foo {
@@ -51,3 +53,7 @@ def
 class
       "IfOp", "ReduceOp", "ScanOp"
 ];
+
+0
+
+def lol;
