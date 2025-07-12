@@ -484,7 +484,7 @@ value ::= concat_value
         "com.github.zero9178.mlirods.language.psi.impl.TableGenValueEx"
     ]
 }
-private value_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';'
+private value_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';' | '>'
 
 concat_value ::= value '#' value? {
     pin=2
