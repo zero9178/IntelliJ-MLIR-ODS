@@ -530,6 +530,7 @@ private simple_value ::= integer_value
                | string_value
                | bool_value
                | undef_value
+               | bits_init_value
                | list_init_value
                | dag_init_value
                | class_instantiation_value
@@ -567,6 +568,10 @@ bool_value ::= 'true' | 'false' {
     ]
 }
 undef_value ::= '?'
+
+bits_init_value ::= '{' value_list_ne? '}' {
+    pin=1
+}
 
 // Exit early if this is a trailing comma before closing. Otherwise, we assume a value is meant to come after.
 // If a value failed to parse we recover by finding either the next comma or a closing square bracket.
