@@ -17,7 +17,7 @@ import com.intellij.psi.TokenType;
 %eof}
 
 CRLF=\R
-WHITE_SPACE=[\ \n\t\f]
+WHITE_SPACE=[\ \t\f]
 ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
 LINE_COMMENT=("//")[^\r\n]*
 BLOCK_COMMENT=("/*")!([^]* "*/" [^]*)("*/")
@@ -92,7 +92,11 @@ WHITE_SPACE_OR_CC_COMMENT=({WHITE_SPACE}|{BLOCK_COMMENT})
 
 ({LINE_COMMENT})                                { return TableGenTypes.LINE_COMMENT; }
 
-({CRLF}|{WHITE_SPACE})+                         { return TokenType.WHITE_SPACE; }
+// Do not merge the state for newline and other whitespace. This is required to make the greedy longest token search
+// select the preprocessor tokens that can only start at the beginning of a line. We use a post-processor for the lexer
+// to merge these afterwards.
+({CRLF})+                                       { return TokenType.WHITE_SPACE; }
+({WHITE_SPACE})+                                { return TokenType.WHITE_SPACE; }
 
 (("/*")!([^]* "*/" [^]*)("*/"))                 { return TableGenTypes.BLOCK_COMMENT; }
 
