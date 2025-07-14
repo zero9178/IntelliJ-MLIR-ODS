@@ -32,3 +32,10 @@ defm m;
 class RISCVReg<bits<5> Enc> : Register<n> {
   let HWEncoding{4-0} = Enc;
 }
+
+class ParamNativeOpTrait<list<int> traits = []>;
+
+class BaseTwoOperandRegReg<int i, bits<6> b>;
+def : BaseTwoOperandRegReg<0b0, {0,0,0,0,1,?}>;
+
+multiclass Foo : m;

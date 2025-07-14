@@ -28,10 +28,10 @@
                         implementationClass="com.github.zero9178.mlirods.language.TableGenCommenter"/>
         <lang.quoteHandler language="TableGen"
                            implementationClass="com.github.zero9178.mlirods.language.TableGenQuoteHandler"/>
-        <annotator language="TableGen"
-                   implementationClass="com.github.zero9178.mlirods.language.highlighting.TableGenSemanticTokensAnnotator"/>
-        <annotator language="TableGen"
-                   implementationClass="com.github.zero9178.mlirods.language.highlighting.TableGenDumbAwareSemanticTokensAnnotator"/>
+        <highlightVisitor
+                implementation="com.github.zero9178.mlirods.language.highlighting.TableGenSemanticTokensAnnotator"/>
+        <highlightVisitor
+                implementation="com.github.zero9178.mlirods.language.highlighting.TableGenDumbAwareSemanticTokensAnnotator"/>
         <colorSettingsPage implementation="com.github.zero9178.mlirods.color.TableGenColorSettingsPage"/>
         <lang.foldingBuilder language="TableGen"
                              implementationClass="com.github.zero9178.mlirods.language.TableGenFoldingBuilder"/>
