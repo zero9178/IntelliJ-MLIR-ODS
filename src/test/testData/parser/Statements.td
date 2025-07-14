@@ -37,3 +37,5 @@ class ParamNativeOpTrait<list<int> traits = []>;
 
 class BaseTwoOperandRegReg<int i, bits<6> b>;
 def : BaseTwoOperandRegReg<0b0, {0,0,0,0,1,?}>;
+
+multiclass Foo : m;

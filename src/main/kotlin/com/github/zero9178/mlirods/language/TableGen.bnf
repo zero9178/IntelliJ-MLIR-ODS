@@ -388,7 +388,7 @@ let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
         field_identifier="IDENTIFIER"
     ]
 }
-multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list? statement_block {
+multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list? (';' | statement_block) {
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
