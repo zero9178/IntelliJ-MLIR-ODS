@@ -87,6 +87,34 @@ private table_gen_file_item_statement ::= !<<eof>> statement {
     pin=1
 }
 
+// Exit early if this is a trailing comma before closing. Otherwise, we assume a value is meant to come after.
+// If a value failed to parse we recover by finding either the next comma or the closing token.
+private meta private_list_trailing ::= !(',' <<closing>>) ',' <<item>> {
+    pin=2
+    recoverWhile="<<recover>>"
+}
+private meta private_list_trailing_recover ::= !(<<closing>> | ',')
+
+// Initial rule to first attempt to parse '<<closing>>' and recover to the first item if not. This effectively
+// implements a "assume anything within the delimiters should be a value" error recovery strategy.
+// Recovery rule runs regardless of result and must therefore halt if either a value or something in the follow set
+// appears.
+private meta private_list_closing ::= !<<closing>> {
+    recoverWhile="<<recover>>"
+}
+private meta private_list_closing_recover ::= !(<<follows>> | <<item>>)
+
+// Meta rule that parses: "item (',' item)* ','?" with proper error recovery and handling of a closing delimiter.
+// The rule contains two parameters:
+// [0] Should be the closing delimiter.
+// [1] Should be the follow set of the rule *after* the closing token.
+private meta trailing_item_list ::=
+    <<private_list_closing <<closing>> <<private_list_closing_recover <<follows>> <<item>>>>>>
+    <<item>> <<private_list_trailing <<closing>> <<item>> <<private_list_trailing_recover <<closing>>>>>>* ','? {
+    // If we didn't encounter the closing character then we will attempt to parse as much as possible.
+    pin=1
+}
+
 // Fake base class referring to either body items or statements. Guaranteed to have a [TableGenIdentifierScopeNode] as
 // parent, which is said to be the scope it is contained in.
 fake scope_item ::= {
@@ -540,7 +568,7 @@ private simple_value ::= integer_value
                | foldl_operator_value
                | bang_operator_value
 
-private value_list_ne ::= value (',' value)*
+private meta value_list ::= <<trailing_item_list <<closing>> <<follows>> value>>
 
 integer_value ::= INTEGER {
     methods=[
@@ -569,31 +597,11 @@ bool_value ::= 'true' | 'false' {
 }
 undef_value ::= '?'
 
-bits_init_value ::= '{' value_list_ne? '}' {
+bits_init_value ::= '{' <<value_list '}' value_follows>>? '}' {
     pin=1
 }
 
-// Exit early if this is a trailing comma before closing. Otherwise, we assume a value is meant to come after.
-// If a value failed to parse we recover by finding either the next comma or a closing square bracket.
-private trailing_list_init_value_item ::= !(',' ']') ',' value  {
-    pin=2
-    recoverWhile=list_init_value_item_recover
-}
-private list_init_value_item_recover ::= !(']' | ',')
-private list_init_value_body ::= value trailing_list_init_value_item* {
-    pin=1
-}
-
-// Initial rule to first attempt to parse ']' and recover to the first item if not. This effectively implements a
-// "assume anything within the square brackets should be a value" error recovery strategy.
-// Recovery rule runs regardless of result and must therefore halt if either a value or something in the follow set of
-// 'list_init_value' appears.
-private list_init_value_closing ::= ']' {
-    recoverWhile=list_init_value_closing_recover
-}
-private list_init_value_closing_recover ::= !('<' | value_follows | value)
-
-list_init_value ::= '[' (list_init_value_closing | list_init_value_body ','? ']') ('<' type_node '>')? {
+list_init_value ::= '[' <<value_list ']' (value_follows | '<')>>? ']' ('<' type_node '>')? {
     pin=1
     methods=[
         getType
@@ -683,8 +691,8 @@ foldl_operator_value ::= '!foldl' '(' value ',' value ',' foldl_accumulator ',' 
     ]
 }
 
-bang_operator_value ::= BANG_OPERATOR ('<' type_node '>')? '(' value_list_ne ')' {pin=1}
-cond_operator_value ::= '!cond' '(' cond_clause (',' cond_clause)* ')' {pin=1}
+bang_operator_value ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_list ')' value_follows>>? ')' {pin=1}
+cond_operator_value ::= '!cond' '(' <<trailing_item_list ')' value_follows cond_clause>> ')' {pin=1}
 cond_clause ::= value ':' value {
     methods=[
         condition="value[0]"
