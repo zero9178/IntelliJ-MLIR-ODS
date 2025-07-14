@@ -218,4 +218,27 @@ class LexerTest : LexerTestCase() {
                 "WHITE_SPACE ('\\n')\n" +
                 "IDENTIFIER ('aa')"
     )
+
+    fun `test preprocessor`() = doTest(
+        """
+            
+               #ifdef TEST
+            a
+               #endif
+            b #endif
+        """.trimIndent(),
+        "WHITE_SPACE ('\\n')\n" +
+                "#ifdef ('   #ifdef')\n" +
+                "WHITE_SPACE (' ')\n" +
+                "IDENTIFIER ('TEST')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "IDENTIFIER ('a')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "#endif ('   #endif')\n" +
+                "WHITE_SPACE ('\\n')\n" +
+                "IDENTIFIER ('b')\n" +
+                "WHITE_SPACE (' ')\n" +
+                "# ('#')\n" +
+                "IDENTIFIER ('endif')"
+    )
 }
