@@ -1,12 +1,6 @@
 package com.github.zero9178.mlirods.language
 
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFoldlAccumulator
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFoldlOperatorValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachOperatorValue
+import com.github.zero9178.mlirods.language.generated.psi.*
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.ElementDescriptionLocation
 import com.intellij.psi.ElementDescriptionProvider
@@ -39,7 +33,13 @@ private class TableGenElementDescriptionProvider : ElementDescriptionProvider {
             is TableGenClassStatement -> "class"
             is TableGenForeachOperatorValue, is TableGenFoldlOperatorValue -> "iterator"
             is TableGenFoldlAccumulator -> "accumulator"
-            else -> null
+            is TableGenFile -> "file"
+            else ->
+                if (element.language == TableGenLanguage.INSTANCE)
+                    // Break infinite recursion between 'FindUsageProvider' and 'ElementDescriptionProvider'.
+                    ""
+                else
+                    null
         }
     }
 }
