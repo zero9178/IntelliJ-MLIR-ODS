@@ -139,7 +139,8 @@ class LexerTest : LexerTestCase() {
                 "WHITE_SPACE ('\\n')\n" +
                 "INTEGER ('+1')\n" +
                 "WHITE_SPACE ('\\n')\n" +
-                "INTEGER ('-15')\n" +
+                "- ('-')\n" +
+                "INTEGER ('15')\n" +
                 "WHITE_SPACE ('\\n')\n" +
                 "INTEGER ('0xaFfE')\n" +
                 "WHITE_SPACE ('\\n')\n" +

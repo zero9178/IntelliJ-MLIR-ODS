@@ -65,7 +65,7 @@
     HASHTAG_ENDIF='#endif'
     IDENTIFIER="regexp:[0-9]*[a-zA-Z_][a-zA-Z_0-9]*"
     VAR_IDENTIFIER="regexp:\$[a-zA-Z_][a-zA-Z_0-9]*"
-    INTEGER="regexp:(([+\-])?[0-9]+)|(0x[0-9a-fA-F]+)|(0b[01]+)"
+    INTEGER="regexp:((\+)?[0-9]+)|(0x[0-9a-fA-F]+)|(0b[01]+)"
     BANG_OPERATOR="regexp:![a-zA-Z]+"
     BANG_COND="!cond"
     BANG_FOREACH="!foreach"
@@ -538,8 +538,8 @@ bit_access_value ::= value '{' range_list '}' {pin=2}
 private range_list ::= range_piece (',' range_piece)*
 range_piece ::= bit_range
               | single_bit
-single_bit ::= INTEGER {extends=range_piece}
-bit_range ::= INTEGER ('...' | '-')? INTEGER {
+single_bit ::= value {extends=range_piece}
+bit_range ::= value ('...' | '-') value {
     extends=range_piece
 }
 
@@ -552,7 +552,7 @@ slice_access_value ::= value '[' slice_element (',' slice_element)* ']' {
 slice_element ::= slice_element_range
                 | single_slice_element
 single_slice_element ::= value {extends=slice_element}
-slice_element_range ::= value ((('...' | '-') value) | INTEGER) {extends=slice_element}
+slice_element_range ::= value ('...' | '-') value {extends=slice_element}
 
 private simple_value ::= integer_value
                | string_value
@@ -570,7 +570,7 @@ private simple_value ::= integer_value
 
 private meta value_list ::= <<trailing_item_list <<closing>> <<follows>> value>>
 
-integer_value ::= INTEGER {
+integer_value ::= '-'? INTEGER {
     methods=[
         getType
     ]

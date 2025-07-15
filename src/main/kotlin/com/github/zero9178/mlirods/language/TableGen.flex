@@ -79,7 +79,7 @@ WHITE_SPACE_OR_CC_COMMENT=({WHITE_SPACE}|{BLOCK_COMMENT})
 ^({WHITE_SPACE_OR_CC_COMMENT}*"#else")          { return TableGenTypes.HASHTAG_ELSE; }
 ^({WHITE_SPACE_OR_CC_COMMENT}*"#endif")         { return TableGenTypes.HASHTAG_ENDIF; }
 
-((\+|-)?[0-9]+)                                 { return TableGenTypes.INTEGER; }
+((\+)?[0-9]+)                                   { return TableGenTypes.INTEGER; }
 (0x[0-9a-fA-F]+)                                { return TableGenTypes.INTEGER; }
 (0b[01]+)                                       { return TableGenTypes.INTEGER; }
 
