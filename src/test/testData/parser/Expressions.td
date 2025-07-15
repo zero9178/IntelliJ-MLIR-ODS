@@ -34,3 +34,5 @@ defvar test29 = !cond(
 defvar test30 = "text" # 5.lol;
 defvar test31 = !foreach(a, [5], a);
 defvar test32 = !foldl(0, [5], acc, i, !add(acc, i));
+defvar test33 = 5{test18-test0};
+defvar test34 = 5{test18...test0};
