@@ -4,10 +4,15 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantia
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.generated.psi.TableGenListTypeNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.model.IncludePaths
+import com.github.zero9178.mlirods.model.TableGenContext
+import com.intellij.psi.ElementDescriptionUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.assertInstanceOf
+import com.intellij.usageView.UsageViewTypeLocation
 import com.intellij.usages.rules.PsiElementUsage
 
 class FindUsageTest : BasePlatformTestCase() {
@@ -35,6 +40,19 @@ class FindUsageTest : BasePlatformTestCase() {
         assertUnorderedCollection(
             actual, {
                 assertInstanceOf<TableGenIdentifierValue>(it.element)
+            })
+    }
+
+    fun `test include`() {
+        val includeFile = myFixture.copyFileToProject("Include.td")
+        val defFile = myFixture.copyFileToProject("Def.td")
+        installCompileCommands(project, mapOf(includeFile to IncludePaths(listOf(defFile.parent))))
+
+        val actual = myFixture.testFindUsagesUsingAction("Include.td").filterIsInstance<PsiElementUsage>()
+        assertUnorderedCollection(
+            actual, {
+                assertInstanceOf<TableGenIncludeDirective>(it.element)
+                ElementDescriptionUtil.getElementDescription(it.element, UsageViewTypeLocation.INSTANCE)
             })
     }
 

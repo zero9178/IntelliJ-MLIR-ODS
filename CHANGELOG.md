@@ -3,6 +3,8 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Fixed
+- Stack overflow exception when using `Find Usage` on a TableGen file
 
 ## [0.8.0] - 2025-07-12
 ### Added
