@@ -559,7 +559,7 @@ bit_range ::= value ('...' | '-') value {
     extends=range_piece
 }
 
-private slice_access_value_suffix ::= '[' slice_element (',' slice_element)* ']' {
+private slice_access_value_suffix ::= '[' <<trailing_item_list ']' value_follows slice_element>> ']' {
     pin=1
 }
 slice_access_value ::= value slice_access_value_suffix {

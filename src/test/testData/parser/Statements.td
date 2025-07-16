@@ -55,3 +55,5 @@ multiclass Foo : m;
 defvar l = !cond(
     true : false,
 );
+
+defvar t = l[0, ];
