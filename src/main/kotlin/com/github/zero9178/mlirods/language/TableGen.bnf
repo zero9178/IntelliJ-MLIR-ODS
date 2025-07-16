@@ -8,6 +8,7 @@
   psiPackage="com.github.zero9178.mlirods.language.generated.psi"
   psiImplPackage="com.github.zero9178.mlirods.language.generated.psi.impl"
   psiImplUtilClass="com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil"
+  parserImports=["import static com.github.zero9178.mlirods.language.generated.TableGenParserUtil.*"]
 
   generate=[exact-types="all" visitor="no"]
   elementTypeHolderClass="com.github.zero9178.mlirods.language.generated.TableGenTypes"
@@ -317,7 +318,14 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
     ]
 }
 
-def_statement ::= 'def' value? record_body {
+// Custom variant of 'value' that does not support bits access or bits init lists as the syntax is ambiguous with
+// record bodies.
+//noinspection BnfResolve
+external object_name ::= objectName {
+    extends=value
+}
+
+def_statement ::= 'def' object_name? record_body {
     pin=1
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
@@ -339,7 +347,7 @@ def_statement ::= 'def' value? record_body {
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
-defm_statement ::= 'defm' value? parent_class_list? ';' {pin=1}
+defm_statement ::= 'defm' object_name? parent_class_list? ';' {pin=1}
 defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {pin=1}
 deftype_statement ::= 'deftype' IDENTIFIER '=' type_node ';' {pin=1}
 defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
@@ -514,8 +522,12 @@ value ::= concat_value
 }
 private value_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';' | '>'
 
-concat_value ::= value '#' value? {
-    pin=2
+// Extracted suffixes for the use by the 'objectName' external parsing rule.
+// This makes the parse method package private rather than private if only generated as part of the expression parser.
+private concat_value_suffix ::= '#' value? {
+    pin=1
+}
+concat_value ::= value concat_value_suffix {
     methods = [
         left_operand="/value[0]"
         right_operand="/value[1]"
@@ -523,7 +535,11 @@ concat_value ::= value '#' value? {
         getType
     ]
 }
-field_access_value ::= value '.' IDENTIFIER {
+
+private field_access_value_suffix ::= '.' IDENTIFIER {
+    pin=1
+}
+field_access_value ::= value field_access_value_suffix {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods = [
         field_identifier="IDENTIFIER"
@@ -543,8 +559,10 @@ bit_range ::= value ('...' | '-') value {
     extends=range_piece
 }
 
-slice_access_value ::= value '[' slice_element (',' slice_element)* ']' {
-    pin=2
+private slice_access_value_suffix ::= '[' slice_element (',' slice_element)* ']' {
+    pin=1
+}
+slice_access_value ::= value slice_access_value_suffix {
     methods=[
         getType
     ]

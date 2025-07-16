@@ -1,3 +1,15 @@
+def {
+    list<int> i = 1;
+}
+
+def a {
+    list<int> i = 1;
+}
+
+def a # {
+    list<int> i = 1;
+}
+
 include "test.td"
 
 assert true, "string";
