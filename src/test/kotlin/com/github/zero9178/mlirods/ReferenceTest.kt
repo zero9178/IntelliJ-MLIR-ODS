@@ -2,9 +2,12 @@ package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.IncludePaths
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.application.writeAction
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.utils.vfs.deleteRecursively
 
 class ReferenceTest : BasePlatformTestCase() {
     fun `test IncludeReference`() {
@@ -19,6 +22,24 @@ class ReferenceTest : BasePlatformTestCase() {
                 targetFile to IncludePaths(listOf(testFile.parent))
             )
         )
+
+        myFixture.configureFromExistingVirtualFile(targetFile)
+        val element = assertInstanceOf(myFixture.elementAtCaret, PsiFile::class.java)
+        assertEquals(element.viewProvider.virtualFile.name, "test.td")
+    }
+
+    fun `test IncludeReference exception`() {
+        val testFile = myFixture.copyFileToProject("test.td")
+        val virtualFile = myFixture.copyFileToProject("HasCompileCommands.td", "toBeDeleted/HasCompileCommands.td")
+        val targetFile = myFixture.copyFileToProject("IncludeReference.td")
+        installCompileCommands(
+            project, mapOf(
+                targetFile to IncludePaths(listOf(virtualFile.parent, testFile.parent))
+            )
+        )
+        runWriteAction {
+            virtualFile.parent.deleteRecursively()
+        }
 
         myFixture.configureFromExistingVirtualFile(targetFile)
         val element = assertInstanceOf(myFixture.elementAtCaret, PsiFile::class.java)
