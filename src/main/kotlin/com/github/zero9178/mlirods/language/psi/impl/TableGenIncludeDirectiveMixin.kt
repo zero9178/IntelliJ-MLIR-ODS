@@ -27,7 +27,7 @@ abstract class TableGenIncludeDirectiveMixin : StubBasedPsiElementBase<TableGenI
                 val tableGenFile = containingFile as? TableGenFile
                 val result = tableGenFile?.run {
                     context.includePaths.firstNotNullOfOrNull {
-                        if (!isValid) return@firstNotNullOfOrNull null
+                        if (!it.isValid) return@firstNotNullOfOrNull null
 
                         it.findFileByRelativePath(includeSuffix)
                     }
