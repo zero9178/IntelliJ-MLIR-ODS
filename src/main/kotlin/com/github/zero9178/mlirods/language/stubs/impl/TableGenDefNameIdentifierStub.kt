@@ -47,7 +47,7 @@ class TableGenDefNameIdentifierStubElementType(debugName: String) :
         // Def statements are always indexed.
         if (psi is TableGenDefStatement) return true
 
-        return psi.parentsOfType<TableGenIdentifierScopeNode>(withSelf = false).all { it is TableGenFile }
+        return psi.parent is TableGenFile
     }
 
     override fun createStub(
