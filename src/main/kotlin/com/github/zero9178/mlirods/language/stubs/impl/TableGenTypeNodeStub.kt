@@ -32,39 +32,12 @@ import com.intellij.psi.stubs.StubOutputStream
 sealed interface TableGenTypeNodeStub : StubElement<TableGenTypeNode>
 
 /**
- * Abstract base class of stub file types which do not contain any data.
- */
-abstract class TableGenSingletonTypeNodeStubElementType<StubT : StubElement<*>, PsiT : PsiElement>(
-    debugName: String,
-    psiConstructor: (StubT, TableGenStubElementType<StubT, PsiT>) -> PsiT,
-    private val myStubConstructor: (StubElement<*>?) -> StubT
-) : TableGenStubElementType<StubT, PsiT>(
-    debugName, psiConstructor
-) {
-    final override fun createStub(
-        psi: PsiT, parentStub: StubElement<out PsiElement?>?
-    ): StubT {
-        return myStubConstructor.invoke(parentStub)
-    }
-
-    final override fun serialize(stub: StubT, dataStream: StubOutputStream) {}
-
-    final override fun deserialize(
-        dataStream: StubInputStream, parentStub: StubElement<*>?
-    ): StubT {
-        return myStubConstructor.invoke(parentStub)
-    }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
-}
-
-/**
  * Stub interface of [TableGenBitTypeNode].
  */
 interface TableGenBitTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenBitTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenBitTypeNodeStub, TableGenBitTypeNode>(
+    TableGenSingletonStubElementType<TableGenBitTypeNodeStub, TableGenBitTypeNode>(
         debugName, ::TableGenBitTypeNodeImpl, ::TableGenBitTypeNodeStubImpl
     )
 
@@ -80,7 +53,7 @@ private class TableGenBitTypeNodeStubImpl(
 interface TableGenIntTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenIntTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenIntTypeNodeStub, TableGenIntTypeNode>(
+    TableGenSingletonStubElementType<TableGenIntTypeNodeStub, TableGenIntTypeNode>(
         debugName, ::TableGenIntTypeNodeImpl, ::TableGenIntTypeNodeStubImpl
     )
 
@@ -96,7 +69,7 @@ private class TableGenIntTypeNodeStubImpl(
 interface TableGenStringTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenStringTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenStringTypeNodeStub, TableGenStringTypeNode>(
+    TableGenSingletonStubElementType<TableGenStringTypeNodeStub, TableGenStringTypeNode>(
         debugName, ::TableGenStringTypeNodeImpl, ::TableGenStringTypeNodeStubImpl
     )
 
@@ -113,7 +86,7 @@ private class TableGenStringTypeNodeStubImpl(
 interface TableGenDagTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenDagTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenDagTypeNodeStub, TableGenDagTypeNode>(
+    TableGenSingletonStubElementType<TableGenDagTypeNodeStub, TableGenDagTypeNode>(
         debugName, ::TableGenDagTypeNodeImpl, ::TableGenDagTypeNodeStubImpl
     )
 
@@ -129,7 +102,7 @@ private class TableGenDagTypeNodeStubImpl(
 interface TableGenCodeTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenCodeTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenCodeTypeNodeStub, TableGenCodeTypeNode>(
+    TableGenSingletonStubElementType<TableGenCodeTypeNodeStub, TableGenCodeTypeNode>(
         debugName, ::TableGenCodeTypeNodeImpl, ::TableGenCodeTypeNodeStubImpl
     )
 
@@ -186,7 +159,7 @@ private class TableGenBitsTypeNodeStubImpl(
 interface TableGenListTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenListTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenListTypeNodeStub, TableGenListTypeNode>(
+    TableGenSingletonStubElementType<TableGenListTypeNodeStub, TableGenListTypeNode>(
         debugName, ::TableGenListTypeNodeImpl, ::TableGenListTypeNodeStubImpl
     ) {
     override fun isAlwaysLeaf(root: StubBase<*>) = false
