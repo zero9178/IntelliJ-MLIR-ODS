@@ -239,6 +239,11 @@ intellijPlatformTesting {
             type = IntelliJPlatformType.CLion
             version = providers.gradleProperty("platformVersion")
             sandboxDirectory = intellijPlatform.sandboxContainer.dir("runCL-sandbox")
+            task {
+                jvmArgumentProviders += CommandLineArgumentProvider {
+                    listOf("-Xmx8192m")
+                }
+            }
         }
     }
 }
