@@ -81,9 +81,8 @@
   extends(".*_value")=value
 }
 
-tableGenFile ::= table_gen_file_item*
+tableGenFile ::= table_gen_file_item_statement*
 // For error recovery purposes, assume the user meant to write a statement and pin that choice to parse the entire file.
-private table_gen_file_item ::= (include_directive | table_gen_file_item_statement)
 private table_gen_file_item_statement ::= !<<eof>> statement {
     pin=1
 }
@@ -164,6 +163,7 @@ preprocessor_directive ::= define_directive
                          | ifdef_ifndef_directive
                          | else_directive
                          | endif_directive
+                         | include_directive
 
 //noinspection BnfUnusedRule
 skipped_code_block ::=

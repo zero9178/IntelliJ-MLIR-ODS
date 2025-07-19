@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language
 
+import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.TableGenTypes.*
 import com.github.zero9178.mlirods.model.TableGenContext
 import com.intellij.lang.PsiBuilder
@@ -161,6 +162,20 @@ class TableGenPreprocessingPsiBuilder(myContext: TableGenContext, delegate: PsiB
                         continue
                     }
                     myPreprocessorStateStack = myPreprocessorStateStack.add(State.YIELD_TILL_ELSE_OR_ENDIF)
+                    continue
+                }
+
+                INCLUDE -> {
+                    val marker = super.mark()
+                    super.advanceLexer()
+
+                    if (super.tokenType != LINE_STRING_LITERAL) {
+                        marker.error("Expected string literal after 'include'")
+                        return
+                    }
+                    super.advanceLexer()
+
+                    marker.done(INCLUDE_DIRECTIVE)
                     continue
                 }
 
