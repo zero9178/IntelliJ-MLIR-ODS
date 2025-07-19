@@ -18,6 +18,8 @@ def Foo {
   int i = 0;
 }
 
+include
+
 def Bar : Foo<
 
 def Foo {
