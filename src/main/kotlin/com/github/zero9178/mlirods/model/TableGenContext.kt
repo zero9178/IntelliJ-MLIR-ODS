@@ -2,15 +2,14 @@ package com.github.zero9178.mlirods.model
 
 import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.TableGenFileType
-import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.readAction
+import com.intellij.openapi.application.readActionBlocking
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.checkCanceled
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.util.SimpleModificationTracker
@@ -22,14 +21,13 @@ import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter
 import com.intellij.psi.impl.PsiManagerEx
 import com.intellij.psi.search.FileTypeIndex
 import com.intellij.util.concurrency.annotations.RequiresReadLock
+import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.rd.util.firstOrNull
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -66,11 +64,67 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
     private val myFileToContexts: MutableMap<VirtualFile, Value> = mutableMapOf()
     private val myLock = ReentrantReadWriteLock()
+    private val myProfilingRefreshFlow = MutableSharedFlow<Pair<Long, Boolean>>()
 
     init {
         cs.launch {
+            myProfilingRefreshFlow.filter { (time, start) ->
+                start
+            }.conflate().collect { (startTime, start) ->
+                supervisorScope {
+                    launch {
+                        myProfilingRefreshFlow.collectLatest { (endTime, start) ->
+                            delay(1000)
+                            thisLogger().info(
+                                "Updating contexts took ${(endTime - startTime) / 1.0e9} seconds"
+                            )
+                            cancel()
+                        }
+                    }.join()
+                }
+            }
+        }
+
+        // Refresh the world if any TableGen file is added or removed as any include resolution might now change.
+        project.messageBus.connect(cs).subscribe(
+            FileTypeIndex.INDEX_CHANGE_TOPIC, object : FileTypeIndex.IndexChangeListener {
+                override fun onChangedForFileType(fileType: FileType) {
+                    if (fileType != TableGenFileType.INSTANCE) return
+                    cs.launch {
+                        myProfilingRefreshFlow.emit(System.nanoTime() to true)
+                    }
+
+                    myIncludeResultsModificationTracker.incModificationCount()
+                    myLock.read {
+                        myFileToContexts.values.forEach {
+                            it.refreshFlow.tryEmit(null)
+                        }
+                    }
+                }
+            })
+        // Refresh the context propagated from a file if its Psi changes.
+        PsiManager.getInstance(project).addPsiTreeChangeListener(object : PsiTreeAnyChangeAbstractAdapter() {
+            override fun onChange(file: PsiFile?) {
+                if (file !is TableGenFile) return
+
+                cs.launch {
+                    myProfilingRefreshFlow.emit(System.nanoTime() to true)
+                }
+
+                val vf = file.virtualFile ?: return
+                myLock.read {
+                    myFileToContexts[vf]?.refreshFlow?.tryEmit(null)
+                }
+            }
+        }, this)
+
+        cs.launch {
             // Apply value changes to all files mentioned in the compile commands.
             project.serviceAsync<CompilationCommands>().stateFlow.collectLatest { state ->
+                cs.launch {
+                    myProfilingRefreshFlow.emit(System.nanoTime() to true)
+                }
+
                 val updated = mutableSetOf<VirtualFile>()
                 state.map.forEach {
                     if (it.key.fileType != TableGenFileType.INSTANCE) return@forEach
@@ -93,32 +147,6 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 }
             }
         }
-
-        // Refresh the world if any TableGen file is added or removed as any include resolution might now change.
-        project.messageBus.connect(cs).subscribe(
-            FileTypeIndex.INDEX_CHANGE_TOPIC, object : FileTypeIndex.IndexChangeListener {
-                override fun onChangedForFileType(fileType: FileType) {
-                    if (fileType != TableGenFileType.INSTANCE) return
-
-                    myIncludeResultsModificationTracker.incModificationCount()
-                    myLock.read {
-                        myFileToContexts.values.forEach {
-                            it.refreshFlow.tryEmit(null)
-                        }
-                    }
-                }
-            })
-        // Refresh the context propagated from a file if its Psi changes.
-        PsiManager.getInstance(project).addPsiTreeChangeListener(object : PsiTreeAnyChangeAbstractAdapter() {
-            override fun onChange(file: PsiFile?) {
-                if (file !is TableGenFile) return
-
-                val vf = file.virtualFile ?: return
-                myLock.read {
-                    myFileToContexts[vf]?.refreshFlow?.tryEmit(null)
-                }
-            }
-        }, this)
     }
 
     private fun stateFlowForFile(file: VirtualFile) = myLock.read {
@@ -148,6 +176,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
                                 val fileManager = PsiManagerEx.getInstanceEx(project).fileManager
                                 fileManager.setViewProvider(file, null)
+                                FileBasedIndex.getInstance().requestReindex(file)
                             }
                             // Propagate the new context further.
                             myIncludeResultsModificationTracker.incModificationCount()
@@ -157,11 +186,10 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                     launch {
                         // Cancel currently running action when a new request comes in.
                         refreshFlow.collectLatest {
-                            readAction {
-                                disallowTreeLoading {
-                                    updateFromNewContext(file)
-                                }
+                            cs.launch {
+                                myProfilingRefreshFlow.emit(System.nanoTime() to false)
                             }
+                            updateFromNewContext(file)
                         }
                     }
                 }
@@ -171,7 +199,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     }
 
     @RequiresReadLock
-    private fun updateFromNewContext(updated: VirtualFile) {
+    private suspend fun updateFromNewContext(updated: VirtualFile) {
         if (!updated.isValid || updated.fileType != TableGenFileType.INSTANCE) {
             myLock.write {
                 // Garbage collect deleted files.
@@ -180,22 +208,25 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
             return
         }
 
-        val tableGenFile = PsiManager.getInstance(project).findFile(updated) as? TableGenFile ?: return
+        val (included, context) = readActionBlocking {
+            val tableGenFile =
+                PsiManager.getInstance(project).findFile(updated) as? TableGenFile
+
+            tableGenFile?.includeDirectives?.mapNotNull {
+                it.includedFile
+            }?.toList().orEmpty() to (tableGenFile?.context ?: TableGenContext())
+        }
 
         val currentDefines = mutableSetOf<String>()
         val includedSoFar = mutableSetOf<VirtualFile>()
-        tableGenFile.includeDirectives.forEach { includeDirective ->
-            ProgressManager.checkCanceled()
-
-            val file = includeDirective.includedFile ?: return@forEach
+        included.forEach { file ->
+            checkCanceled()
 
             // We use the same file as roots for any compile commands, so avoid adding them here.
             if (file == updated) return@forEach
 
             val context = TableGenContext(
-                tableGenFile.context.includePaths,
-                currentDefines,
-                includedSoFar.toSet()
+                context.includePaths, currentDefines, includedSoFar.toSet()
             )
             stateFlowForFile(file).update { existing ->
                 existing.put(updated, context)
