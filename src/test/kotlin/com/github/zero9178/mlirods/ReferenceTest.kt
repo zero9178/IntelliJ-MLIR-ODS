@@ -104,6 +104,11 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.name, "F")
     }
 
+    fun `test ClassSelfTypeResolution`() {
+        val element = doTest<TableGenClassStatement>("ClassSelfTypeResolution.td")
+        assertEquals(element.name, "G")
+    }
+
     fun `test GlobalClassInstantiationResolution`() {
         val element = doTest<TableGenClassStatement>("GlobalClassInstantiationResolution.td", "test.td")
         assertEquals(element.name, "F")

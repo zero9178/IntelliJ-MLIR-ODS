@@ -2,11 +2,12 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
+import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
-import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
@@ -31,12 +32,21 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
         return element === (other as? TableGenClassReference)?.element
     }
 
-    private fun localSearchOrder() = run {
-        val topLevelElement =
-            element.parentsOfType<TableGenScopeItem>(withSelf = false).lastOrNull()
-                ?: return@run emptySequence()
+    private fun localSearchOrder() = sequence {
+        var last: TableGenScopeItem? = null
+        for (iter in element.parentsOfType<TableGenScopeItem>(withSelf = true)) {
+            if (iter is TableGenClassStatement)
+                yield(iter)
 
-        topLevelElement.classStatementsBefore()
+            last = iter
+        }
+        if (last == null) return@sequence
+
+        val file = last.containingFile as? TableGenFile ?: return@sequence
+        val spine = file.stubbedSpine
+        yieldAll((0 until spine.stubCount).asSequence().mapNotNull {
+            spine.getStubPsi(it)
+        }.takeWhile { it != last }.filterIsInstance<TableGenClassStatement>())
     }
 
     override fun getVariants() = localSearchOrder().map {
