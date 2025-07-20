@@ -65,34 +65,23 @@ class CompletionTest : BasePlatformTestCase() {
         "j"
     )
 
-    fun `test field cross file access lookup`() {
-        val otherTD = myFixture.configureByText(
-            "other.td", """   
+    fun `test field cross file access lookup`() = doCrossFileTestTyping(
+        """
             class B {
                 int j = 0;
             }
-            """.trimIndent()
-        )
-
-        val testTD = myFixture.configureByText(
-            "test.td", """
+        """.trimIndent(),
+        """
             include "other.td"
                 
             defvar l = B<>.<caret>
+        """.trimIndent(),
+        """
+            include "other.td"
+                
+            defvar l = B<>.j<caret>
         """.trimIndent()
-        )
-        installCompileCommands(
-            project, mapOf(
-                testTD.virtualFile to IncludePaths(listOf(otherTD.virtualFile.parent))
-            )
-        )
-
-        myFixture.completeBasic()
-        assertSameElements(
-            requireNotNull(myFixture.lookupElementStrings),
-            "j"
-        )
-    }
+    )
 
     fun `test include directory completion`() {
         val testTD = myFixture.createFile(
@@ -287,6 +276,75 @@ class CompletionTest : BasePlatformTestCase() {
         """.trimIndent()
     )
 
+    fun `test class angled brackets`() {
+        doTestTyping(
+            """
+            class ALong<int i>;
+            
+            def : A<caret>;
+        """.trimIndent(),
+            """
+            class ALong<int i>;
+            
+            def : ALong<<caret>>;
+        """.trimIndent()
+        )
+
+        doTestTyping(
+            """
+            class ALong<int i>;
+            
+            def {
+                list<A<caret>> l;
+            }
+        """.trimIndent(),
+            """
+            class ALong<int i>;
+            
+            def {
+                list<ALong<caret>> l;
+            }
+        """.trimIndent()
+        )
+
+        doTestTyping(
+            """
+            class BLong;
+            defvar v = [B<caret>];
+        """.trimIndent(),
+            """
+            class BLong;
+            defvar v = [BLong<><caret>];
+        """.trimIndent()
+        )
+
+        doTestTyping(
+            """
+            class BLong;
+            defvar v = [B<caret><>];
+        """.trimIndent(),
+            """
+            class BLong;
+            defvar v = [BLong<caret><>];
+        """.trimIndent()
+        )
+    }
+
+
+    fun `test class cross file access lookup`() = doCrossFileTestTyping(
+        """
+            class BLong;
+        """.trimIndent(),
+        """
+            include "other.td"
+            defvar l = B<caret>;
+        """.trimIndent(),
+        """
+            include "other.td"
+            defvar l = BLong<><caret>;
+        """.trimIndent()
+    )
+
     private fun doTest(source: String, vararg expected: String, doesNotContain: List<String> = emptyList()) {
         myFixture.configureByText(
             "test.td", source
@@ -305,6 +363,24 @@ class CompletionTest : BasePlatformTestCase() {
         )
 
         myFixture.completeBasicAllCarets(null)
+        myFixture.checkResult(expectedText)
+    }
+
+    private fun doCrossFileTestTyping(otherTD: String, source: String, expectedText: String) {
+        val otherTD = myFixture.configureByText(
+            "other.td", otherTD
+        )
+
+        val testTD = myFixture.configureByText(
+            "test.td", source
+        )
+        installCompileCommands(
+            project, mapOf(
+                testTD.virtualFile to IncludePaths(listOf(otherTD.virtualFile.parent))
+            )
+        )
+
+        myFixture.completeBasicAllCarets(null, '\t')
         myFixture.checkResult(expectedText)
     }
 
