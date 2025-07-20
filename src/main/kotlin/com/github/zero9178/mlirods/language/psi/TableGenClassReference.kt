@@ -3,14 +3,15 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
-import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
@@ -32,33 +33,41 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
         return element === (other as? TableGenClassReference)?.element
     }
 
-    private fun localSearchOrder() = sequence {
-        var last: TableGenScopeItem? = null
-        for (iter in element.parentsOfType<TableGenScopeItem>(withSelf = true)) {
-            if (iter is TableGenClassStatement)
-                yield(iter)
+    companion object {
+        private fun localSearchOrder(element: PsiElement) = sequence {
+            var last: TableGenScopeItem? = null
+            for (iter in element.parentsOfType<TableGenScopeItem>(withSelf = true)) {
+                if (iter is TableGenClassStatement)
+                    yield(iter)
 
-            last = iter
+                last = iter
+            }
+            if (last == null) return@sequence
+
+            val file = last.containingFile as? TableGenFile ?: return@sequence
+            val spine = file.stubbedSpine
+            yieldAll((0 until spine.stubCount).asSequence().mapNotNull {
+                spine.getStubPsi(it)
+            }.takeWhile { it != last }.filterIsInstance<TableGenClassStatement>())
         }
-        if (last == null) return@sequence
 
-        val file = last.containingFile as? TableGenFile ?: return@sequence
-        val spine = file.stubbedSpine
-        yieldAll((0 until spine.stubCount).asSequence().mapNotNull {
-            spine.getStubPsi(it)
-        }.takeWhile { it != last }.filterIsInstance<TableGenClassStatement>())
+        /**
+         * Returns all completion variants at the given [positionToken].
+         * [positionToken] should be an identifier token.
+         */
+        fun getVariants(positionToken: PsiElement) = localSearchOrder(positionToken).map {
+            createLookupElement(it, positionToken)
+        }
     }
 
-    override fun getVariants() = localSearchOrder().map {
-        LookupElementBuilder.createWithIcon(it)
-    }.toList().toTypedArray()
+    override fun getVariants() = getVariants(element.classIdentifier).toList().toTypedArray()
 
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
         CachedValuesManager.getProjectPsiDependentCache(element) {
             disallowTreeLoading {
                 val name = element.className
-                val klass = localSearchOrder().find {
+                val klass = localSearchOrder(element).find {
                     it.name == name
                 }
 
