@@ -59,3 +59,7 @@ class
 0
 
 def lol;
+
+def : Foo<0>, {
+    int i = 0;
+}
