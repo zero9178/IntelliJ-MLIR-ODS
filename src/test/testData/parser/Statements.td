@@ -30,6 +30,8 @@ class Args<int i, int j = 0> : EmptyBraces {
     defvar hmm = 5;
 
     assert true, "string";
+
+    dump b;
 }
 
 def;
