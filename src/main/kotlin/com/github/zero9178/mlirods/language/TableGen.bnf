@@ -247,7 +247,8 @@ template_arg_decl ::= type_node IDENTIFIER equals_value? {
     ]
 }
 private record_body ::= parent_class_list? body {pin=1}
-private parent_class_list ::= ':' class_ref (',' class_ref)* {pin=1}
+private parent_class_list_item ::= ',' class_ref {pin=1}
+private parent_class_list ::= ':' class_ref parent_class_list_item* {pin=1}
 
 fake abstract_class_ref ::= IDENTIFIER {
     methods=[
