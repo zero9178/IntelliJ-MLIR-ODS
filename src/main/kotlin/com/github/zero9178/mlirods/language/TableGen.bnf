@@ -283,13 +283,15 @@ private class_ref_suffix ::= '<' arg_value_list? '>' {pin=1}
 private body ::= ';' | body_list
 private body_list ::= '{' body_item* '}' {pin=1}
 
-private body_recover ::= !('}' | 'field' | 'let' | 'defvar' | 'assert' | 'bit' | 'bits' | 'code' | 'dag' | 'int'
-                       | 'list' | 'string' | IDENTIFIER)
+private body_item_follows ::= '}' | 'field' | 'let' | 'defvar' | 'assert' | 'bit' | 'bits' | 'code' | 'dag' | 'int'
+                            | 'list' | 'string' | IDENTIFIER | 'dump'
+private body_recover ::= !body_item_follows
 
 private body_item ::= field_body_item
                     | let_body_item
                     | defvar_statement
                     | assert_statement
+                    | dump_statement
                     {recoverWhile=body_recover}
 field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     implements=[
@@ -370,7 +372,12 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefvarStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
-dump_statement ::= 'dump' value ';' {pin=1}
+dump_statement ::= 'dump' value ';' {
+    pin=1
+    implements=[
+        scope_item
+    ]
+}
 
 private statement_block ::= statement_block_list | statement
 private statement_block_list ::= '{' statement* '}' {pin=1}
