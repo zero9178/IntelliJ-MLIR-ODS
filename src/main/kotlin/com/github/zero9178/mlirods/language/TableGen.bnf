@@ -246,9 +246,8 @@ template_arg_decl ::= type_node IDENTIFIER equals_value? {
         getTextOffset
     ]
 }
-private record_body ::= parent_class_list? body {pin=1}
-private parent_class_list_item ::= ',' class_ref {pin=1}
-private parent_class_list ::= ':' class_ref parent_class_list_item* {pin=1}
+private record_body ::= <<parent_class_list class_ref>>? body {pin=1}
+private meta parent_class_list ::= ':' <<class_ref>> (',' <<class_ref>>)* {pin(".*")=1}
 
 fake abstract_class_ref ::= IDENTIFIER {
     methods=[
@@ -258,6 +257,16 @@ fake abstract_class_ref ::= IDENTIFIER {
     ]
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractClassRefEx"
+    ]
+}
+
+multi_class_ref ::= IDENTIFIER class_ref_suffix? {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+    ]
+    methods = [
+        lAngle='LANGLE'
+        rAngle='RANGLE'
     ]
 }
 
@@ -350,7 +359,7 @@ def_statement ::= 'def' object_name? record_body {
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
-defm_statement ::= 'defm' object_name? parent_class_list? ';' {pin=1}
+defm_statement ::= 'defm' object_name? <<parent_class_list multi_class_ref>>? ';' {pin=1}
 defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {pin=1}
 deftype_statement ::= 'deftype' IDENTIFIER '=' type_node ';' {pin=1}
 defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
@@ -432,7 +441,7 @@ let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
         field_identifier="IDENTIFIER"
     ]
 }
-multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? parent_class_list? (';' | statement_block) {
+multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_class_list multi_class_ref>>? (';' | statement_block) {
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
