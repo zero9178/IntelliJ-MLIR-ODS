@@ -643,14 +643,16 @@ list_init_value ::= '[' <<value_list ']' (value_follows | '<')>>? ']' ('<' type_
     ]
 }
 dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
-    pin=1
+    pin(".*")=1
     methods=[
         operator="dag_arg[0]"
 
         getType
     ]
 }
-dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER
+dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
+    pin(".*")=1
+}
 identifier_value ::= IDENTIFIER {
     methods=[
         getReference
