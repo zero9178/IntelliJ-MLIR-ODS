@@ -3,8 +3,19 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+### Added
+- Trailing comma syntax for slice elements
+- Parsing of `include` statements anywhere in the file
+- Cross-file class name completion
+- Parsing dump statements within records
 ### Fixed
 - Stack overflow exception when using `Find Usage` on a TableGen file
+- Syntax errors in slice syntax when using a `-` separator
+- Exception when an include directory is deleted
+- Correct parsing of `def` names to exclude curly braces
+- Index-out-of-date exceptions and improved startup time
+- Class name resolution within the referenced class
+- Error recovery when parsing parent class lists
 
 ## [0.8.0] - 2025-07-12
 ### Added
