@@ -241,6 +241,7 @@ template_arg_decl ::= type_node IDENTIFIER equals_value? {
     methods=[
         nameIdentifier='IDENTIFIER'
 
+        toString
         setName
         getTextOffset
     ]
