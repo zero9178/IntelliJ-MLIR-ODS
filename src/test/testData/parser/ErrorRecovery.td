@@ -63,3 +63,5 @@ def lol;
 def : Foo<0>, {
     int i = 0;
 }
+
+defvar d = (5 5, 3:, );
