@@ -74,6 +74,8 @@
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>
         <lang.findUsagesProvider language="TableGen"
                                  implementationClass="com.github.zero9178.mlirods.language.TableGenFindUsageProvider"/>
+        <annotator language="TableGen"
+                   implementationClass="com.github.zero9178.mlirods.language.annotators.TableGenNoSuchClassAnnotator"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
