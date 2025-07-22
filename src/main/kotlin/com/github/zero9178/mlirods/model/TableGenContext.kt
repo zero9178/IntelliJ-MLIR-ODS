@@ -21,9 +21,14 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter
 import com.intellij.psi.impl.PsiManagerEx
 import com.intellij.psi.search.FileTypeIndex
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.rd.util.firstOrNull
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
@@ -31,11 +36,30 @@ import kotlinx.coroutines.flow.*
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
+import kotlin.sequences.forEach
+import kotlin.sequences.mapNotNull
 
 data class TableGenContext(
+    /**
+     * Chain of files starting from a TableGen file with compile commands (first element) until the file that directly
+     * includes the file this context belongs to.
+     */
+    val includedFrom: PersistentList<VirtualFile> = persistentListOf(),
+    /**
+     * Paths used for include processing by the file this context belongs to.
+     */
     val includePaths: List<VirtualFile> = emptyList(),
+    /**
+     * Macros defined outside this file and valid within this context.
+     * These can be treated as if '#define's were placed at the very beginning of the file.
+     */
     val defines: Set<String> = emptySet(),
-    val inScopeFiles: Set<VirtualFile> = emptySet()
+    /**
+     * Files that have been included before this file was included in this context.
+     * These can and should be treated identically to as if they were include statements at the beginning of the file
+     * this context belongs to.
+     */
+    val includedBeforeThis: Set<VirtualFile> = emptySet()
 )
 
 /**
@@ -59,6 +83,12 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
      * Modification tracker which gets incremented each time an 'include' directive may resolve to a new file.
      */
     val includeResultModificationTracker: ModificationTracker
+        get() = myIncludeResultsModificationTracker
+
+    /**
+     * Modification tracker which gets incremented each time a context changes.
+     */
+    val contextChangedModificationTracker: ModificationTracker
         get() = myIncludeResultsModificationTracker
 
     private data class Value(
@@ -137,7 +167,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 val updated = mutableSetOf<VirtualFile>()
                 state.map.forEach { (key, value) ->
                     stateFlowForFile(key).value = persistentMapOf(
-                        key to TableGenContext(value.paths)
+                        key to TableGenContext(includePaths = value.paths)
                     )
                     updated.add(key)
                 }
@@ -148,6 +178,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 }.forEach { (key, value) ->
                     if (updated.contains(key)) return@forEach
 
+                    // Roots use themselves as keys.
                     value.stateFlow.update {
                         it.remove(key)
                     }
@@ -206,7 +237,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                         // Cancel currently running action when a new request comes in.
                         refreshFlow.collectLatest {
                             myProfilingRefreshFlow.emit(System.nanoTime() to false)
-                            updateFromNewContext(file)
+                            pushUpdatesToIncludesAfterNewContext(file)
                         }
                     }
                 }
@@ -215,55 +246,56 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         }
     }
 
-    private suspend fun updateFromNewContext(updated: VirtualFile) {
+    private suspend fun pushUpdatesToIncludesAfterNewContext(updatedFile: VirtualFile) {
         val instance = project.serviceAsync<PsiManager>()
 
         // Limit the read action from the Psi read to let write actions run as soon as possible.
-        val (included, context) = readAction {
-            if (!updated.isValid) return@readAction emptyList<VirtualFile>() to null
+        val (included, newContext) = readAction {
+            if (!updatedFile.isValid) return@readAction emptyList<VirtualFile>() to null
 
             val tableGenFile =
-                instance.findFile(updated) as? TableGenFile ?: return@readAction emptyList<VirtualFile>() to null
+                instance.findFile(updatedFile) as? TableGenFile ?: return@readAction emptyList<VirtualFile>() to null
 
             tableGenFile.includeDirectives.mapNotNull {
                 ProgressManager.checkCanceled()
                 it.includedFile
             }.toList() to tableGenFile.context
         }
-        if (context == null) {
+        if (newContext == null) {
             myLock.write {
                 // Garbage collect deleted files.
-                myFileToContexts.remove(updated)?.reactiveJob?.cancel()
+                myFileToContexts.remove(updatedFile)?.reactiveJob?.cancel()
             }
             return
         }
 
         val currentDefines = mutableSetOf<String>()
-        val includedSoFar = mutableSetOf<VirtualFile>()
+        val includedSoFar = newContext.includedBeforeThis.toMutableSet()
         included.forEach { file ->
             checkCanceled()
 
-            // We use the same file as roots for any compile commands, so avoid adding them here.
-            if (file == updated) return@forEach
+            // Recursive include! Ignore these.
+            if (file == updatedFile) return@forEach
 
             val context = TableGenContext(
-                context.includePaths, currentDefines, includedSoFar.toSet()
+                newContext.includedFrom.add(updatedFile),
+                newContext.includePaths, currentDefines, includedSoFar.toSet()
             )
             stateFlowForFile(file).update { existing ->
-                existing.put(updated, context)
+                existing.put(updatedFile, context)
             }
             includedSoFar.add(file)
         }
 
-        // Remove old context from all files where it no longer applies.
+        // Remove old newContext from all files where it no longer applies.
         myLock.read {
             // TODO: This is O(files) when it could be O(prev(includes)).
             myFileToContexts.forEach { (key, value) ->
                 if (includedSoFar.contains(key)) return@forEach
-                if (key == updated) return@forEach
+                if (key == updatedFile) return@forEach
 
                 value.stateFlow.update {
-                    it.remove(updated)
+                    it.remove(updatedFile)
                 }
             }
         }
@@ -273,38 +305,48 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         myFileToContexts[virtualFile.originalFileOrSelf()]?.stateFlow?.value?.firstOrNull()?.value ?: TableGenContext()
     }
 
+    @RequiresReadLock
+    private fun getAllIncludedFiles(file: TableGenFile): Set<VirtualFile> = CachedValuesManager.getCachedValue(file) {
+        val instance = PsiManager.getInstance(project)
+
+        val result = mutableSetOf<VirtualFile>()
+        file.includeDirectives.mapNotNull {
+            it.includedFile
+        }.mapNotNull {
+            result += it
+            instance.findFile(it) as? TableGenFile
+        }.forEach {
+            result += getAllIncludedFiles(it)
+        }
+
+        CachedValueProvider.Result.create(result, result + file + contextChangedModificationTracker)
+    }
+
     /**
      * Returns the set of all files that are included in [file], directly, transitively or as part of the active
      * context of the file.
      */
-    fun getIncludedFiles(file: TableGenFile): Set<VirtualFile> {
-        // Worklist of the current tablegen file that we are trying to get all transitive includes of.
-        val workList = mutableListOf(file)
-        val rToT: (VirtualFile) -> TableGenFile? = {
-            PsiManager.getInstance(project).findFile(it) as? TableGenFile
-        }
+    @RequiresReadLock
+    fun getIncludedFiles(file: TableGenFile): Set<VirtualFile> = CachedValuesManager.getCachedValue(file) {
         val result = mutableSetOf<VirtualFile>()
+        val instance = PsiManager.getInstance(project)
         file.virtualFile?.let { vf ->
             // Add from context.
             val context = getActiveContext(vf)
-            result += context.inScopeFiles
-            workList += result.mapNotNull(rToT)
-        }
+            // Include all files in which we are included from. We do not need to recurse into them as all included
+            // files prior to [file] are already part of [includedBeforeThis].
+            // However, if we wanted to be very accurate, we should only allow definitions to be found in these files
+            // prior to the include statement that cause this chain!
+            result += context.includedFrom
 
-        while (true) {
-            val current = workList.removeLastOrNull() ?: break
-
-            current.includeDirectives.mapNotNull {
-                it.includedFile
+            context.includedBeforeThis.asSequence().mapNotNull {
+                result += it
+                instance.findFile(it) as? TableGenFile
             }.forEach {
-                // No need to add to worklist again if already seen.
-                if (!result.add(it)) return@forEach
-
-                rToT(it)?.run {
-                    workList.add(this)
-                }
+                result += getAllIncludedFiles(it)
             }
         }
-        return result
+        result += getAllIncludedFiles(file)
+        CachedValueProvider.Result.create(result, result + file + contextChangedModificationTracker)
     }
 }

@@ -20,7 +20,7 @@ class TableGenLanguage private constructor() : Language("TableGen") {
     }
 }
 
-class TableGenFile(viewProvider: FileViewProvider, var context: TableGenContext) :
+class TableGenFile(viewProvider: FileViewProvider, val context: TableGenContext) :
     PsiFileBase(viewProvider, TableGenLanguage.INSTANCE), TableGenIdentifierScopeNode {
     override fun getFileType(): FileType = TableGenFileType.INSTANCE
 

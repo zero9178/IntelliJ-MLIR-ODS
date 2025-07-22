@@ -3,7 +3,6 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.application.runWriteAction
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -26,6 +25,64 @@ class ReferenceTest : BasePlatformTestCase() {
         myFixture.configureFromExistingVirtualFile(targetFile)
         val element = assertInstanceOf(myFixture.elementAtCaret, PsiFile::class.java)
         assertEquals(element.viewProvider.virtualFile.name, "test.td")
+    }
+
+    fun `test included from context`() {
+        val testFile = myFixture.createFile(
+            "test.td", """
+            def : <caret>A;
+        """.trimIndent()
+        )
+        val root = myFixture.createFile(
+            "HasCompileCommands.td", """
+            class A;
+            
+            include "test.td"
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                root to IncludePaths(listOf(testFile.parent))
+            ),
+            listOf(
+                testFile to IncludePaths(listOf(testFile.parent))
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(testFile)
+        val element = assertInstanceOf(myFixture.elementAtCaret, TableGenClassStatement::class.java)
+        assertEquals(element.name, "A")
+    }
+
+    fun `test included before context`() {
+        val testFile = myFixture.createFile(
+            "test.td", """
+            def : <caret>A;
+        """.trimIndent()
+        )
+        myFixture.createFile(
+            "class.td", """
+            class A;
+        """.trimIndent()
+        )
+        val root = myFixture.createFile(
+            "HasCompileCommands.td", """
+            include "class.td"
+            include "test.td"
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                root to IncludePaths(listOf(testFile.parent))
+            ),
+            listOf(
+                testFile to IncludePaths(listOf(testFile.parent))
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(testFile)
+        val element = assertInstanceOf(myFixture.elementAtCaret, TableGenClassStatement::class.java)
+        assertEquals(element.name, "A")
     }
 
     fun `test IncludeReference exception`() {
