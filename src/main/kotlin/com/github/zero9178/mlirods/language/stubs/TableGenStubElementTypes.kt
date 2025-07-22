@@ -17,6 +17,9 @@ interface TableGenStubElementTypes {
         val DEF_STATEMENT = TableGenTypes.DEF_STATEMENT!!
 
         @JvmField
+        val TEMPLATE_ARG_DECL = TableGenTypes.TEMPLATE_ARG_DECL!!
+
+        @JvmField
         val CLASS_STATEMENT = TableGenTypes.CLASS_STATEMENT!!
 
         @JvmField

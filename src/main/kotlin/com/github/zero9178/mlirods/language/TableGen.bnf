@@ -241,10 +241,13 @@ template_arg_decl ::= type_node IDENTIFIER equals_value? {
     methods=[
         nameIdentifier='IDENTIFIER'
 
-        getName
+        toString
         setName
         getTextOffset
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTemplateArgDeclStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenTemplateArgDeclMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTemplateArgDeclStubElementType"
 }
 private record_body ::= <<parent_class_list class_ref>>? body {pin=1}
 private meta parent_class_list ::= ':' <<class_ref>> (',' <<class_ref>>)* {pin(".*")=1}
