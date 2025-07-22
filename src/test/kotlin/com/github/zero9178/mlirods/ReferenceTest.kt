@@ -3,7 +3,7 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.application.writeAction
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -172,6 +172,16 @@ class ReferenceTest : BasePlatformTestCase() {
     fun `test FoldlAccDefvarResolution`() {
         val element = doTest<TableGenFoldlAccumulator>()
         assertEquals(element.name, "acc")
+    }
+
+    fun `test ParentMultiClassListResolution`() {
+        val name = getTestName(false).trim()
+        val mainVF = myFixture.copyFileToProject("${name}.td")
+        myFixture.configureFromExistingVirtualFile(mainVF)
+
+        // For now ensure that the multiclass ref does not find a class statement.
+        // Multi class reference will be implemented later.
+        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
     }
 
     override fun getTestDataPath(): String? {
