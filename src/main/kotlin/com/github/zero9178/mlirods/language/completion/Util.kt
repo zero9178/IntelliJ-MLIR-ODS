@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.codeInsight.completion.InsertHandler
 import com.intellij.codeInsight.completion.InsertionContext
 import com.intellij.codeInsight.lookup.LookupElement
@@ -17,12 +18,12 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
     override fun handleInsert(
         context: InsertionContext,
         item: LookupElement
-    ) {
-        val classStatement = item.psiElement as? TableGenClassStatement ?: return
+    ): Unit = disallowTreeLoading {
+        val classStatement = item.psiElement as? TableGenClassStatement ?: return@disallowTreeLoading
         var caretShift = 1
         when (identifier.parent) {
             // Type node never needs brackets.
-            is TableGenClassTypeNode -> return
+            is TableGenClassTypeNode -> return@disallowTreeLoading
             // Class instantiations always do.
             is TableGenIdentifierValue -> {
                 //
@@ -32,10 +33,10 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
             // Class ref does depending on whether the class template arguments or not.
             is TableGenClassRef -> {
                 // TODO: Double check how default template arguments must be handled here.
-                if (classStatement.templateArgDeclList.isEmpty()) return
+                if (classStatement.templateArgDeclList.isEmpty()) return@disallowTreeLoading
             }
 
-            else -> return
+            else -> return@disallowTreeLoading
         }
 
         val editor = context.editor
@@ -43,7 +44,7 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
         val offset = editor.caretModel.offset
         // Don't insert brackets if they are already there!
         if (offset < document.textLength && document.charsSequence[offset] == '<')
-            return
+            return@disallowTreeLoading
 
         EditorModificationUtilEx.insertStringAtCaret(editor, "<>", false, caretShift)
         editor.project?.let { PsiDocumentManager.getInstance(it).commitDocument(document) }
