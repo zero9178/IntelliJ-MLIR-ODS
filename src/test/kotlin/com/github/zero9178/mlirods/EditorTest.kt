@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
+
 class EditorTest : BasePlatformTestCase() {
 
     fun `test brace matching`() {
@@ -20,5 +21,17 @@ class EditorTest : BasePlatformTestCase() {
             """.trimIndent()
             )
         }
+        myFixture.configureByText(
+            "test.td", """
+                [<caret>]
+            """.trimIndent()
+        )
+
+        myFixture.type('{')
+        myFixture.checkResult(
+            """
+                [{<caret>}]
+            """.trimIndent()
+        )
     }
 }

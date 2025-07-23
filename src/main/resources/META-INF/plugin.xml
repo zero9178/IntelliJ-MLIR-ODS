@@ -28,6 +28,7 @@
                         implementationClass="com.github.zero9178.mlirods.language.TableGenCommenter"/>
         <lang.quoteHandler language="TableGen"
                            implementationClass="com.github.zero9178.mlirods.language.TableGenQuoteHandler"/>
+        <typedHandler implementation="com.github.zero9178.mlirods.language.TableGenTypedHandlerDelegate"/>
         <highlightVisitor
                 implementation="com.github.zero9178.mlirods.language.highlighting.TableGenSemanticTokensAnnotator"/>
         <highlightVisitor
