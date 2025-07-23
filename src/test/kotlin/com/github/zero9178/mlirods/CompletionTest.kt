@@ -345,6 +345,34 @@ class CompletionTest : BasePlatformTestCase() {
         """.trimIndent()
     )
 
+    fun `test def cross file access lookup`() = doCrossFileTestTyping(
+        """
+            def BLong;
+        """.trimIndent(),
+        """
+            include "other.td"
+            defvar l = B<caret>;
+        """.trimIndent(),
+        """
+            include "other.td"
+            defvar l = BLong<caret>;
+        """.trimIndent()
+    )
+
+    fun `test defvar cross file access lookup`() = doCrossFileTestTyping(
+        """
+            defvar BLong = 0;
+        """.trimIndent(),
+        """
+            include "other.td"
+            defvar l = B<caret>;
+        """.trimIndent(),
+        """
+            include "other.td"
+            defvar l = BLong<caret>;
+        """.trimIndent()
+    )
+
     private fun doTest(source: String, vararg expected: String, doesNotContain: List<String> = emptyList()) {
         myFixture.configureByText(
             "test.td", source

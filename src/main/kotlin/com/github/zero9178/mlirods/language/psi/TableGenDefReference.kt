@@ -3,9 +3,9 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.index.DEF_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.TableGenLanguage
+import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
-import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElement
@@ -67,7 +67,7 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
         return localResolveSequence(false).mapNotNull {
             it as? TableGenDefNameIdentifierOwner ?: it as? TableGenFieldBodyItem
         }.map {
-            LookupElementBuilder.createWithIcon(it)
+            createLookupElement(it, element.identifier)
         }.toList().toTypedArray()
     }
 
