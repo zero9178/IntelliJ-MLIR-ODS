@@ -71,6 +71,8 @@
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenInterFileCompletionContributor"/>
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenClassReferenceCompletionContributor"/>
+        <completion.contributor language="TableGen"
+                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenInterFileDefCompletionContributor"/>
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>
         <lang.findUsagesProvider language="TableGen"
                                  implementationClass="com.github.zero9178.mlirods.language.TableGenFindUsageProvider"/>
