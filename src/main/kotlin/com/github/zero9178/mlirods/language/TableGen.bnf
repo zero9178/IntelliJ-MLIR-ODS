@@ -681,7 +681,9 @@ class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
     ]
 }
 // Note: This is a simplification from the official syntax that is easier to parse.
-private arg_value_list ::= arg_value_item (',' arg_value_item)*
+private arg_value_list ::= arg_value_item (',' arg_value_item)* {
+    pin(".*") = 1
+}
 arg_value_item ::= value equals_value?
 
 foreach_operator_value ::= '!foreach' '(' IDENTIFIER ',' value ',' value ')' {
