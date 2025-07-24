@@ -65,3 +65,5 @@ def : Foo<0>, {
 }
 
 defvar d = (5 5, 3:, );
+
+def IntTypesOp : TEST_Op<"int_types", >;
