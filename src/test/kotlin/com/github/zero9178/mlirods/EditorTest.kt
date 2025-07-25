@@ -33,5 +33,18 @@ class EditorTest : BasePlatformTestCase() {
                 [{<caret>}]
             """.trimIndent()
         )
+
+        myFixture.configureByText(
+            "test.td", """
+                [{   [<caret>]  }]
+            """.trimIndent()
+        )
+
+        myFixture.type('{')
+        myFixture.checkResult(
+            """
+                [{   [{<caret>]  }]
+            """.trimIndent()
+        )
     }
 }
