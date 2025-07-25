@@ -1,4 +1,4 @@
-package com.github.zero9178.mlirods.language
+package com.github.zero9178.mlirods.language.insertion
 
 import com.intellij.lang.Commenter
 

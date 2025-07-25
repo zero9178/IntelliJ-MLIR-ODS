@@ -25,10 +25,10 @@
         <lang.braceMatcher language="TableGen"
                            implementationClass="com.github.zero9178.mlirods.highlighting.TableGenBraceMatcher"/>
         <lang.commenter language="TableGen"
-                        implementationClass="com.github.zero9178.mlirods.language.TableGenCommenter"/>
+                        implementationClass="com.github.zero9178.mlirods.language.insertion.TableGenCommenter"/>
         <lang.quoteHandler language="TableGen"
-                           implementationClass="com.github.zero9178.mlirods.language.TableGenQuoteHandler"/>
-        <typedHandler implementation="com.github.zero9178.mlirods.language.TableGenTypedHandlerDelegate"/>
+                           implementationClass="com.github.zero9178.mlirods.language.insertion.TableGenQuoteHandler"/>
+        <typedHandler implementation="com.github.zero9178.mlirods.language.insertion.TableGenTypedHandlerDelegate"/>
         <highlightVisitor
                 implementation="com.github.zero9178.mlirods.language.highlighting.TableGenSemanticTokensAnnotator"/>
         <highlightVisitor
