@@ -105,7 +105,7 @@ private class TableGenParameterInfoHandler :
     override fun getArgumentListAllowedParentClasses(): Set<Class<*>?> {
         // A class ref might occur in a record body (class or def statement) or anywhere a value may occur.
         // Those are basically all the scope items and other values.
-        return setOf(TableGenScopeItem::class.java, TableGenValue::class.java)
+        return setOf(TableGenScopeItem::class.java, TableGenValueNode::class.java)
     }
 
     override fun getArgListStopSearchClasses(): Set<Class<*>?> {

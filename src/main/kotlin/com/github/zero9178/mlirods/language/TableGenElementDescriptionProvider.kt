@@ -32,7 +32,7 @@ private class TableGenElementDescriptionProvider : ElementDescriptionProvider {
             is TableGenDefStatement -> "record"
             is TableGenDefvarStatement -> "variable"
             is TableGenClassStatement -> "class"
-            is TableGenForeachOperatorValue, is TableGenFoldlOperatorValue -> "iterator"
+            is TableGenForeachOperatorValueNode, is TableGenFoldlOperatorValueNode -> "iterator"
             is TableGenFoldlAccumulator -> "accumulator"
             is TableGenFile -> "file"
             else ->

@@ -168,7 +168,7 @@ private class TableGenKeywordCompletionContributor : CompletionContributor(), Du
         // Completion for keywords within a value.
         extend(
             CompletionType.BASIC,
-            psiElement(IDENTIFIER).withParent(TableGenIdentifierValue::class.java),
+            psiElement(IDENTIFIER).withParent(TableGenIdentifierValueNode::class.java),
             object : CompletionProvider<CompletionParameters>() {
                 override fun addCompletions(
                     parameters: CompletionParameters,

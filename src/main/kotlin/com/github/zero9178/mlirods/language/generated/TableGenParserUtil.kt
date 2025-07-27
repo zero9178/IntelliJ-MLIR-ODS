@@ -17,18 +17,18 @@ class TableGenParserUtil {
             var result: Boolean
             val marker =
                 GeneratedParserUtilBase.enter_section_(builder, level, GeneratedParserUtilBase._NONE_, "<value>")
-            result = TableGenParser.integer_value(builder, level + 1)
-            if (!result) result = TableGenParser.string_value(builder, level + 1)
-            if (!result) result = TableGenParser.bool_value(builder, level + 1)
-            if (!result) result = TableGenParser.undef_value(builder, level + 1)
-            if (!result) result = TableGenParser.list_init_value(builder, level + 1)
-            if (!result) result = TableGenParser.dag_init_value(builder, level + 1)
-            if (!result) result = TableGenParser.class_instantiation_value(builder, level + 1)
-            if (!result) result = TableGenParser.identifier_value(builder, level + 1)
-            if (!result) result = TableGenParser.cond_operator_value(builder, level + 1)
-            if (!result) result = TableGenParser.foreach_operator_value(builder, level + 1)
-            if (!result) result = TableGenParser.foldl_operator_value(builder, level + 1)
-            if (!result) result = TableGenParser.bang_operator_value(builder, level + 1)
+            result = TableGenParser.integer_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.string_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.bool_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.undef_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.list_init_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.dag_init_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.class_instantiation_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.identifier_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.cond_operator_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.foreach_operator_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.foldl_operator_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.bang_operator_value_node(builder, level + 1)
             val pinned = result
 
             result = result && objectNamePostfix(builder, level + 1)
@@ -54,15 +54,15 @@ class TableGenParserUtil {
                         GeneratedParserUtilBase.exit_section_(builder, level, marker, result, result, null)
                     }
                     GeneratedParserUtilBase.exit_section_(
-                        builder, level, marker, TableGenTypes.CONCAT_VALUE, true, true, null
+                        builder, level, marker, TableGenTypes.CONCAT_VALUE_NODE, true, true, null
                     )
-                } else if (TableGenParser.field_access_value_suffix(builder, level + 1)) {
+                } else if (TableGenParser.field_access_value_node_suffix(builder, level + 1)) {
                     GeneratedParserUtilBase.exit_section_(
-                        builder, level, marker, TableGenTypes.FIELD_ACCESS_VALUE, true, true, null
+                        builder, level, marker, TableGenTypes.FIELD_ACCESS_VALUE_NODE, true, true, null
                     )
-                } else if (TableGenParser.slice_access_value_suffix(builder, level + 1)) {
+                } else if (TableGenParser.slice_access_value_node_suffix(builder, level + 1)) {
                     GeneratedParserUtilBase.exit_section_(
-                        builder, level, marker, TableGenTypes.SLICE_ACCESS_VALUE, true, true, null
+                        builder, level, marker, TableGenTypes.SLICE_ACCESS_VALUE_NODE, true, true, null
                     )
                 } else {
                     GeneratedParserUtilBase.exit_section_(builder, level, marker, null, false, false, null)

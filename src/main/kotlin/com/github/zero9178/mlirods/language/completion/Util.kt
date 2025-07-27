@@ -3,7 +3,7 @@ package com.github.zero9178.mlirods.language.completion
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.completion.InsertHandler
@@ -25,7 +25,7 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
             // Type node never needs brackets.
             is TableGenClassTypeNode -> return@disallowTreeLoading
             // Class instantiations always do.
-            is TableGenIdentifierValue -> {
+            is TableGenIdentifierValueNode -> {
                 if (classStatement.templateArgDeclList.isEmpty()) hasParams = false
             }
             // Class ref does depending on whether the class template arguments or not.

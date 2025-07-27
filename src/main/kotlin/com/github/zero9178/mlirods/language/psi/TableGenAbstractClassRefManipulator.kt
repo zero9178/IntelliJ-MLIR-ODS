@@ -1,7 +1,7 @@
 package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
 import com.intellij.openapi.util.TextRange
@@ -26,7 +26,7 @@ private abstract class TableGenAbstractClassRefManipulator<T : TableGenAbstractC
 }
 
 private class TableGenClassRefManipulator : TableGenAbstractClassRefManipulator<TableGenClassRef>()
-private class TableGenClassInstantiationValueManipulator :
-    TableGenAbstractClassRefManipulator<TableGenClassInstantiationValue>()
+private class TableGenClassInstantiationValueNodeManipulator :
+    TableGenAbstractClassRefManipulator<TableGenClassInstantiationValueNode>()
 
 private class TableGenClassTypeNodeManipulator : TableGenAbstractClassRefManipulator<TableGenClassTypeNode>()

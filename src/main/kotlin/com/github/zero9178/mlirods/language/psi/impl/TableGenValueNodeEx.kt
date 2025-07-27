@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.intellij.psi.PsiElement
 
-interface TableGenValueEx : PsiElement {
+interface TableGenValueNodeEx : PsiElement {
     /**
      * Returns the type of this TableGen expression.
      */

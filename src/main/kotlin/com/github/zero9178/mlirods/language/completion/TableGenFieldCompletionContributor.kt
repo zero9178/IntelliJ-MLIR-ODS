@@ -1,8 +1,8 @@
 package com.github.zero9178.mlirods.language.completion
 
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
@@ -23,7 +23,7 @@ private class TableGenFieldCompletionContributor : CompletionContributor() {
             null,
             PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(
                 StandardPatterns.or(
-                    PlatformPatterns.psiElement(TableGenIdentifierValue::class.java),
+                    PlatformPatterns.psiElement(TableGenIdentifierValueNode::class.java),
                     PlatformPatterns.psiElement(TableGenLetBodyItem::class.java),
                 )
             ),
@@ -43,15 +43,15 @@ private class TableGenFieldCompletionContributor : CompletionContributor() {
         extend(
             null,
             PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(
-                TableGenFieldAccessValue::class.java
+                TableGenFieldAccessValueNode::class.java
             ), object : CompletionProvider<CompletionParameters>() {
                 override fun addCompletions(
                     parameters: CompletionParameters,
                     context: ProcessingContext,
                     result: CompletionResultSet
                 ) {
-                    val fieldAccess = parameters.position.parentOfType<TableGenFieldAccessValue>() ?: return
-                    val recordType = fieldAccess.value.type as? TableGenRecordType ?: return
+                    val fieldAccess = parameters.position.parentOfType<TableGenFieldAccessValueNode>() ?: return
+                    val recordType = fieldAccess.valueNode.type as? TableGenRecordType ?: return
                     recordType.record?.allFields?.forEach {
                         result.addElement(LookupElementBuilder.create(it))
                     }

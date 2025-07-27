@@ -26,7 +26,7 @@ class TableGenTemplateArgDeclStubElementType(debugName: String) :
     override fun createStub(
         psi: TableGenTemplateArgDecl, parentStub: StubElement<out PsiElement?>?
     ): TableGenTemplateArgDeclStub {
-        return TableGenTemplateArgDeclStubImpl(psi.name, psi.value != null, parentStub)
+        return TableGenTemplateArgDeclStubImpl(psi.name, psi.valueNode != null, parentStub)
     }
 
     override fun serialize(

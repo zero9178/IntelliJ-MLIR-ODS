@@ -2,7 +2,7 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
@@ -35,10 +35,10 @@ fun createEncodedLineStringLiteral(project: Project, encodedText: String): PsiEl
 /**
  * Returns an [TableGenIdentifierValue] using [name] as value.
  */
-fun createIdentifierValue(project: Project, name: String): TableGenIdentifierValue {
+fun createIdentifierValueNode(project: Project, name: String): TableGenIdentifierValueNode {
     return PsiTreeUtil.findChildOfAnyType(
         createFile(project, "defvar $name = $name;"),
-        TableGenIdentifierValue::class.java
+        TableGenIdentifierValueNode::class.java
     )!!
 }
 

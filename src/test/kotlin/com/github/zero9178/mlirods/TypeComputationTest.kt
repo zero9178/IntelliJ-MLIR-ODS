@@ -77,6 +77,6 @@ class TypeComputationTest : BasePlatformTestCase() {
     fun doTest(source: String, expectedType: TableGenType) {
         myFixture.configureByText("test.td", source)
         val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))
-        assertEquals(expectedType, statement.value?.type)
+        assertEquals(expectedType, statement.valueNode?.type)
     }
 }
