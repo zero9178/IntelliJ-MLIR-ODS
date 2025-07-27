@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language
 
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.psi.TableGenFoldingElement
 import com.intellij.lang.ASTNode
 import com.intellij.lang.folding.CustomFoldingBuilder

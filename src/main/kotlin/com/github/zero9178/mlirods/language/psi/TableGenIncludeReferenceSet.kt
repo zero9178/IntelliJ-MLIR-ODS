@@ -1,6 +1,5 @@
 package com.github.zero9178.mlirods.language.psi
 
-import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.Condition

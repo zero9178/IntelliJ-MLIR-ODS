@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.psi.TableGenIncludeReferenceSet
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.getStringValue

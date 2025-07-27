@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods
 
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.model.CompilationCommandsState
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenCompilationCommandsProvider
