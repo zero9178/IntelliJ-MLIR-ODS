@@ -17,7 +17,7 @@ private class TableGenUsageTypeProvider : UsageTypeProvider {
     override fun getUsageType(element: PsiElement): UsageType? {
         return when (element) {
             is TableGenClassRef -> CLASS_REF
-            is TableGenClassInstantiationValue -> CLASS_INSTANTIATION
+            is TableGenClassInstantiationValueNode -> CLASS_INSTANTIATION
             is TableGenClassTypeNode -> {
                 when (element.parentOfTypes(TableGenTemplateArgDecl::class, TableGenFieldBodyItem::class)) {
                     is TableGenTemplateArgDecl -> CLASS_TEMPLATE_ARG_TYPE
@@ -27,7 +27,7 @@ private class TableGenUsageTypeProvider : UsageTypeProvider {
             }
             is TableGenIncludeDirective -> INCLUDE_DIRECTIVE
 
-            is TableGenIdentifierValue, is TableGenFieldAccessValue -> UsageType.READ
+            is TableGenIdentifierValueNode, is TableGenFieldAccessValueNode -> UsageType.READ
             is TableGenLetBodyItem, is TableGenLetStatement -> UsageType.WRITE
             else -> null
         }

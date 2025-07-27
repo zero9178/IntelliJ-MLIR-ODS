@@ -117,7 +117,7 @@ private class TableGenSemanticTokensAnnotator : HighlightVisitor {
 
     override fun visit(element: PsiElement) {
         when (element) {
-            is TableGenIdentifierValue -> {
+            is TableGenIdentifierValueNode -> {
                 if (element.reference?.resolve() !is TableGenFieldBodyItem)
                     return
 

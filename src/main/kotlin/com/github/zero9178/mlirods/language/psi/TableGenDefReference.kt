@@ -23,7 +23,7 @@ import com.intellij.util.containers.withPrevious
  * These must act as if defined at the very beginning of that scope (i.e. are found only after any elements within the
  * body).
  */
-private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: TableGenIdentifierValue, useIndex: Boolean) =
+private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: TableGenIdentifierValueNode, useIndex: Boolean) =
     sequence<PsiElement> {
         // Lookup is done for fields before template arguments.
         if (useIndex && parent is TableGenFieldScopeNode) parent.fields[name]?.let {
@@ -39,7 +39,7 @@ private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: TableGenI
  */
 private fun traverse(
     root: TableGenScopeItem,
-    name: TableGenIdentifierValue,
+    name: TableGenIdentifierValueNode,
     useIndex: Boolean
 ): Sequence<PsiElement> = sequence {
     yieldAll(root.itemsBefore(withSelf = true))
@@ -53,7 +53,8 @@ private fun traverse(
 /**
  * Implements the lookup procedure for 'def's.
  */
-class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.Poly<TableGenIdentifierValue>(element) {
+class TableGenDefReference(element: TableGenIdentifierValueNode) :
+    PsiReferenceBase.Poly<TableGenIdentifierValueNode>(element) {
 
     override fun hashCode(): Int {
         return element.hashCode()
@@ -77,11 +78,11 @@ class TableGenDefReference(element: TableGenIdentifierValue) : PsiReferenceBase.
         val scopeItem = element.parents(withSelf = true).withPrevious().mapNotNull { (it, prev) ->
             when (it) {
                 is TableGenTemplateArgDecl -> hadTemplateArg = true
-                is TableGenForeachOperatorValue ->
+                is TableGenForeachOperatorValueNode ->
                     if (prev == it.body)
                         prefix.add(it)
 
-                is TableGenFoldlOperatorValue -> {
+                is TableGenFoldlOperatorValueNode -> {
                     if (prev == it.body) {
                         prefix.add(it)
                         it.foldlAccumulator?.let { it1 -> prefix.add(it1) }

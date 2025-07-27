@@ -61,7 +61,7 @@ class TableGenPsiImplUtil {
         fun getPlaceHolderText(element: TableGenBlockStringValue, textRange: TextRange): String = "[{...}]"
 
         @JvmStatic
-        fun getReference(element: TableGenIdentifierValue): PsiReference? {
+        fun getReference(element: TableGenIdentifierValueNode): PsiReference? {
             return TableGenDefReference(element)
         }
 
@@ -92,7 +92,7 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getReference(element: TableGenFieldAccessValue): PsiReference? {
+        fun getReference(element: TableGenFieldAccessValueNode): PsiReference? {
             return TableGenFieldAccessReference(element)
         }
 
@@ -218,39 +218,39 @@ class TableGenPsiImplUtil {
         fun toType(element: TableGenClassTypeNode) = TableGenRecordType.create(element)
 
         @JvmStatic
-        fun getType(element: TableGenIntegerValue) = TableGenIntType
+        fun getType(element: TableGenIntegerValueNode) = TableGenIntType
 
         @JvmStatic
-        fun getType(element: TableGenStringValue) = TableGenStringType
+        fun getType(element: TableGenStringValueNode) = TableGenStringType
 
         @JvmStatic
         fun getType(element: TableGenBlockStringValue) = TableGenStringType
 
         @JvmStatic
-        fun getType(element: TableGenBoolValue) = TableGenBitType
+        fun getType(element: TableGenBoolValueNode) = TableGenBitType
 
         @JvmStatic
-        fun getType(element: TableGenListInitValue) = TableGenListType(
-            element.typeNode?.toType() ?: element.valueList.firstOrNull()?.type ?: TableGenUnknownType
+        fun getType(element: TableGenListInitValueNode) = TableGenListType(
+            element.typeNode?.toType() ?: element.valueNodeList.firstOrNull()?.type ?: TableGenUnknownType
         )
 
         @JvmStatic
-        fun getType(element: TableGenDagInitValue) = TableGenDagType
+        fun getType(element: TableGenDagInitValueNode) = TableGenDagType
 
         @JvmStatic
-        fun getType(element: TableGenIdentifierValue): TableGenType {
+        fun getType(element: TableGenIdentifierValueNode): TableGenType {
             val resolve = element.reference?.resolve()
             return when (resolve) {
-                is TableGenDefvarStatement -> resolve.value?.type ?: TableGenUnknownType
+                is TableGenDefvarStatement -> resolve.valueNode?.type ?: TableGenUnknownType
                 is TableGenFieldBodyItem -> resolve.typeNode.toType()
                 is TableGenTemplateArgDecl -> resolve.typeNode.toType()
-                is TableGenForeachOperatorValue -> (resolve.iterable?.type as? TableGenListType)?.elementType
+                is TableGenForeachOperatorValueNode -> (resolve.iterable?.type as? TableGenListType)?.elementType
                     ?: TableGenUnknownType
 
-                is TableGenFoldlOperatorValue -> (resolve.iterable?.type as? TableGenListType)?.elementType
+                is TableGenFoldlOperatorValueNode -> (resolve.iterable?.type as? TableGenListType)?.elementType
                     ?: TableGenUnknownType
 
-                is TableGenFoldlAccumulator -> (resolve.parent as? TableGenFoldlOperatorValue)?.type
+                is TableGenFoldlAccumulator -> (resolve.parent as? TableGenFoldlOperatorValueNode)?.type
                     ?: TableGenUnknownType
 
                 is TableGenDefStatement -> TableGenRecordType.create(resolve)
@@ -259,9 +259,9 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getType(element: TableGenFieldAccessValue): TableGenType {
+        fun getType(element: TableGenFieldAccessValueNode): TableGenType {
             val identifier = element.fieldName ?: return TableGenUnknownType
-            val type = element.value.type
+            val type = element.valueNode.type
             return when (type) {
                 is TableGenRecordType -> {
                     val field = type.record?.fields?.get(identifier) ?: return TableGenUnknownType
@@ -273,11 +273,11 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getType(element: TableGenClassInstantiationValue) = TableGenRecordType.create(element)
+        fun getType(element: TableGenClassInstantiationValueNode) = TableGenRecordType.create(element)
 
         @JvmStatic
-        fun getType(element: TableGenSliceAccessValue): TableGenType {
-            val listType = element.value.type as? TableGenListType ?: return TableGenUnknownType
+        fun getType(element: TableGenSliceAccessValueNode): TableGenType {
+            val listType = element.valueNode.type as? TableGenListType ?: return TableGenUnknownType
             val sliceElements = element.sliceElementList
             return when (sliceElements.singleOrNull()) {
                 is TableGenSingleSliceElement -> listType.elementType
@@ -286,7 +286,7 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getType(element: TableGenConcatValue): TableGenType {
+        fun getType(element: TableGenConcatValueNode): TableGenType {
             val lhsType = element.leftOperand.type
             // Note: This ignores a lot of error cases for the sake of trying to guess user intent regarding the actual
             // intent.
@@ -297,9 +297,10 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getType(element: TableGenForeachOperatorValue) = TableGenListType(element.body?.type ?: TableGenUnknownType)
+        fun getType(element: TableGenForeachOperatorValueNode) =
+            TableGenListType(element.body?.type ?: TableGenUnknownType)
 
         @JvmStatic
-        fun getType(element: TableGenFoldlOperatorValue): TableGenType = element.start?.type ?: TableGenUnknownType
+        fun getType(element: TableGenFoldlOperatorValueNode): TableGenType = element.start?.type ?: TableGenUnknownType
     }
 }

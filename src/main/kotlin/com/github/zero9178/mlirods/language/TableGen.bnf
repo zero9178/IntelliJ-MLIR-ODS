@@ -78,7 +78,7 @@
   extends(".*_type_node")=type_node
   implements(".*_body_item")=scope_item
   implements(".*_statement")=scope_item
-  extends(".*_value")=value
+  extends(".*_value_node")=value_node
 }
 
 tableGenFile ::= table_gen_file_item_statement*
@@ -186,9 +186,9 @@ endif_directive ::= '#endif' {
     extends=preprocessor_directive
 }
 
-assert_statement ::= 'assert' value ',' value ';' {pin=1}
+assert_statement ::= 'assert' value_node ',' value_node ';' {pin=1}
 
-private equals_value ::= '=' value {pin=1}
+private equals_value ::= '=' value_node {pin=1}
 
 // Fake base class for elements common among 'class' and 'multiclass' statements.
 fake abstract_class_statement ::= template_arg_list? parent_class_list? '{'? '}'? {
@@ -325,7 +325,7 @@ field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStubElementType"
     pin=2
 }
-let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
+let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value_node ';' {
     pin=1
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
@@ -339,7 +339,7 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value ';' {
 // record bodies.
 //noinspection BnfResolve
 external object_name ::= objectName {
-    extends=value
+    extends=value_node
 }
 
 def_statement ::= 'def' object_name? record_body {
@@ -367,7 +367,7 @@ def_statement ::= 'def' object_name? record_body {
 defm_statement ::= 'defm' object_name? <<parent_class_list multi_class_ref>>? ';' {pin=1}
 defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {pin=1}
 deftype_statement ::= 'deftype' IDENTIFIER '=' type_node ';' {pin=1}
-defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
+defvar_statement ::= 'defvar' IDENTIFIER '=' value_node ';' {
     pin=1
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner"
@@ -386,7 +386,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value ';' {
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefvarStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStubElementType"
 }
-dump_statement ::= 'dump' value ';' {
+dump_statement ::= 'dump' value_node ';' {
     pin=1
     implements=[
         scope_item
@@ -407,9 +407,9 @@ foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
         rBrace='RBRACE'
     ]
 }
-foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value)
+foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_node)
 
-if_statement ::= 'if' value 'then' if_body else_body? {
+if_statement ::= 'if' value_node 'then' if_body else_body? {
     methods=[
         thenBody="if_body[0]"
         elseBody="if_body[1]"
@@ -440,7 +440,7 @@ let_statement ::= 'let' let_list 'in' statement_block {
     ]
 }
 private let_list ::= let_item (',' let_item)*
-let_item ::= IDENTIFIER ('<' range_list '>')? '=' value {
+let_item ::= IDENTIFIER ('<' range_list '>')? '=' value_node {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
         field_identifier="IDENTIFIER"
@@ -534,35 +534,35 @@ class_type_node ::= IDENTIFIER {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassTypeNodeStubElementType"
 }
 
-value ::= concat_value
-        | field_access_value
-        | bit_access_value
-        | slice_access_value
-        | simple_value {
+value_node ::= concat_value_node
+           | field_access_value_node
+           | bit_access_value_node
+           | slice_access_value_node
+           | simple_value_node {
     implements=[
-        "com.github.zero9178.mlirods.language.psi.impl.TableGenValueEx"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenValueNodeEx"
     ]
 }
-private value_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';' | '>'
+private value_node_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';' | '>'
 
 // Extracted suffixes for the use by the 'objectName' external parsing rule.
 // This makes the parse method package private rather than private if only generated as part of the expression parser.
-private concat_value_suffix ::= '#' value? {
+private concat_value_node_suffix ::= '#' value_node? {
     pin=1
 }
-concat_value ::= value concat_value_suffix {
+concat_value_node ::= value_node concat_value_node_suffix {
     methods = [
-        left_operand="/value[0]"
-        right_operand="/value[1]"
+        left_operand="/value_node[0]"
+        right_operand="/value_node[1]"
 
         getType
     ]
 }
 
-private field_access_value_suffix ::= '.' IDENTIFIER {
+private field_access_value_node_suffix ::= '.' IDENTIFIER {
     pin=1
 }
-field_access_value ::= value field_access_value_suffix {
+field_access_value_node ::= value_node field_access_value_node_suffix {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods = [
         field_identifier="IDENTIFIER"
@@ -573,50 +573,50 @@ field_access_value ::= value field_access_value_suffix {
     pin=2
 }
 
-bit_access_value ::= value '{' range_list '}' {pin=2}
+bit_access_value_node ::= value_node '{' range_list '}' {pin=2}
 private range_list ::= range_piece (',' range_piece)*
 range_piece ::= bit_range
               | single_bit
-single_bit ::= value {extends=range_piece}
-bit_range ::= value ('...' | '-') value {
+single_bit ::= value_node {extends=range_piece}
+bit_range ::= value_node ('...' | '-') value_node {
     extends=range_piece
 }
 
-private slice_access_value_suffix ::= '[' <<trailing_item_list ']' value_follows slice_element>> ']' {
+private slice_access_value_node_suffix ::= '[' <<trailing_item_list ']' value_node_follows slice_element>> ']' {
     pin=1
 }
-slice_access_value ::= value slice_access_value_suffix {
+slice_access_value_node ::= value_node slice_access_value_node_suffix {
     methods=[
         getType
     ]
 }
 slice_element ::= slice_element_range
                 | single_slice_element
-single_slice_element ::= value {extends=slice_element}
-slice_element_range ::= value ('...' | '-') value {extends=slice_element}
+single_slice_element ::= value_node {extends=slice_element}
+slice_element_range ::= value_node ('...' | '-') value_node {extends=slice_element}
 
-private simple_value ::= integer_value
-               | string_value
-               | bool_value
-               | undef_value
-               | bits_init_value
-               | list_init_value
-               | dag_init_value
-               | class_instantiation_value
-               | identifier_value
-               | cond_operator_value
-               | foreach_operator_value
-               | foldl_operator_value
-               | bang_operator_value
+private simple_value_node ::= integer_value_node
+                          | string_value_node
+                          | bool_value_node
+                          | undef_value_node
+                          | bits_init_value_node
+                          | list_init_value_node
+                          | dag_init_value_node
+                          | class_instantiation_value_node
+                          | identifier_value_node
+                          | cond_operator_value_node
+                          | foreach_operator_value_node
+                          | foldl_operator_value_node
+                          | bang_operator_value_node
 
-private meta value_list ::= <<trailing_item_list <<closing>> <<follows>> value>>
+private meta value_node_list ::= <<trailing_item_list <<closing>> <<follows>> value_node>>
 
-integer_value ::= '-'? INTEGER {
+integer_value_node ::= '-'? INTEGER {
     methods=[
         getType
     ]
 }
-string_value ::= block_string_value
+string_value_node ::= block_string_value
                | LINE_STRING_LITERAL+
                | LINE_STRING_LITERAL_BAD {
     methods=[
@@ -624,31 +624,31 @@ string_value ::= block_string_value
     ]
 }
 block_string_value ::= BLOCK_STRING_LITERAL {
-    extends=string_value
+    extends=string_value_node
     implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
     methods = [
         getPlaceHolderText
         getType
     ]
 }
-bool_value ::= 'true' | 'false' {
+bool_value_node ::= 'true' | 'false' {
     methods=[
         getType
     ]
 }
-undef_value ::= '?'
+undef_value_node ::= '?'
 
-bits_init_value ::= '{' <<value_list '}' value_follows>>? '}' {
+bits_init_value_node ::= '{' <<value_node_list '}' value_node_follows>>? '}' {
     pin=1
 }
 
-list_init_value ::= '[' <<value_list ']' (value_follows | '<')>>? ']' ('<' type_node '>')? {
+list_init_value_node ::= '[' <<value_node_list ']' (value_node_follows | '<')>>? ']' ('<' type_node '>')? {
     pin=1
     methods=[
         getType
     ]
 }
-dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
+dag_init_value_node ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
     pin(".*")=1
     methods=[
         operator="dag_arg[0]"
@@ -656,10 +656,10 @@ dag_init_value ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
         getType
     ]
 }
-dag_arg ::= value (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
+dag_arg ::= value_node (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
     pin(".*")=1
 }
-identifier_value ::= IDENTIFIER {
+identifier_value_node ::= IDENTIFIER {
     methods=[
         getReference
 
@@ -667,7 +667,7 @@ identifier_value ::= IDENTIFIER {
     ]
 }
 
-class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
+class_instantiation_value_node ::= IDENTIFIER '<' arg_value_list? '>' {
     pin=2
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
@@ -687,13 +687,13 @@ class_instantiation_value ::= IDENTIFIER '<' arg_value_list? '>' {
 private arg_value_list ::= arg_value_item (',' arg_value_item)* {
     pin(".*") = 1
 }
-arg_value_item ::= value equals_value?
+arg_value_item ::= value_node equals_value?
 
-foreach_operator_value ::= '!foreach' '(' IDENTIFIER ',' value ',' value ')' {
+foreach_operator_value_node ::= '!foreach' '(' IDENTIFIER ',' value_node ',' value_node ')' {
     pin=1
     methods=[
-        iterable="/value[0]"
-        body="/value[1]"
+        iterable="/value_node[0]"
+        body="/value_node[1]"
         name_identifier="IDENTIFIER"
 
         getType
@@ -718,12 +718,12 @@ foldl_accumulator ::= IDENTIFIER {
         getTextOffset
     ]
 }
-foldl_operator_value ::= '!foldl' '(' value ',' value ',' foldl_accumulator ',' IDENTIFIER ',' value ')' {
+foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' foldl_accumulator ',' IDENTIFIER ',' value_node ')' {
     pin=1
     methods=[
-        start="/value[0]"
-        iterable="/value[1]"
-        body="/value[2]"
+        start="/value_node[0]"
+        iterable="/value_node[1]"
+        body="/value_node[2]"
         name_identifier="IDENTIFIER"
 
         getType
@@ -736,11 +736,11 @@ foldl_operator_value ::= '!foldl' '(' value ',' value ',' foldl_accumulator ',' 
     ]
 }
 
-bang_operator_value ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_list ')' value_follows>>? ')' {pin=1}
-cond_operator_value ::= '!cond' '(' <<trailing_item_list ')' value_follows cond_clause>> ')' {pin=1}
-cond_clause ::= value ':' value {
+bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_node_list ')' value_node_follows>>? ')' {pin=1}
+cond_operator_value_node ::= '!cond' '(' <<trailing_item_list ')' value_node_follows cond_clause>> ')' {pin=1}
+cond_clause ::= value_node ':' value_node {
     methods=[
-        condition="value[0]"
-        thenValue="value[1]"
+        condition="value_node[0]"
+        thenValue="value_node[1]"
     ]
 }

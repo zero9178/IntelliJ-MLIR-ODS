@@ -27,7 +27,7 @@ private class TableGenInterFileCompletionContributor : CompletionContributor() {
                     PlatformPatterns.psiElement().withReference(TableGenClassReference::class.java),
                     // Plain identifiers in values are treated as 'defs' due to the missing brackets.
                     // We need to also inject ourselves into identifier value lookup.
-                    PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER_VALUE),
+                    PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER_VALUE_NODE),
                 )
             ),
             object : CompletionProvider<CompletionParameters>() {
