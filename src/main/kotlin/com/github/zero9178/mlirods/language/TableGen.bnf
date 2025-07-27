@@ -252,9 +252,11 @@ template_arg_decl ::= type_node IDENTIFIER equals_value? {
 private record_body ::= <<parent_class_list class_ref>>? body {pin=1}
 private meta parent_class_list ::= ':' <<class_ref>> (',' <<class_ref>>)* {pin(".*")=1}
 
-fake abstract_class_ref ::= IDENTIFIER {
+fake abstract_class_ref ::= IDENTIFIER class_ref_suffix? {
     methods=[
         class_identifier='IDENTIFIER'
+        lAngle='LANGLE'
+        rAngle='RANGLE'
 
         getClassName
     ]
@@ -528,6 +530,7 @@ class_type_node ::= IDENTIFIER {
         toType
     ]
     implements=abstract_class_ref
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassTypeNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassTypeNodeStubElementType"
 }
 
