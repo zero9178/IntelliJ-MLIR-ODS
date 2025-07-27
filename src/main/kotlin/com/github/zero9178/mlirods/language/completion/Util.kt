@@ -5,12 +5,12 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
+import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.completion.InsertHandler
 import com.intellij.codeInsight.completion.InsertionContext
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.editor.EditorModificationUtilEx
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 
@@ -20,15 +20,13 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
         item: LookupElement
     ): Unit = disallowTreeLoading {
         val classStatement = item.psiElement as? TableGenClassStatement ?: return@disallowTreeLoading
-        var caretShift = 1
+        var hasParams = true
         when (identifier.parent) {
             // Type node never needs brackets.
             is TableGenClassTypeNode -> return@disallowTreeLoading
             // Class instantiations always do.
             is TableGenIdentifierValue -> {
-                //
-                if (classStatement.templateArgDeclList.isEmpty())
-                    caretShift = 2
+                if (classStatement.templateArgDeclList.isEmpty()) hasParams = false
             }
             // Class ref does depending on whether the class template arguments or not.
             is TableGenClassRef -> {
@@ -46,8 +44,13 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
         if (offset < document.textLength && document.charsSequence[offset] == '<')
             return@disallowTreeLoading
 
-        EditorModificationUtilEx.insertStringAtCaret(editor, "<>", false, caretShift)
-        editor.project?.let { PsiDocumentManager.getInstance(it).commitDocument(document) }
+        EditorModificationUtilEx.insertStringAtCaret(editor, "<>", false, if (hasParams) 1 else 2)
+
+        if (!hasParams) return@disallowTreeLoading
+
+        // Invoke parameters popup.
+        AutoPopupController.getInstance(context.project)
+            .autoPopupParameterInfo(editor, classStatement)
     }
 }
 

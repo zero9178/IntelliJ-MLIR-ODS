@@ -77,6 +77,8 @@
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>
         <lang.findUsagesProvider language="TableGen"
                                  implementationClass="com.github.zero9178.mlirods.language.TableGenFindUsageProvider"/>
+        <codeInsight.parameterInfo language="TableGen"
+                                   implementationClass="com.github.zero9178.mlirods.language.TableGenParameterInfoHandler"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
