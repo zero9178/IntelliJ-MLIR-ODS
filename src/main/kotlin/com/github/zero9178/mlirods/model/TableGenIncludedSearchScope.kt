@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods.model
 
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project

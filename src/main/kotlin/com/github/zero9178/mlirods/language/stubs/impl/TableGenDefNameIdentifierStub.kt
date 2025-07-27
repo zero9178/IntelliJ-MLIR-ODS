@@ -1,7 +1,7 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
 import com.github.zero9178.mlirods.index.DEF_INDEX
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefStatementImpl
@@ -13,7 +13,6 @@ import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes.Compa
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes.Companion.DEF_STATEMENT
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.stubs.IndexSink
 import com.intellij.psi.stubs.StubBase
 import com.intellij.psi.stubs.StubElement

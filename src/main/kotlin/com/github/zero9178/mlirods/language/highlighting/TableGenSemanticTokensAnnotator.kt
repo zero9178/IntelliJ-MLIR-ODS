@@ -3,10 +3,9 @@ package com.github.zero9178.mlirods.language.highlighting
 import com.github.zero9178.mlirods.color.FIELD
 import com.github.zero9178.mlirods.color.PREPROCESSOR_MACRO_NAME
 import com.github.zero9178.mlirods.color.SKIPPED_CODE
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode
-import com.intellij.codeInsight.daemon.RainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor

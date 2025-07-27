@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods.language.stubs
 
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.TableGenPreprocessingPsiBuilder
 import com.intellij.lang.ASTNode
