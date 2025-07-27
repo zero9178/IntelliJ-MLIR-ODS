@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods.model
 
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.TableGenFileType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.readAction

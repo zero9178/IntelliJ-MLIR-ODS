@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods.language.completion
 
-import com.github.zero9178.mlirods.language.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.TableGenTypes.IDENTIFIER
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.intellij.codeInsight.completion.*

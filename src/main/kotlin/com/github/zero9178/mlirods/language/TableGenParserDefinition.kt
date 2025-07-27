@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.language.generated.TableGenParser
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.stubs.TableGenStubFileElementType
 import com.github.zero9178.mlirods.model.TableGenContext
 import com.github.zero9178.mlirods.model.TableGenContextService

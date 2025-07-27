@@ -7,13 +7,13 @@ import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
+import com.intellij.util.resettableLazy
 
 /**
  * Common base class for record functionality.
  */
 abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedPsiElementBase<StubT>,
     TableGenFieldScopeNode {
-    private var myDirectFieldsCache: Map<String, TableGenFieldBodyItem>? = null
 
     protected abstract fun getClassRefList(): List<TableGenClassRef>
     protected abstract fun getFieldBodyItemList(): List<TableGenFieldBodyItem>
@@ -22,23 +22,19 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
 
     constructor(stub: StubT, stubType: IStubElementType<*, *>) : super(stub, stubType)
 
-
-    override val directFields: Map<String, TableGenFieldBodyItem>
-        get() {
-            myDirectFieldsCache?.let { return it }
-
-            val fields = getFieldBodyItemList().filter { it.name != null }.associateBy {
-                it.name!!
-            }
-            myDirectFieldsCache = fields
-            return fields
+    private var myDirectFields = resettableLazy {
+        getFieldBodyItemList().filter { it.name != null }.associateBy {
+            it.name!!
         }
+    }
+
+    override val directFields by myDirectFields
 
     override val baseClassRefs: Sequence<TableGenClassRef>
         get() = getClassRefList().asSequence()
 
     override fun subtreeChanged() {
         super.subtreeChanged()
-        myDirectFieldsCache = null
+        myDirectFields.reset()
     }
 }

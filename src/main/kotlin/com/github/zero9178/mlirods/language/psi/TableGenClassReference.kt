@@ -2,7 +2,6 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
-import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
@@ -67,9 +66,13 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
         CachedValuesManager.getProjectPsiDependentCache(element) {
             disallowTreeLoading {
                 val name = element.className
-                val klass = localSearchOrder(element).find {
-                    it.name == name
-                }
+                val file = element.containingFile as? TableGenFile ?: return@disallowTreeLoading emptyArray()
+
+                // TODO: This currently picks the first occurrence of a class statement with a given name within the
+                //  same file. We do not yet fully understand the class logic yet to implement this correctly. In
+                //  theory, we even need to search in the class index first whether includes create a class statement
+                //  first.
+                val klass = file.classMap[name]?.firstOrNull()
 
                 // Lookup in the same file succeeded.
                 if (klass != null) return@disallowTreeLoading arrayOf(PsiElementResolveResult(klass))

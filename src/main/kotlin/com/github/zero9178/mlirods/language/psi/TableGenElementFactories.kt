@@ -1,6 +1,5 @@
 package com.github.zero9178.mlirods.language.psi
 
-import com.github.zero9178.mlirods.language.TableGenFile
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValue
