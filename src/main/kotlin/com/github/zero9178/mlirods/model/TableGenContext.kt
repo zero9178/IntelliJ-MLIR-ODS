@@ -313,6 +313,8 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         file.includeDirectives.mapNotNull {
             it.includedFile
         }.mapNotNull {
+            if (!it.isValid) return@mapNotNull null
+
             result += it
             instance.findFile(it) as? TableGenFile
         }.forEach {
@@ -340,6 +342,8 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
             result += context.includedFrom
 
             context.includedBeforeThis.asSequence().mapNotNull {
+                if (!it.isValid) return@mapNotNull null
+
                 result += it
                 instance.findFile(it) as? TableGenFile
             }.forEach {
