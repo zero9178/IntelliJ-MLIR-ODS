@@ -1,30 +1,12 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
-import com.github.zero9178.mlirods.language.generated.psi.TableGenBitTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenBitsTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenCodeTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDagTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIntTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenListTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenStringTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenBitTypeNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenBitsTypeNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassTypeNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenCodeTypeNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDagTypeNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIntTypeNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenListTypeNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenStringTypeNodeImpl
+import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.generated.psi.impl.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.getIntegerValue
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.intellij.psi.PsiElement
-import com.intellij.psi.stubs.StubBase
-import com.intellij.psi.stubs.StubElement
-import com.intellij.psi.stubs.StubInputStream
-import com.intellij.psi.stubs.StubOutputStream
+import com.intellij.psi.stubs.*
 
 /**
  * Super type of all stub [TableGenTypeNode] instances.
@@ -32,112 +14,41 @@ import com.intellij.psi.stubs.StubOutputStream
 sealed interface TableGenTypeNodeStub : StubElement<TableGenTypeNode>
 
 /**
- * Abstract base class of stub file types which do not contain any data.
+ * Base class for file element types for any Psi class that does not need to extend [TableGenTypeNodeStub].
  */
-abstract class TableGenSingletonTypeNodeStubElementType<StubT : StubElement<*>, PsiT : PsiElement>(
+sealed class TableGenAbstractTypeNodeStubElementType<PsiT : PsiElement>(
     debugName: String,
-    psiConstructor: (StubT, TableGenStubElementType<StubT, PsiT>) -> PsiT,
-    private val myStubConstructor: (StubElement<*>?) -> StubT
-) : TableGenStubElementType<StubT, PsiT>(
-    debugName, psiConstructor
+    psiConstructor: (TableGenTypeNodeStub, TableGenStubElementType<TableGenTypeNodeStub, PsiT>) -> PsiT
+) : TableGenSingletonStubElementType<TableGenTypeNodeStub, PsiT>(
+    debugName, psiConstructor, ::TableGenTypeNodeStubImpl
 ) {
-    final override fun createStub(
-        psi: PsiT, parentStub: StubElement<out PsiElement?>?
-    ): StubT {
-        return myStubConstructor.invoke(parentStub)
-    }
-
-    final override fun serialize(stub: StubT, dataStream: StubOutputStream) {}
-
-    final override fun deserialize(
-        dataStream: StubInputStream, parentStub: StubElement<*>?
-    ): StubT {
-        return myStubConstructor.invoke(parentStub)
-    }
-
     override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
-/**
- * Stub interface of [TableGenBitTypeNode].
- */
-interface TableGenBitTypeNodeStub : TableGenTypeNodeStub
-
 class TableGenBitTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenBitTypeNodeStub, TableGenBitTypeNode>(
-        debugName, ::TableGenBitTypeNodeImpl, ::TableGenBitTypeNodeStubImpl
+    TableGenAbstractTypeNodeStubElementType<TableGenBitTypeNode>(
+        debugName, ::TableGenBitTypeNodeImpl
     )
-
-private class TableGenBitTypeNodeStubImpl(
-    parent: StubElement<out PsiElement>?
-) : StubBase<TableGenTypeNode>(
-    parent, TableGenStubElementTypes.BIT_TYPE_NODE
-), TableGenBitTypeNodeStub
-
-/**
- * Stub interface of [TableGenIntTypeNode].
- */
-interface TableGenIntTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenIntTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenIntTypeNodeStub, TableGenIntTypeNode>(
-        debugName, ::TableGenIntTypeNodeImpl, ::TableGenIntTypeNodeStubImpl
+    TableGenAbstractTypeNodeStubElementType<TableGenIntTypeNode>(
+        debugName, ::TableGenIntTypeNodeImpl
     )
-
-private class TableGenIntTypeNodeStubImpl(
-    parent: StubElement<out PsiElement>?
-) : StubBase<TableGenTypeNode>(
-    parent, TableGenStubElementTypes.INT_TYPE_NODE
-), TableGenIntTypeNodeStub
-
-/**
- * Stub interface of [TableGenStringTypeNode].
- */
-interface TableGenStringTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenStringTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenStringTypeNodeStub, TableGenStringTypeNode>(
-        debugName, ::TableGenStringTypeNodeImpl, ::TableGenStringTypeNodeStubImpl
+    TableGenAbstractTypeNodeStubElementType<TableGenStringTypeNode>(
+        debugName, ::TableGenStringTypeNodeImpl
     )
-
-private class TableGenStringTypeNodeStubImpl(
-    parent: StubElement<out PsiElement>?
-) : StubBase<TableGenTypeNode>(
-    parent, TableGenStubElementTypes.STRING_TYPE_NODE
-), TableGenStringTypeNodeStub
-
-
-/**
- * Stub interface of [TableGenDagTypeNode].
- */
-interface TableGenDagTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenDagTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenDagTypeNodeStub, TableGenDagTypeNode>(
-        debugName, ::TableGenDagTypeNodeImpl, ::TableGenDagTypeNodeStubImpl
+    TableGenAbstractTypeNodeStubElementType<TableGenDagTypeNode>(
+        debugName, ::TableGenDagTypeNodeImpl
     )
-
-private class TableGenDagTypeNodeStubImpl(
-    parent: StubElement<out PsiElement>?
-) : StubBase<TableGenTypeNode>(
-    parent, TableGenStubElementTypes.DAG_TYPE_NODE
-), TableGenDagTypeNodeStub
-
-/**
- * Stub interface of [TableGenCodeTypeNode].
- */
-interface TableGenCodeTypeNodeStub : TableGenTypeNodeStub
 
 class TableGenCodeTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenCodeTypeNodeStub, TableGenCodeTypeNode>(
-        debugName, ::TableGenCodeTypeNodeImpl, ::TableGenCodeTypeNodeStubImpl
+    TableGenAbstractTypeNodeStubElementType<TableGenCodeTypeNode>(
+        debugName, ::TableGenCodeTypeNodeImpl
     )
-
-private class TableGenCodeTypeNodeStubImpl(
-    parent: StubElement<out PsiElement>?
-) : StubBase<TableGenTypeNode>(
-    parent, TableGenStubElementTypes.CODE_TYPE_NODE
-), TableGenCodeTypeNodeStub
 
 /**
  * Stub interface of [TableGenBitsTypeNode].
@@ -180,24 +91,12 @@ private class TableGenBitsTypeNodeStubImpl(
     parent, TableGenStubElementTypes.BITS_TYPE_NODE
 ), TableGenBitsTypeNodeStub
 
-/**
- * Stub interface of [TableGenListTypeNode].
- */
-interface TableGenListTypeNodeStub : TableGenTypeNodeStub
-
 class TableGenListTypeNodeStubElementType(debugName: String) :
-    TableGenSingletonTypeNodeStubElementType<TableGenListTypeNodeStub, TableGenListTypeNode>(
-        debugName, ::TableGenListTypeNodeImpl, ::TableGenListTypeNodeStubImpl
+    TableGenAbstractTypeNodeStubElementType<TableGenListTypeNode>(
+        debugName, ::TableGenListTypeNodeImpl
     ) {
     override fun isAlwaysLeaf(root: StubBase<*>) = false
 }
-
-private class TableGenListTypeNodeStubImpl(
-    parent: StubElement<out PsiElement>?
-) : StubBase<TableGenTypeNode>(
-    parent, TableGenStubElementTypes.LIST_TYPE_NODE
-), TableGenListTypeNodeStub
-
 
 /**
  * Stub interface of [TableGenClassTypeNode].
@@ -233,3 +132,13 @@ private class TableGenClassTypeNodeStubImpl(
 ) : StubBase<TableGenTypeNode>(
     parent, TableGenStubElementTypes.CLASS_TYPE_NODE
 ), TableGenClassTypeNodeStub
+
+/**
+ * Stub node implementation for any class that does not need to extend [TableGenTypeNode].
+ */
+private class TableGenTypeNodeStubImpl(
+    parent: StubElement<out PsiElement>?,
+    elementType: IStubElementType<*, *>,
+) : StubBase<TableGenTypeNode>(
+    parent, elementType
+), TableGenTypeNodeStub
