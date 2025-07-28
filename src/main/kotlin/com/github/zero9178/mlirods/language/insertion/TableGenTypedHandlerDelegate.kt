@@ -10,7 +10,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.startOffset
 
-private class TableGenTypedHandlerDelegate : TypedHandlerDelegate() {
+private class TableGenBlockStringLiteralTypedHandlerDelegate : TypedHandlerDelegate() {
     override fun charTyped(
         c: Char, project: Project, editor: Editor, file: PsiFile
     ): Result {
@@ -38,6 +38,26 @@ private class TableGenTypedHandlerDelegate : TypedHandlerDelegate() {
 
         doc.insertString(offset, "}")
 
+        return Result.CONTINUE
+    }
+}
+
+private class TableGenAngleBracketTypedHandlerDelegate : TypedHandlerDelegate() {
+    override fun charTyped(
+        c: Char, project: Project, editor: Editor, file: PsiFile
+    ): Result {
+        if (file.fileType != TableGenFileType.Companion.INSTANCE) return Result.CONTINUE
+
+        if (c != '<') return Result.CONTINUE
+
+        val offset = editor.caretModel.offset
+        file.findElementAt(offset)?.let {
+            if (STRING_LITERALS.contains(it.elementType))
+                return Result.CONTINUE
+        }
+
+        val doc = editor.document
+        doc.insertString(offset, ">")
         return Result.CONTINUE
     }
 }

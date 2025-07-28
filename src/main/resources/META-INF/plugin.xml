@@ -28,7 +28,10 @@
                         implementationClass="com.github.zero9178.mlirods.language.insertion.TableGenCommenter"/>
         <lang.quoteHandler language="TableGen"
                            implementationClass="com.github.zero9178.mlirods.language.insertion.TableGenQuoteHandler"/>
-        <typedHandler implementation="com.github.zero9178.mlirods.language.insertion.TableGenTypedHandlerDelegate"/>
+        <typedHandler
+                implementation="com.github.zero9178.mlirods.language.insertion.TableGenBlockStringLiteralTypedHandlerDelegate"/>
+        <typedHandler
+                implementation="com.github.zero9178.mlirods.language.insertion.TableGenAngleBracketTypedHandlerDelegate"/>
         <highlightVisitor
                 implementation="com.github.zero9178.mlirods.language.highlighting.TableGenSemanticTokensAnnotator"/>
         <highlightVisitor
