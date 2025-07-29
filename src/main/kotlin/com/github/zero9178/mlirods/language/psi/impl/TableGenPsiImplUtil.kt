@@ -327,9 +327,47 @@ class TableGenPsiImplUtil {
             element.evaluateAtomic() ?: TableGenUnknownValue
 
         @JvmStatic
+        fun evaluateAtomic(element: TableGenStringValueNode): TableGenStringValue {
+            return TableGenStringValue(getStringValue(element))
+        }
+
+        @JvmStatic
         fun evaluateAtomic(element: TableGenIntegerValueNode): TableGenIntegerValue? {
             val value = getIntegerValue(element) ?: return null
             return TableGenIntegerValue(value)
+        }
+
+        @JvmStatic
+        fun evaluateAtomic(element: TableGenUndefValueNode): TableGenUndefValue {
+            return TableGenUndefValue
+        }
+
+        @JvmStatic
+        fun evaluateAtomic(element: TableGenBoolValueNode): TableGenIntegerValue {
+            when (element.text) {
+                "false" -> return TableGenIntegerValue(0)
+                "true" -> return TableGenIntegerValue(1)
+            }
+            error("Grammar should not allow any other kind of boolean")
+        }
+
+        @JvmStatic
+        fun evaluate(element: TableGenIdentifierValueNode, context: TableGenEvaluationContext): TableGenValue {
+            return when (val ref = element.reference?.resolve()) {
+                is TableGenDefvarStatement -> ref.valueNode?.evaluate(context)
+                is TableGenDefStatement -> TableGenRecordValue(ref)
+                is TableGenTemplateArgDecl -> context.templateArgDeclValues[ref]?.evaluate(context)
+                is TableGenFieldBodyItem -> ref.fieldName?.let { context.evaluateFieldInContext(it) }
+                else -> null
+            } ?: TableGenUnknownValue
+        }
+
+        @JvmStatic
+        fun evaluate(element: TableGenFieldAccessValueNode, context: TableGenEvaluationContext): TableGenValue {
+            return when (val rec = element.valueNode.evaluate(context)) {
+                is TableGenRecordValue -> element.fieldName?.let { rec.fields[it] }
+                else -> null
+            } ?: TableGenUnknownValue
         }
     }
 }

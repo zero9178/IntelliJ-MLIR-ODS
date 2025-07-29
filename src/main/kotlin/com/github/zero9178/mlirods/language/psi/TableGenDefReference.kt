@@ -115,7 +115,7 @@ class TableGenDefReference(element: TableGenIdentifierValueNode) :
                 )
             )
 
-            val name = element.identifier.text
+            val name = element.identifierText
 
             val def = localResolveSequence().firstNotNullOfOrNull {
                 if (it is TableGenDefNameIdentifierOwner || it is TableGenFieldBodyItem) if (it.name == name) return@firstNotNullOfOrNull it

@@ -2,11 +2,10 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
+import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
-import com.github.zero9178.mlirods.language.stubs.stubbedChildren
-import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 
@@ -59,6 +58,11 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     val directFields: Map<String, TableGenFieldBodyItem>
 
     /**
+     *
+     */
+    val directFieldExpressions: Map<String, TableGenValueNode>
+
+    /**
      * Returns a sequence of all fields of this class, including inherited fields.
      */
     val allFields: Sequence<TableGenFieldBodyItem>
@@ -66,6 +70,20 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
             it.referencedClass
         }.flatMap {
             it.allFields
+        }
+
+    val allFieldExpressions: Map<String, TableGenValueNode>
+        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+            (baseClassRefs.mapNotNull { it.referencedClass }.map {
+                it.allFieldExpressions
+            } + directFieldExpressions).toList().foldRight(mutableMapOf()) { it, acc ->
+                for ((k, v) in it) {
+                    acc.computeIfAbsent(k) {
+                        v
+                    }
+                }
+                acc
+            }
         }
 
     /**
