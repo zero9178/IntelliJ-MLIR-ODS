@@ -11,7 +11,7 @@ import com.intellij.psi.stubs.IStubElementType
 import com.intellij.util.takeWhileInclusive
 
 abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableGenClassStatementStub>,
-    TableGenClassStatement {
+    TableGenClassStatement, PsiElement {
 
     constructor(node: ASTNode) : super(node)
 

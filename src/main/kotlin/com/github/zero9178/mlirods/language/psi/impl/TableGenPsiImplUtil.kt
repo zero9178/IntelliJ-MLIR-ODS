@@ -2,11 +2,8 @@ package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.MyIcons
 import com.github.zero9178.mlirods.language.generated.psi.*
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassRefImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassTypeNodeImpl
 import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassTypeNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
 import com.github.zero9178.mlirods.language.types.*
 import com.intellij.extapi.psi.ASTDelegatePsiElement
@@ -76,13 +73,13 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getClassName(element: TableGenClassRefImpl): String {
-            return element.greenStub?.name ?: getClassName(element as TableGenAbstractClassRef)
+        fun getClassName(element: TableGenClassRef): String {
+            return element.stub?.name ?: getClassName(element as TableGenAbstractClassRef)
         }
 
         @JvmStatic
-        fun getClassName(element: TableGenClassTypeNodeImpl): String {
-            return (element.greenStub as? TableGenClassTypeNodeStub)?.className
+        fun getClassName(element: TableGenClassTypeNode): String {
+            return element.stub?.className
                 ?: getClassName(element as TableGenAbstractClassRef)
         }
 
@@ -118,7 +115,7 @@ class TableGenPsiImplUtil {
          * as [ASTWrapperPsiElement]
          */
         @JvmStatic
-        fun toString(element: ASTDelegatePsiElement): String {
+        fun toString(element: PsiElement): String {
             var name = element.javaClass.simpleName + "("
             name += if (element is StubBasedPsiElement<*>) element.iElementType
             else element.node.elementType
