@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 
 abstract class TableGenDefStatementMixin : TableGenRecordStatementMixin<TableGenDefNameIdentifierStub>,
-    TableGenDefStatement {
+    TableGenDefStatement, PsiElement {
 
     constructor(node: ASTNode) : super(node)
 
