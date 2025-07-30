@@ -620,7 +620,12 @@ private simple_value_node ::= integer_value_node
 private meta value_node_list ::= <<trailing_item_list <<closing>> <<follows>> value_node>>
 
 integer_value_node ::= '-'? INTEGER {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenIntegerValueNodexEx"
+    ]
     methods=[
+        evaluate
+        evaluateAtomic
         getType
     ]
 }

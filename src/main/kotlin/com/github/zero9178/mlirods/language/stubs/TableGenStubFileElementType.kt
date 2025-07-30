@@ -25,7 +25,7 @@ class TableGenStubFileElementType :
     }
 
     override fun getStubVersion(): Int {
-        return 6
+        return 7
     }
 
     companion object {

@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
 import com.github.zero9178.mlirods.language.types.*
+import com.github.zero9178.mlirods.language.values.*
 import com.intellij.extapi.psi.ASTDelegatePsiElement
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -107,8 +108,30 @@ class TableGenPsiImplUtil {
             return text.substring(2, text.length - 2)
         }
 
+        /**
+         * Returns a 64-bit integer parsed according to the lexer rules of TableGen.
+         * [integerElement] should be a psi element whose text range corresponds to an INTEGER token optionally lead by
+         * a minus sign.
+         *
+         * Returns null if it could not be parsed due to the value being too large to fit in 64 bit.
+         */
         @JvmStatic
-        fun getIntegerValue(integerElement: PsiElement?) = integerElement?.text?.toIntOrNull()
+        fun getIntegerValue(integerElement: PsiElement): Long? {
+            val text = integerElement.text
+
+            data class Radii(val prefix: String, val radix: Int)
+
+            // Non-decimal are always parsed as unsigned integers and denoted by their prefix.
+            for (iter in arrayOf(Radii("0b", 2), Radii("0x", 16)))
+                if (text.startsWith(iter.prefix))
+                    return text.drop(iter.prefix.length).toULongOrNull(iter.radix)?.toLong()
+
+            // Parse signed if lead by a minus.
+            if (text.startsWith('-'))
+                return text.toLongOrNull()
+
+            return text.toULongOrNull()?.toLong()
+        }
 
         /**
          * Workaround for [ASTDelegatePsiElement] to implement the same [toString] method
@@ -202,9 +225,8 @@ class TableGenPsiImplUtil {
         fun toType(element: TableGenCodeTypeNode) = TableGenStringType
 
         @JvmStatic
-        fun toType(element: TableGenBitsTypeNode) = element.integer?.let {
-            TableGenBitsType(getIntegerValue(it))
-        } ?: TableGenUnknownType
+        fun toType(element: TableGenBitsTypeNode) =
+            TableGenBitsType(element.integer?.let { getIntegerValue(it) })
 
         @JvmStatic
         fun toType(element: TableGenListTypeNode) = element.typeNode?.let {
@@ -299,5 +321,15 @@ class TableGenPsiImplUtil {
 
         @JvmStatic
         fun getType(element: TableGenFoldlOperatorValueNode): TableGenType = element.start?.type ?: TableGenUnknownType
+
+        @JvmStatic
+        fun evaluate(element: TableGenAtomicValue, context: TableGenEvaluationContext): TableGenValue =
+            element.evaluateAtomic() ?: TableGenUnknownValue
+
+        @JvmStatic
+        fun evaluateAtomic(element: TableGenIntegerValueNode): TableGenIntegerValue? {
+            val value = getIntegerValue(element) ?: return null
+            return TableGenIntegerValue(value)
+        }
     }
 }
