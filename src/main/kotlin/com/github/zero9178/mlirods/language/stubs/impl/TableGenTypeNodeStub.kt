@@ -54,7 +54,7 @@ class TableGenCodeTypeNodeStubElementType(debugName: String) :
  * Stub interface of [TableGenBitsTypeNode].
  */
 interface TableGenBitsTypeNodeStub : TableGenTypeNodeStub {
-    val bits: Int?
+    val bits: Long?
 }
 
 class TableGenBitsTypeNodeStubElementType(
@@ -65,19 +65,19 @@ class TableGenBitsTypeNodeStubElementType(
     override fun createStub(
         psi: TableGenBitsTypeNode, parentStub: StubElement<out PsiElement?>?
     ): TableGenBitsTypeNodeStub {
-        return TableGenBitsTypeNodeStubImpl(getIntegerValue(psi.integer), parentStub)
+        return TableGenBitsTypeNodeStubImpl(psi.integer?.let { getIntegerValue(it) }, parentStub)
     }
 
     override fun serialize(stub: TableGenBitsTypeNodeStub, dataStream: StubOutputStream) {
-        dataStream.writeInt(stub.bits ?: -1)
+        dataStream.writeLong(stub.bits ?: -1)
     }
 
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenBitsTypeNodeStub {
-        val i = dataStream.readInt()
+        val i = dataStream.readLong()
         return when (i) {
-            -1 -> TableGenBitsTypeNodeStubImpl(null, parentStub)
+            -1L -> TableGenBitsTypeNodeStubImpl(null, parentStub)
             else -> TableGenBitsTypeNodeStubImpl(i, parentStub)
         }
     }
@@ -86,7 +86,7 @@ class TableGenBitsTypeNodeStubElementType(
 }
 
 private class TableGenBitsTypeNodeStubImpl(
-    override val bits: Int?, parent: StubElement<out PsiElement>?
+    override val bits: Long?, parent: StubElement<out PsiElement>?
 ) : StubBase<TableGenTypeNode>(
     parent, TableGenStubElementTypes.BITS_TYPE_NODE
 ), TableGenBitsTypeNodeStub

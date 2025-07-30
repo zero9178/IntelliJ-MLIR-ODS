@@ -33,7 +33,7 @@ object TableGenDagType : TableGenType()
  * Bits type with the given number of bits.
  * [numberOfBits] may be zero if it is unknown, due to e.g. errors in the code.
  */
-data class TableGenBitsType(val numberOfBits: Int?) : TableGenType()
+data class TableGenBitsType(val numberOfBits: Long?) : TableGenType()
 
 /**
  * List type containing [elementType] elements.
