@@ -73,7 +73,7 @@ class TableGenListInitValueNodeStubElementType(debugName: String) :
  * Stub interface for [TableGenIntegerValueNode].
  */
 interface TableGenIntegerValueNodeStub : TableGenValueNodeStub {
-    val value: Long
+    val value: Long?
 }
 
 class TableGenIntegerValueNodeStubElementType(
@@ -85,28 +85,33 @@ class TableGenIntegerValueNodeStubElementType(
         psi: TableGenIntegerValueNode,
         parentStub: StubElement<out PsiElement?>?
     ): TableGenIntegerValueNodeStub {
-        return TableGenIntegerValueNodeStubImpl(psi.evaluateAtomic().value, parentStub, this)
+        return TableGenIntegerValueNodeStubImpl(psi.evaluateAtomic()?.value, parentStub, this)
     }
 
     override fun serialize(
         stub: TableGenIntegerValueNodeStub,
         dataStream: StubOutputStream
     ) {
-        dataStream.writeLong(stub.value)
+        dataStream.writeBoolean(stub.value != null)
+        stub.value?.let { dataStream.writeLong(it) }
     }
 
     override fun deserialize(
         dataStream: StubInputStream,
         parentStub: StubElement<*>?
     ): TableGenIntegerValueNodeStub {
-        return TableGenIntegerValueNodeStubImpl(dataStream.readLong(), parentStub, this)
+        return TableGenIntegerValueNodeStubImpl(
+            if (dataStream.readBoolean()) dataStream.readLong() else null,
+            parentStub,
+            this
+        )
     }
 
     override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenIntegerValueNodeStubImpl(
-    override val value: Long,
+    override val value: Long?,
     parent: StubElement<out PsiElement>?,
     elementType: IStubElementType<*, *>,
 ) : StubBase<TableGenValueNode>(

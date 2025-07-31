@@ -33,8 +33,7 @@ data class TableGenStringValue(val value: String) : TableGenValue {
 /**
  *
  */
-class TableGenRecordValue(private val myStatement: TableGenDefStatement) : TableGenValue() {
-    private val myRecordType: TableGenRecordType = TableGenRecordType.create(myStatement)
+class TableGenRecordValue(private val myStatement: TableGenDefStatement) : TableGenValue {
 
     /**
      *
@@ -52,14 +51,13 @@ class TableGenRecordValue(private val myStatement: TableGenDefStatement) : Table
     val fields: FieldValueMap
         get() = FieldValueMap()
 
-    override val type: TableGenRecordType
-        get() = myRecordType
+    override val type = TableGenRecordType.create(myStatement)
 }
 
 /**
  *
  */
-object TableGenUndefValue : TableGenValue() {
+object TableGenUndefValue : TableGenValue {
     override val type: TableGenUnknownType
         get() = TableGenUnknownType
 }

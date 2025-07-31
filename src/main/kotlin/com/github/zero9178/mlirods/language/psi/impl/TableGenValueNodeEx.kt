@@ -13,6 +13,10 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValue
 
+/**
+ * Class passed around as context during a constant evaluation.
+ * This is used to keep track of things such as template parameter to argument mapping or field mappings.
+ */
 class TableGenEvaluationContext(
     calcTemplateArgs: () -> Map<TableGenTemplateArgDecl, TableGenValueNode> = { emptyMap() },
     calcFieldArgs: () -> Map<String, TableGenValueNode> = { emptyMap() },
@@ -74,12 +78,6 @@ class TableGenEvaluationContext(
 
     fun evaluateFieldInContext(name: String) = myFieldExpressions[name]?.evaluate(this)
 }
-
-/**
- * Class passed around as context during a constant evaluation.
- * This is used to keep track of things such as template parameter to argument mapping or field mappings.
- */
-class TableGenEvaluationContext
 
 interface TableGenValueNodeEx : PsiElement {
     /**
