@@ -19,6 +19,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
+import com.intellij.psi.util.childLeafs
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 import javax.swing.Icon
@@ -99,13 +100,45 @@ class TableGenPsiImplUtil {
          */
         @JvmStatic
         fun getStringValue(stringElement: PsiElement): String {
-            val text = stringElement.text
-            if (text.startsWith("\"")) {
-                // TODO: Decode escape sequences etc.
-                return text.substring(1, text.length - 1)
+            var text = stringElement.text
+            if (!text.startsWith("\"")) {
+                text = text.drop(2)
+                if (text.endsWith("}]"))
+                    text = text.dropLast(2)
+
+                return text
             }
-            // TODO: Check whether something needs to be done for code blocks.
-            return text.substring(2, text.length - 2)
+
+            text = text.drop(1)
+            if (text.endsWith('"'))
+                text = text.dropLast(1)
+
+            val result = StringBuilder()
+            val iter = text.iterator()
+            while (iter.hasNext()) {
+                when (val c = iter.nextChar()) {
+                    '\\' -> {
+                        if (!iter.hasNext()) {
+                            result.append(c)
+                            continue
+                        }
+                        when (val c2 = iter.nextChar()) {
+                            'n' -> result.append('\n')
+                            't' -> result.append('\t')
+                            '\\' -> result.append('\\')
+                            '\'' -> result.append('\'')
+                            '\"' -> result.append('\"')
+                            else -> {
+                                result.append(c)
+                                result.append(c2)
+                            }
+                        }
+                    }
+
+                    else -> result.append(c)
+                }
+            }
+            return result.toString()
         }
 
         /**
@@ -330,6 +363,14 @@ class TableGenPsiImplUtil {
         fun evaluateAtomic(element: TableGenIntegerValueNode): TableGenIntegerValue? {
             val value = getIntegerValue(element) ?: return null
             return TableGenIntegerValue(value)
+        }
+
+        @JvmStatic
+        fun evaluateAtomic(element: TableGenStringValueNode): TableGenStringValue {
+            val res = element.childLeafs().fold("") { acc, c ->
+                acc + getStringValue(c)
+            }
+            return TableGenStringValue(res)
         }
     }
 }

@@ -52,6 +52,30 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenUnknownValue
     )
 
+    fun `test string literal`() = doTest(
+        """
+            defvar v = "a multi token"" string"" literal";
+        """.trimIndent(),
+        TableGenStringValue(
+            "a multi token string literal"
+        )
+    )
+
+    fun `test block string literal`() = doTest(
+        """
+            defvar v = [{ \n }];
+        """.trimIndent(),
+        TableGenStringValue(" \\n ")
+    )
+
+    fun `test string escapes`() = doTest(
+        """
+            defvar v = "\n\t\\n\"\'";
+        """.trimIndent(),
+        TableGenStringValue("\n\t\\n\"\'")
+    )
+
+
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
     }
