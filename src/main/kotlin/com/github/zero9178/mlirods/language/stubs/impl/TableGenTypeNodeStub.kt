@@ -75,8 +75,7 @@ class TableGenBitsTypeNodeStubElementType(
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenBitsTypeNodeStub {
-        val i = dataStream.readLong()
-        return when (i) {
+        return when (val i = dataStream.readLong()) {
             -1L -> TableGenBitsTypeNodeStubImpl(null, parentStub)
             else -> TableGenBitsTypeNodeStubImpl(i, parentStub)
         }

@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenTypeNode
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStub
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -35,5 +36,9 @@ abstract class TableGenFieldBodyItemMixin : StubBasedPsiElementBase<TableGenFiel
 
     override fun getTextOffset(): Int {
         return nameIdentifier?.textOffset ?: super.getTextOffset()
+    }
+
+    override fun getTypeNode(): TableGenTypeNode {
+        TODO("Not yet implemented")
     }
 }

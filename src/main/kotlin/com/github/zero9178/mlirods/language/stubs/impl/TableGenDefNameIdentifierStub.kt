@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
+import com.github.zero9178.mlirods.index.ALL_RECORDS_INDEX
 import com.github.zero9178.mlirods.index.DEF_INDEX
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
@@ -70,6 +71,8 @@ class TableGenDefNameIdentifierStubElementType(debugName: String) :
 
     override fun indexStub(stub: TableGenDefNameIdentifierStub, sink: IndexSink) {
         sink.occurrence(DEF_INDEX, stub.name)
+        if (stub.elementType === DEF_STATEMENT)
+            sink.occurrence(ALL_RECORDS_INDEX, 0)
     }
 }
 

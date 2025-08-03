@@ -59,12 +59,17 @@
                                externalIdPrefix="tablegen."/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllRecordsIndex"/>
         <elementDescriptionProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenElementDescriptionProvider"/>
         <usageTypeProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenUsageTypeProvider"/>
-        <gotoClassContributor implementation="com.github.zero9178.mlirods.language.TableGenGotoClassContributor"/>
-        <gotoSymbolContributor implementation="com.github.zero9178.mlirods.language.TableGenGotoSymbolContributor"/>
+        <gotoClassContributor
+                implementation="com.github.zero9178.mlirods.language.TableGenClassNameGotoClassContributor"/>
+        <gotoSymbolContributor
+                implementation="com.github.zero9178.mlirods.language.TableGenDefNameGotoSymbolContributor"/>
+        <gotoSymbolContributor
+                implementation="com.github.zero9178.mlirods.language.TableGenOpMnemonicGotoSymbolContributor"/>
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenFieldCompletionContributor"/>
         <completion.contributor language="TableGen"
