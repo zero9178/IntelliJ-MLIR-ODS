@@ -474,41 +474,37 @@ type_node ::= bit_type_node
     methods=[
         toString
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenTypeNodeMixin"
 }
 bit_type_node ::= 'bit' {
     methods=[
         toType
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitTypeNodeStubElementType"
 }
 int_type_node ::= 'int' {
     methods=[
         toType
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIntTypeNodeStubElementType"
 }
 string_type_node ::= 'string' {
     methods=[
         toType
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStringTypeNodeStubElementType"
 }
 dag_type_node ::= 'dag' {
     methods=[
         toType
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDagTypeNodeStubElementType"
 }
 code_type_node ::= 'code' {
     methods=[
         toType
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCodeTypeNodeStubElementType"
 }
 bits_type_node ::= 'bits' '<' INTEGER '>' {
@@ -516,7 +512,6 @@ bits_type_node ::= 'bits' '<' INTEGER '>' {
     methods=[
         toType
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitsTypeNodeStubElementType"
 }
 list_type_node ::= 'list' '<' type_node '>' {
@@ -524,7 +519,6 @@ list_type_node ::= 'list' '<' type_node '>' {
     methods=[
         toType
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenListTypeNodeStubElementType"
 }
 class_type_node ::= IDENTIFIER {
@@ -536,8 +530,11 @@ class_type_node ::= IDENTIFIER {
         toString
         toType
     ]
-    implements=abstract_class_ref
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassTypeNodeStub"
+    implements=[
+        abstract_class_ref
+
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenClassTypeNodeEx"
+    ]
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassTypeNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassTypeNodeStubElementType"
 }
