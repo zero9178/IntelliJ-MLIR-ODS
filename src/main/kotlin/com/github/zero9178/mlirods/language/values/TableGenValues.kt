@@ -1,9 +1,9 @@
 package com.github.zero9178.mlirods.language.values
 
-import com.github.zero9178.mlirods.language.types.TableGenIntType
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.types.TableGenStringType
-import com.github.zero9178.mlirods.language.types.TableGenType
-import com.github.zero9178.mlirods.language.types.TableGenUnknownType
+import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
+import com.github.zero9178.mlirods.language.types.*
 
 /**
  * Base class for all possible TableGen values.
@@ -29,6 +29,38 @@ data class TableGenIntegerValue(val value: Long) : TableGenValue {
 data class TableGenStringValue(val value: String) : TableGenValue {
     override val type: TableGenStringType
         get() = TableGenStringType
+}
+
+/**
+ *
+ */
+class TableGenRecordValue(private val myStatement: TableGenDefStatement) : TableGenValue {
+
+    /**
+     *
+     */
+    inner class FieldValueMap() {
+        operator fun get(name: String): TableGenValue? {
+            val context = TableGenEvaluationContext(myStatement)
+            return context.evaluateFieldInContext(name)
+        }
+    }
+
+    /**
+     *
+     */
+    val fields: FieldValueMap
+        get() = FieldValueMap()
+
+    override val type = TableGenRecordType.create(myStatement)
+}
+
+/**
+ *
+ */
+object TableGenUndefValue : TableGenValue {
+    override val type: TableGenUnknownType
+        get() = TableGenUnknownType
 }
 
 /**

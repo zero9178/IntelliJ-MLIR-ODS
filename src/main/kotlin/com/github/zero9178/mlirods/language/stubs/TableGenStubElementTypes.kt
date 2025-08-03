@@ -69,5 +69,14 @@ interface TableGenStubElementTypes {
 
         @JvmField
         val CLASS_TYPE_NODE = TableGenTypes.CLASS_TYPE_NODE!!
+
+        @JvmField
+        val INTEGER_VALUE_NODE = TableGenTypes.INTEGER_VALUE_NODE!!
+
+        @JvmField
+        val IDENTIFIER_VALUE_NODE = TableGenTypes.IDENTIFIER_VALUE_NODE!!
+
+        @JvmField
+        val STRING_VALUE_NODE = TableGenTypes.STRING_VALUE_NODE!!
     }
 }

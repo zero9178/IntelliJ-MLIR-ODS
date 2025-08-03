@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language.stubs.impl
 
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.intellij.psi.PsiElement
+import com.intellij.psi.stubs.EmptyStubSerializer
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubBase
 import com.intellij.psi.stubs.StubElement
@@ -17,18 +18,14 @@ abstract class TableGenSingletonStubElementType<StubT : StubElement<*>, PsiT : P
     private val myStubConstructor: (StubElement<*>?, IStubElementType<*, *>) -> StubT
 ) : TableGenStubElementType<StubT, PsiT>(
     debugName, psiConstructor
-) {
+), EmptyStubSerializer<StubT> {
     final override fun createStub(
         psi: PsiT, parentStub: StubElement<out PsiElement?>?
     ): StubT {
         return myStubConstructor.invoke(parentStub, this)
     }
 
-    final override fun serialize(stub: StubT, dataStream: StubOutputStream) {}
-
-    final override fun deserialize(
-        dataStream: StubInputStream, parentStub: StubElement<*>?
-    ): StubT {
+    override fun instantiate(parentStub: StubElement<*>?): StubT {
         return myStubConstructor.invoke(parentStub, this)
     }
 

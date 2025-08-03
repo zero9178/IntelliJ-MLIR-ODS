@@ -80,6 +80,53 @@ class ValueComputationTest : BasePlatformTestCase() {
         assertEquals(expectedValue, it)
     }
 
+    fun `test string`() = doTest(
+        """
+        defvar v = "text";
+    """.trimIndent(), TableGenStringValue("text")
+    )
+
+    fun `test record simple`() = doTest(
+        """
+        def A {
+            int i = 5;
+            let i = 10;
+        }
+            
+        defvar v = A.i;
+    """.trimIndent(), TableGenIntegerValue(10)
+    )
+
+    fun `test record inheritance`() = doTest(
+        """
+        class B {
+            int i = 5;
+        }
+            
+        def A : B {
+            let i = 10;
+        }
+            
+        defvar v = A.i;
+    """.trimIndent(), TableGenIntegerValue(10)
+    )
+
+    fun `test record inheritance template arg`() = doTest(
+        """
+        class C<int x> {
+            int y = x;
+        }
+            
+        class B<int x> : C<x> {
+            int i = y;
+        }
+            
+        def A : B<11>;
+            
+        defvar v = A.i;
+    """.trimIndent(), TableGenIntegerValue(11)
+    )
+
     fun doTest(source: String, expectedCondition: (TableGenValue) -> Unit) {
         val file = assertInstanceOf<TableGenFile>(myFixture.configureByText("test.td", source))
         val statement = assertInstanceOf<TableGenDefvarStatement>(file.lastChild)
