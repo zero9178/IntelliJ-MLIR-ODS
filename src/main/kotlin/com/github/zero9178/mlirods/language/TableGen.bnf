@@ -621,7 +621,7 @@ private meta value_node_list ::= <<trailing_item_list <<closing>> <<follows>> va
 
 integer_value_node ::= '-'? INTEGER {
     implements=[
-        "com.github.zero9178.mlirods.language.psi.impl.TableGenIntegerValueNodexEx"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenIntegerValueNodeEx"
     ]
     methods=[
         evaluate
@@ -630,9 +630,14 @@ integer_value_node ::= '-'? INTEGER {
     ]
 }
 string_value_node ::= block_string_value
-               | LINE_STRING_LITERAL+
-               | LINE_STRING_LITERAL_BAD {
+                    | LINE_STRING_LITERAL+ LINE_STRING_LITERAL_BAD?
+                    | LINE_STRING_LITERAL_BAD {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenStringValueNodeEx"
+    ]
     methods=[
+        evaluate
+        evaluateAtomic
         getType
     ]
 }

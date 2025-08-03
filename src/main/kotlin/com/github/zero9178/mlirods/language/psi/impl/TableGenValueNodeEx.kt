@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.psi.impl
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
+import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.intellij.psi.PsiElement
@@ -34,6 +35,10 @@ interface TableGenAtomicValue : TableGenValueNodeEx {
     fun evaluateAtomic(): TableGenValue?
 }
 
-interface TableGenIntegerValueNodexEx : TableGenAtomicValue {
+interface TableGenIntegerValueNodeEx : TableGenAtomicValue {
     override fun evaluateAtomic(): TableGenIntegerValue?
+}
+
+interface TableGenStringValueNodeEx : TableGenAtomicValue {
+    override fun evaluateAtomic(): TableGenStringValue?
 }

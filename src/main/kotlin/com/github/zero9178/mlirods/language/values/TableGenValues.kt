@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.values
 
 import com.github.zero9178.mlirods.language.types.TableGenIntType
+import com.github.zero9178.mlirods.language.types.TableGenStringType
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 
@@ -20,6 +21,14 @@ sealed interface TableGenValue {
 data class TableGenIntegerValue(val value: Long) : TableGenValue {
     override val type: TableGenIntType
         get() = TableGenIntType
+}
+
+/**
+ * A string value.
+ */
+data class TableGenStringValue(val value: String) : TableGenValue {
+    override val type: TableGenStringType
+        get() = TableGenStringType
 }
 
 /**
