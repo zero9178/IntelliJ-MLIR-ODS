@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValu
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIntegerValueNode
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -14,7 +15,10 @@ abstract class TableGenIdentifierValueNodeMixin : StubBasedPsiElementBase<TableG
 
     constructor(node: ASTNode) : super(node)
 
-    constructor(stub: TableGenIdentifierValueNodeStub, stubType: IStubElementType<*, *>) : super(stub, stubType)
+    constructor(
+        stub: TableGenValueNodeStub,
+        stubType: IStubElementType<*, *>
+    ) : super(stub as TableGenIdentifierValueNodeStub, stubType)
 
     override val identifierText: String
         get() = stub?.identifier ?: identifier.text

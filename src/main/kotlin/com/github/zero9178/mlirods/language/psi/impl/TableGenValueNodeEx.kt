@@ -4,6 +4,8 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.getCachedValue
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenTypeOfValueVisitor
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
@@ -107,6 +109,8 @@ interface TableGenAtomicValue : TableGenValueNodeEx {
 
 interface TableGenIntegerValueNodeEx : TableGenAtomicValue {
     override fun evaluateAtomic(): TableGenIntegerValue?
+
+    val stub: TableGenIntegerValueNodeStub?
 }
 
 interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
@@ -115,4 +119,6 @@ interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
 
 interface TableGenStringValueNodeEx : TableGenAtomicValue {
     override fun evaluateAtomic(): TableGenStringValue?
+
+    val stub: TableGenStringValueNodeStub?
 }

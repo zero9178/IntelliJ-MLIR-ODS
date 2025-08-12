@@ -595,6 +595,7 @@ value_node ::= concat_value_node
     methods=[
         toString
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenValueNodeMixin"
 }
 private value_node_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';' | '>'
@@ -609,8 +610,7 @@ concat_value_node ::= value_node concat_value_node_suffix {
         left_operand="/value_node[0]"
         right_operand="/value_node[1]"
     ]
-    // elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenConcatValueNodeStubElementType"
-    //stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenConcatValueNodeStubElementType"
 }
 
 private field_access_value_node_suffix ::= '.' IDENTIFIER {
@@ -625,9 +625,13 @@ field_access_value_node ::= value_node field_access_value_node_suffix {
         getReference
     ]
     pin=2
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldAccessValueNodeStubElementType"
 }
 
-bit_access_value_node ::= value_node '{' range_list '}' {pin=2}
+bit_access_value_node ::= value_node '{' range_list '}' {
+    pin=2
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitAccessValueNodeStubElementType"
+}
 private range_list ::= range_piece (',' range_piece)*
 range_piece ::= bit_range
               | single_bit
@@ -639,7 +643,9 @@ bit_range ::= value_node ('...' | '-') value_node {
 private slice_access_value_node_suffix ::= '[' <<trailing_item_list ']' value_node_follows slice_element>> ']' {
     pin=1
 }
-slice_access_value_node ::= value_node slice_access_value_node_suffix
+slice_access_value_node ::= value_node slice_access_value_node_suffix {
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSliceAccessValueNodeStubElementType"
+}
 slice_element ::= slice_element_range
                 | single_slice_element
 single_slice_element ::= value_node {extends=slice_element}
@@ -671,7 +677,6 @@ integer_value_node ::= '-'? INTEGER {
         evaluateAtomic
         toString
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIntegerNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStubElementType"
 }
@@ -686,7 +691,6 @@ string_value_node ::= block_string_value
         evaluate
         evaluateAtomic
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenStringValueNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStubElementType"
 }
@@ -699,7 +703,7 @@ block_string_value ::= BLOCK_STRING_LITERAL {
     ]
 }
 
-bool_value_node ::= 'true' | 'false'undef_value_node ::= '?' {
+bool_value_node ::= 'true' | 'false' {
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAtomicValue"
     ]
@@ -707,18 +711,28 @@ bool_value_node ::= 'true' | 'false'undef_value_node ::= '?' {
         evaluate
         evaluateAtomic
     ]
-    //stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub"
-    // elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenUndefValueNodeStubElementType"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStubElementType"
+}
+
+undef_value_node ::= '?' {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAtomicValue"
+    ]
+    methods=[
+        evaluate
+        evaluateAtomic
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenUndefValueNodeStubElementType"
 }
 
 bits_init_value_node ::= '{' <<value_node_list '}' value_node_follows>>? '}' {
     pin=1
-    //stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub"
-    //elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitsInitValueNodeStubElementType"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitsInitValueNodeStubElementType"
 }
 
 list_init_value_node ::= '[' <<value_node_list ']' (value_node_follows | '<')>>? ']' ('<' type_node '>')? {
     pin=1
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenListInitValueNodeStubElementType"
 }
 
 dag_init_value_node ::= '(' dag_arg <<trailing_item_list_no_comma ')' value_node_follows dag_arg>>? ')' {
@@ -726,6 +740,7 @@ dag_init_value_node ::= '(' dag_arg <<trailing_item_list_no_comma ')' value_node
     methods=[
         operator="dag_arg[0]"
     ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDagInitValueNodeStubElementType"
 }
 
 dag_arg ::= value_node (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
@@ -741,7 +756,6 @@ identifier_value_node ::= IDENTIFIER {
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenIdentifierValueNodeEx"
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierValueNodeStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIdentifierValueNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierValueNodeStubElementType"
 }
@@ -760,6 +774,7 @@ class_instantiation_value_node ::= IDENTIFIER '<' arg_value_list? '>' {
         getClassName
         getReference
     ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassInstantiationValueNodeStubElementType"
 }
 // Note: This is a simplification from the official syntax that is easier to parse.
 private arg_value_list ::= arg_value_item (',' arg_value_item)* {
@@ -798,6 +813,7 @@ foreach_operator_value_node ::= '!foreach' '(' bang_operator_definition ',' valu
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
     ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachOperatorValueNodeStubElementType"
 }
 
 foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_operator_definition ',' bang_operator_definition ',' value_node ')' {
@@ -815,14 +831,21 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
     ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFoldlOperatorValueNodeStubElementType"
 }
 
 cast_operator_value_node ::= '!cast' '<' type_node '>' '(' value_node ')' {
     pin=1
 }
 
-bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_node_list ')' value_node_follows>>? ')' {pin=1}
-cond_operator_value_node ::= '!cond' '(' <<trailing_item_list ')' value_node_follows cond_clause>> ')' {pin=1}
+bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_node_list ')' value_node_follows>>? ')' {
+    pin=1
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBangOperatorValueNodeStubElementType"
+}
+cond_operator_value_node ::= '!cond' '(' <<trailing_item_list ')' value_node_follows cond_clause>> ')' {
+    pin=1
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCondOperatorValueNodeStubElementType"
+}
 cond_clause ::= value_node ':' value_node {
     methods=[
         condition="value_node[0]"
