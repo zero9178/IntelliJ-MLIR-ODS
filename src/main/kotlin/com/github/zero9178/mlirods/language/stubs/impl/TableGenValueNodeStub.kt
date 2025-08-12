@@ -1,21 +1,7 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
-import com.github.zero9178.mlirods.language.generated.psi.TableGenBitsInitValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenConcatValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIntegerValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenListInitValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenStringValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenTypeNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenUndefValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenBitsInitValueNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenConcatValueNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIntegerValueNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenListInitValueNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenUndefValueNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIdentifierValueNodeImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenStringValueNodeImpl
+import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.generated.psi.impl.*
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
@@ -51,25 +37,26 @@ sealed class TableGenAbstractValueNodeStubElementType<PsiT : PsiElement>(
     override fun isAlwaysLeaf(root: StubBase<*>) = false
 }
 
-//class TableGenConcatValueNodeStubElementType(debugName: String) :
-//    TableGenAbstractValueNodeStubElementType<TableGenConcatValueNode>(
-//        debugName, ::TableGenConcatValueNodeImpl
-//    )
-//
-//class TableGenUndefValueNodeStubElementType(debugName: String) :
-//    TableGenAbstractValueNodeStubElementType<TableGenUndefValueNode>(
-//        debugName, ::TableGenUndefValueNodeImpl
-//    )
-//
-//class TableGenBitsInitValueNodeStubElementType(debugName: String) :
-//    TableGenAbstractValueNodeStubElementType<TableGenBitsInitValueNode>(
-//        debugName, ::TableGenBitsInitValueNodeImpl
-//    )
-//
-//class TableGenListInitValueNodeStubElementType(debugName: String) :
-//    TableGenAbstractValueNodeStubElementType<TableGenListInitValueNode>(
-//        debugName, ::TableGenListInitValueNodeImpl
-//    )
+class TableGenConcatValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenConcatValueNode>(
+        debugName, ::TableGenConcatValueNodeImpl
+    )
+
+// TODO: Need custom stub for the field identifier.
+class TableGenFieldAccessValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenFieldAccessValueNode>(
+        debugName, ::TableGenFieldAccessValueNodeImpl
+    )
+
+class TableGenBitAccessValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenBitAccessValueNode>(
+        debugName, ::TableGenBitAccessValueNodeImpl
+    )
+
+class TableGenSliceAccessValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenSliceAccessValueNode>(
+        debugName, ::TableGenSliceAccessValueNodeImpl
+    )
 
 /**
  * Stub interface for [TableGenIntegerValueNode].
@@ -116,6 +103,77 @@ private class TableGenIntegerValueNodeStubImpl(
 ), TableGenIntegerValueNodeStub
 
 /**
+ * Stub interface for [TableGenStringValueNode].
+ */
+interface TableGenStringValueNodeStub : TableGenValueNodeStub {
+    val value: String
+}
+
+class TableGenStringValueNodeStubElementType(
+    debugName: String
+) : TableGenStubElementType<TableGenStringValueNodeStub, TableGenStringValueNode>(
+    debugName, ::TableGenStringValueNodeImpl,
+) {
+    override fun createStub(
+        psi: TableGenStringValueNode, parentStub: StubElement<out PsiElement?>?
+    ): TableGenStringValueNodeStub {
+        return TableGenStringValueNodeStubImpl(psi.text, parentStub, this)
+    }
+
+    override fun serialize(
+        stub: TableGenStringValueNodeStub, dataStream: StubOutputStream
+    ) {
+        dataStream.writeUTFFast(stub.value)
+    }
+
+    override fun deserialize(
+        dataStream: StubInputStream, parentStub: StubElement<*>?
+    ): TableGenStringValueNodeStub {
+        return TableGenStringValueNodeStubImpl(dataStream.readUTFFast(), parentStub, this)
+    }
+
+    override fun isAlwaysLeaf(root: StubBase<*>) = true
+}
+
+private class TableGenStringValueNodeStubImpl(
+    override val value: String,
+    parent: StubElement<out PsiElement>?,
+    elementType: IStubElementType<*, *>,
+) : StubBase<TableGenValueNode>(
+    parent, elementType
+), TableGenStringValueNodeStub
+
+// TODO: Needs custom stub.
+class TableGenBoolValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenBoolValueNode>(
+        debugName, ::TableGenBoolValueNodeImpl
+    ) {
+    override fun isAlwaysLeaf(root: StubBase<*>) = true
+}
+
+class TableGenUndefValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenUndefValueNode>(
+        debugName, ::TableGenUndefValueNodeImpl
+    ) {
+    override fun isAlwaysLeaf(root: StubBase<*>) = true
+}
+
+class TableGenBitsInitValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenBitsInitValueNode>(
+        debugName, ::TableGenBitsInitValueNodeImpl
+    )
+
+class TableGenListInitValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenListInitValueNode>(
+        debugName, ::TableGenListInitValueNodeImpl
+    )
+
+class TableGenDagInitValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenDagInitValueNode>(
+        debugName, ::TableGenDagInitValueNodeImpl
+    )
+
+/**
  * Stub interface for [TableGenIdentifierValueNode].
  */
 interface TableGenIdentifierValueNodeStub : TableGenValueNodeStub {
@@ -156,44 +214,28 @@ private class TableGenIdentifierValueNodeStubImpl(
     parent, elementType
 ), TableGenIdentifierValueNodeStub
 
+// TODO: Needs proper stub.
+class TableGenClassInstantiationValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenClassInstantiationValueNode>(
+        debugName, ::TableGenClassInstantiationValueNodeImpl
+    )
 
-/**
- * Stub interface for [TableGenStringValueNode].
- */
-interface TableGenStringValueNodeStub : TableGenValueNodeStub {
-    val value: String
-}
+class TableGenForeachOperatorValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenForeachOperatorValueNode>(
+        debugName, ::TableGenForeachOperatorValueNodeImpl
+    )
 
-class TableGenStringValueNodeStubElementType(
-    debugName: String
-) : TableGenStubElementType<TableGenStringValueNodeStub, TableGenStringValueNode>(
-    debugName, ::TableGenStringValueNodeImpl,
-) {
-    override fun createStub(
-        psi: TableGenStringValueNode, parentStub: StubElement<out PsiElement?>?
-    ): TableGenStringValueNodeStub {
-        return TableGenStringValueNodeStubImpl(psi.text, parentStub, this)
-    }
+class TableGenFoldlOperatorValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenFoldlOperatorValueNode>(
+        debugName, ::TableGenFoldlOperatorValueNodeImpl
+    )
 
-    override fun serialize(
-        stub: TableGenStringValueNodeStub, dataStream: StubOutputStream
-    ) {
-        dataStream.writeUTFFast(stub.value)
-    }
+class TableGenBangOperatorValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenBangOperatorValueNode>(
+        debugName, ::TableGenBangOperatorValueNodeImpl
+    )
 
-    override fun deserialize(
-        dataStream: StubInputStream, parentStub: StubElement<*>?
-    ): TableGenStringValueNodeStub {
-        return TableGenStringValueNodeStubImpl(dataStream.readUTFFast(), parentStub, this)
-    }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
-}
-
-private class TableGenStringValueNodeStubImpl(
-    override val value: String,
-    parent: StubElement<out PsiElement>?,
-    elementType: IStubElementType<*, *>,
-) : StubBase<TableGenValueNode>(
-    parent, elementType
-), TableGenStringValueNodeStub
+class TableGenCondOperatorValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenCondOperatorValueNode>(
+        debugName, ::TableGenCondOperatorValueNodeImpl
+    )
