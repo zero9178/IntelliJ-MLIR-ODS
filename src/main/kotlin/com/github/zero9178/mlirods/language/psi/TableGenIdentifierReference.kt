@@ -13,6 +13,7 @@ import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.parents
+import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.withPrevious
 
@@ -107,11 +108,10 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
         CachedValuesManager.getProjectPsiDependentCache(element) {
             val name = element.identifier.text
 
-            val def = localResolveSequence().firstNotNullOfOrNull {
-                if (it is TableGenIdentifierElement) if (it.name == name) return@firstNotNullOfOrNull it
-
-                null
-            }
+            val def = element.parentsOfType<TableGenIdentifierScopeNode>().mapNotNull {
+                // TODO: Better logic.
+                it.defMap[name]?.lastOrNull()
+            }.firstOrNull()
 
             // Lookup in the same file succeeded.
             if (def != null) return@getProjectPsiDependentCache arrayOf(PsiElementResolveResult(def))
