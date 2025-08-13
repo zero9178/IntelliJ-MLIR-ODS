@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods.language.psi
 
-import com.github.zero9178.mlirods.index.DEF_INDEX
+import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.completion.createLookupElement
@@ -34,7 +34,7 @@ private fun addExtraDefNamesForParent(parent: TableGenScopeItem, name: TableGenI
     }
 
 /**
- * Returns all [TableGenDefNameIdentifierOwner] by performing a backwards traversal starting from [root] and walking up
+ * Returns all [TableGenIdentifierElement] by performing a backwards traversal starting from [root] and walking up
  * parents whenever the start has been reached.
  */
 private fun traverse(
@@ -51,9 +51,9 @@ private fun traverse(
 }
 
 /**
- * Implements the lookup procedure for 'def's.
+ * Implements the lookup procedure for plain identifier values.
  */
-class TableGenDefReference(element: TableGenIdentifierValueNode) :
+class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
     PsiReferenceBase.Poly<TableGenIdentifierValueNode>(element) {
 
     override fun hashCode(): Int {
@@ -61,12 +61,12 @@ class TableGenDefReference(element: TableGenIdentifierValueNode) :
     }
 
     override fun equals(other: Any?): Boolean {
-        return element === (other as? TableGenDefReference)?.element
+        return element === (other as? TableGenIdentifierReference)?.element
     }
 
     override fun getVariants(): Array<out Any?> {
         return localResolveSequence(false).mapNotNull {
-            it as? TableGenDefNameIdentifierOwner ?: it as? TableGenFieldBodyItem
+            it as? TableGenIdentifierElement ?: it as? TableGenFieldBodyItem
         }.map {
             createLookupElement(it, element.identifier)
         }.toList().toTypedArray()
@@ -101,7 +101,7 @@ class TableGenDefReference(element: TableGenIdentifierValueNode) :
                 if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, element, useIndex) + sequence
 
             // Definitions should be skipped.
-            is TableGenFieldBodyItem, is TableGenDefNameIdentifierOwner -> sequence = sequence.drop(1)
+            is TableGenFieldBodyItem, is TableGenIdentifierElement -> sequence = sequence.drop(1)
         }
         return prefix.asSequence() + sequence
     }
@@ -118,7 +118,7 @@ class TableGenDefReference(element: TableGenIdentifierValueNode) :
             val name = element.identifier.text
 
             val def = localResolveSequence().firstNotNullOfOrNull {
-                if (it is TableGenDefNameIdentifierOwner || it is TableGenFieldBodyItem) if (it.name == name) return@firstNotNullOfOrNull it
+                if (it is TableGenIdentifierElement || it is TableGenFieldBodyItem) if (it.name == name) return@firstNotNullOfOrNull it
 
                 null
             }
@@ -131,7 +131,7 @@ class TableGenDefReference(element: TableGenIdentifierValueNode) :
             dependencies.add(DumbService.getInstance(project).modificationTracker)
 
             // Otherwise, use the index to search in TableGen files included by this file.
-            DEF_INDEX.getElements(
+            IDENTIFIER_INDEX.getElements(
                 name,
                 project,
                 TableGenIncludedSearchScope(element, project)

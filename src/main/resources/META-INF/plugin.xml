@@ -57,7 +57,7 @@
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenFieldAccessValueNodeManipulator"/>
         <stubElementTypeHolder class="com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes"
                                externalIdPrefix="tablegen."/>
-        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenIdentifierIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
         <elementDescriptionProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenElementDescriptionProvider"/>
@@ -74,7 +74,7 @@
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenClassReferenceCompletionContributor"/>
         <completion.contributor language="TableGen"
-                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenInterFileDefCompletionContributor"/>
+                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenInterFileIdentifierCompletionContributor"/>
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>
         <lang.findUsagesProvider language="TableGen"
                                  implementationClass="com.github.zero9178.mlirods.language.TableGenFindUsageProvider"/>

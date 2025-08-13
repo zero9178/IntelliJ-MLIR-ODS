@@ -2,7 +2,7 @@ package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.psi.TableGenDefNameIdentifierOwner
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.ElementDescriptionUtil
 import com.intellij.psi.PsiElement
@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nls
 
 private class TableGenFindUsageProvider : FindUsagesProvider {
     override fun canFindUsagesFor(psiElement: PsiElement) = when (psiElement) {
-        is TableGenClassStatement, is TableGenDefNameIdentifierOwner, is TableGenFieldBodyItem -> true
+        is TableGenClassStatement, is TableGenIdentifierElement, is TableGenFieldBodyItem -> true
         else -> false
     }
 

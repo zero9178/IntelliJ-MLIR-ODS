@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.MyIcons
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefNameIdentifierStub
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub
 import com.github.zero9178.mlirods.language.types.*
 import com.github.zero9178.mlirods.language.values.*
 import com.intellij.extapi.psi.ASTDelegatePsiElement
@@ -61,7 +61,7 @@ class TableGenPsiImplUtil {
 
         @JvmStatic
         fun getReference(element: TableGenIdentifierValueNode): PsiReference? {
-            return TableGenDefReference(element)
+            return TableGenIdentifierReference(element)
         }
 
         @JvmStatic
@@ -180,11 +180,11 @@ class TableGenPsiImplUtil {
         }
 
         /**
-         * Returns the name of the given [TableGenDefNameIdentifierOwner] or null if it has no name.
+         * Returns the name of the given [TableGenIdentifierElement] or null if it has no name.
          */
         @JvmStatic
-        fun getName(element: TableGenDefNameIdentifierOwner): String? {
-            ((element as? StubBasedPsiElementBase<*>)?.stub as? TableGenDefNameIdentifierStub)?.let {
+        fun getName(element: TableGenIdentifierElement): String? {
+            ((element as? StubBasedPsiElementBase<*>)?.stub as? TableGenIdentifierElementStub)?.let {
                 return it.name
             }
             return element.nameIdentifier?.text
@@ -194,7 +194,7 @@ class TableGenPsiImplUtil {
          * Replaces the name within [element] using [name].
          */
         @JvmStatic
-        fun setName(element: TableGenDefNameIdentifierOwner, name: @NlsSafe String): PsiElement? {
+        fun setName(element: TableGenIdentifierElement, name: @NlsSafe String): PsiElement? {
             element.nameIdentifier?.replace(createIdentifier(element.project, name))
             return element
         }
@@ -204,7 +204,7 @@ class TableGenPsiImplUtil {
          * Always returns the offset of the identifier.
          */
         @JvmStatic
-        fun getTextOffset(element: TableGenDefNameIdentifierOwner): Int {
+        fun getTextOffset(element: TableGenIdentifierElement): Int {
             return element.nameIdentifier?.textOffset ?: element.startOffset
         }
 
@@ -235,7 +235,7 @@ class TableGenPsiImplUtil {
         fun getPresentation(element: PsiNamedElement): ItemPresentation? = TableGenItemPresentation(element)
 
         @JvmStatic
-        fun getPresentation(element: TableGenDefNameIdentifierOwner): ItemPresentation? =
+        fun getPresentation(element: TableGenIdentifierElement): ItemPresentation? =
             TableGenItemPresentation(element, MyIcons.TableGenDef)
 
         @JvmStatic

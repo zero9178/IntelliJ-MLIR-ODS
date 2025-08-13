@@ -5,6 +5,6 @@ import com.intellij.psi.PsiNameIdentifierOwner
 
 /**
  * Interface used for any [com.intellij.psi.PsiElement]s that contain a TableGen identifier defining an element to be
- * found by 'def'-lookup.
+ * found by identifier-lookup.
  */
-interface TableGenDefNameIdentifierOwner : PsiNameIdentifierOwner, NavigationItem
+interface TableGenIdentifierElement : PsiNameIdentifierOwner, NavigationItem

@@ -2,10 +2,7 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
-import com.github.zero9178.mlirods.language.stubs.stubbedChildren
-import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
