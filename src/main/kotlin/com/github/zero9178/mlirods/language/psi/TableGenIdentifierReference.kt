@@ -2,7 +2,6 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.index.getElements
-import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
@@ -13,7 +12,6 @@ import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.parents
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.withPrevious
@@ -65,16 +63,14 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
     }
 
     override fun getVariants(): Array<out Any?> {
-        return localResolveSequence(false).mapNotNull {
-            it as? TableGenIdentifierElement ?: it as? TableGenFieldBodyItem
-        }.map {
+        return localResolveSequence(false).filterIsInstance<TableGenIdentifierElement>().map {
             createLookupElement(it, element.identifier)
         }.toList().toTypedArray()
     }
 
     private fun localResolveSequence(useIndex: Boolean = true): Sequence<PsiElement> {
         var hadTemplateArg = false
-        val prefix = mutableListOf<PsiElement>()
+        val prefix = mutableListOf<TableGenIdentifierElement>()
         val scopeItem = element.parents(withSelf = true).withPrevious().mapNotNull { (it, prev) ->
             when (it) {
                 is TableGenTemplateArgDecl -> hadTemplateArg = true
@@ -101,7 +97,7 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
                 if (!hadTemplateArg) sequence = addExtraDefNamesForParent(scopeItem, element, useIndex) + sequence
 
             // Definitions should be skipped.
-            is TableGenFieldBodyItem, is TableGenIdentifierElement -> sequence = sequence.drop(1)
+            is TableGenIdentifierElement -> sequence = sequence.drop(1)
         }
         return prefix.asSequence() + sequence
     }
@@ -109,16 +105,10 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
         CachedValuesManager.getProjectPsiDependentCache(element) {
-            val dependencies = mutableListOf<Any>(
-                PsiModificationTracker.getInstance(element.project).forLanguage(
-                    TableGenLanguage.INSTANCE
-                )
-            )
-
             val name = element.identifier.text
 
             val def = localResolveSequence().firstNotNullOfOrNull {
-                if (it is TableGenIdentifierElement || it is TableGenFieldBodyItem) if (it.name == name) return@firstNotNullOfOrNull it
+                if (it is TableGenIdentifierElement) if (it.name == name) return@firstNotNullOfOrNull it
 
                 null
             }
@@ -127,8 +117,6 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
             if (def != null) return@getProjectPsiDependentCache arrayOf(PsiElementResolveResult(def))
             val project = element.project
             if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
-
-            dependencies.add(DumbService.getInstance(project).modificationTracker)
 
             // Otherwise, use the index to search in TableGen files included by this file.
             IDENTIFIER_INDEX.getElements(

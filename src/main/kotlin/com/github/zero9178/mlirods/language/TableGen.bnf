@@ -310,9 +310,7 @@ private body_item ::= field_body_item
 field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
-
-        "com.intellij.navigation.NavigationItem"
-        "com.intellij.psi.PsiNameIdentifierOwner"
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
     ]
     methods=[
         field_identifier="IDENTIFIER"
