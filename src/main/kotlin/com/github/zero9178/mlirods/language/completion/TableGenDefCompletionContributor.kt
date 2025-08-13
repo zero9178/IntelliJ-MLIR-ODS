@@ -1,10 +1,10 @@
 package com.github.zero9178.mlirods.language.completion
 
-import com.github.zero9178.mlirods.index.DEF_INDEX
+import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.index.processAllKeys
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
-import com.github.zero9178.mlirods.language.psi.TableGenDefReference
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
@@ -17,11 +17,11 @@ import com.intellij.util.ProcessingContext
 /**
  * Completion contributor suggesting 'def' names of included files as well.
  */
-private class TableGenInterFileDefCompletionContributor : CompletionContributor() {
+private class TableGenInterFileIdentifierCompletionContributor : CompletionContributor() {
     init {
         extend(
             null, PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(
-                PlatformPatterns.psiElement().withReference(TableGenDefReference::class.java)
+                PlatformPatterns.psiElement().withReference(TableGenIdentifierReference::class.java)
             ), object : CompletionProvider<CompletionParameters>() {
                 override fun addCompletions(
                     parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet
@@ -29,8 +29,8 @@ private class TableGenInterFileDefCompletionContributor : CompletionContributor(
                     val project = parameters.position.project
                     val scope = TableGenIncludedSearchScope(parameters.position, project)
                     val list = mutableListOf<LookupElement>()
-                    DEF_INDEX.processAllKeys({ key ->
-                        DEF_INDEX.getElements(key, project, scope).forEach {
+                    IDENTIFIER_INDEX.processAllKeys({ key ->
+                        IDENTIFIER_INDEX.getElements(key, project, scope).forEach {
                             list.add(
                                 createLookupElement(it, parameters.position)
                             )

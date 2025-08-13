@@ -1,6 +1,6 @@
 package com.github.zero9178.mlirods.language
 
-import com.github.zero9178.mlirods.index.DEF_INDEX
+import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.index.processAllKeys
 import com.github.zero9178.mlirods.index.processElements
 import com.intellij.navigation.ChooseByNameContributorEx
@@ -16,7 +16,7 @@ private class TableGenGotoSymbolContributor : ChooseByNameContributorEx {
         scope: GlobalSearchScope,
         filter: IdFilter?
     ) {
-        DEF_INDEX.processAllKeys(processor, scope, filter)
+        IDENTIFIER_INDEX.processAllKeys(processor, scope, filter)
     }
 
     override fun processElementsWithName(
@@ -24,6 +24,6 @@ private class TableGenGotoSymbolContributor : ChooseByNameContributorEx {
         processor: Processor<in NavigationItem>,
         parameters: FindSymbolParameters
     ) {
-        DEF_INDEX.processElements(name, parameters.project, parameters.searchScope, processor)
+        IDENTIFIER_INDEX.processElements(name, parameters.project, parameters.searchScope, processor)
     }
 }
