@@ -291,19 +291,28 @@ class TableGenPsiImplUtil {
 
         @JvmStatic
         fun getType(element: TableGenIdentifierValueNode): TableGenType {
-            val resolve = element.reference?.resolve()
-            return when (resolve) {
+            return when (val resolve = element.reference?.resolve()) {
                 is TableGenDefvarStatement -> resolve.valueNode?.type ?: TableGenUnknownType
                 is TableGenFieldBodyItem -> resolve.typeNode.toType()
                 is TableGenTemplateArgDecl -> resolve.typeNode.toType()
-                is TableGenForeachOperatorValueNode -> (resolve.iterable?.type as? TableGenListType)?.elementType
-                    ?: TableGenUnknownType
+                is TableGenBangOperatorDefinition -> {
+                    when (val parent = resolve.parent) {
+                        is TableGenForeachOperatorValueNode ->
+                            (parent.iterable?.type as? TableGenListType)?.elementType
+                                ?: TableGenUnknownType
 
-                is TableGenFoldlOperatorValueNode -> (resolve.iterable?.type as? TableGenListType)?.elementType
-                    ?: TableGenUnknownType
+                        is TableGenFoldlOperatorValueNode ->
+                            when (resolve) {
+                                parent.accmulator -> parent.type
+                                parent.iterator -> (parent.iterable?.type as? TableGenListType)?.elementType
+                                    ?: TableGenUnknownType
 
-                is TableGenFoldlAccumulator -> (resolve.parent as? TableGenFoldlOperatorValueNode)?.type
-                    ?: TableGenUnknownType
+                                else -> TableGenUnknownType
+                            }
+
+                        else -> TableGenUnknownType
+                    }
+                }
 
                 is TableGenDefStatement -> TableGenRecordType.create(resolve)
                 else -> TableGenUnknownType

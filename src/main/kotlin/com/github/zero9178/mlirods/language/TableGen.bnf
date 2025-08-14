@@ -702,50 +702,41 @@ private arg_value_list ::= arg_value_item (',' arg_value_item)* {
 }
 arg_value_item ::= value_node equals_value?
 
-foreach_operator_value_node ::= '!foreach' '(' IDENTIFIER ',' value_node ',' value_node ')' {
+// Special Psi node for variable definitions within bang operators.
+bang_operator_definition ::= IDENTIFIER {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+    ]
+    methods=[
+        name_identifier="IDENTIFIER"
+
+        getName
+        setName
+        getTextOffset
+    ]
+}
+
+foreach_operator_value_node ::= '!foreach' '(' bang_operator_definition ',' value_node ',' value_node ')' {
     pin=1
     methods=[
         iterable="/value_node[0]"
         body="/value_node[1]"
-        name_identifier="IDENTIFIER"
+        iterator="/bang_operator_definition"
 
         getType
-        getName
-        setName
-        getTextOffset
-    ]
-    implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
     ]
 }
 
-foldl_accumulator ::= IDENTIFIER {
-    implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
-    ]
-    methods=[
-        name_identifier="IDENTIFIER"
-
-        getName
-        setName
-        getTextOffset
-    ]
-}
-foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' foldl_accumulator ',' IDENTIFIER ',' value_node ')' {
+foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_operator_definition ',' bang_operator_definition ',' value_node ')' {
     pin=1
     methods=[
         start="/value_node[0]"
         iterable="/value_node[1]"
         body="/value_node[2]"
-        name_identifier="IDENTIFIER"
+        accmulator="/bang_operator_definition[0]"
+        iterator="/bang_operator_definition[1]"
 
         getType
-        getName
-        setName
-        getTextOffset
-    ]
-    implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
     ]
 }
 

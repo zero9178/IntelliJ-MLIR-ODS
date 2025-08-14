@@ -76,12 +76,12 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
                 is TableGenTemplateArgDecl -> hadTemplateArg = true
                 is TableGenForeachOperatorValueNode ->
                     if (prev == it.body)
-                        prefix.add(it)
+                        it.iterator?.let { iterator -> prefix.add(iterator) }
 
                 is TableGenFoldlOperatorValueNode -> {
                     if (prev == it.body) {
-                        prefix.add(it)
-                        it.foldlAccumulator?.let { it1 -> prefix.add(it1) }
+                        it.iterator?.let { it1 -> prefix.add(it1) }
+                        it.accmulator?.let { it1 -> prefix.add(it1) }
                     }
                 }
             }

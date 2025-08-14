@@ -217,17 +217,17 @@ class ReferenceTest : BasePlatformTestCase() {
     }
 
     fun `test ForeachDefvarResolution`() {
-        val element = doTest<TableGenForeachOperatorValueNode>()
+        val element = doTest<TableGenBangOperatorDefinition>()
         assertEquals(element.name, "i")
     }
 
     fun `test FoldlIteratorDefvarResolution`() {
-        val element = doTest<TableGenFoldlOperatorValueNode>()
+        val element = doTest<TableGenBangOperatorDefinition>()
         assertEquals(element.name, "i")
     }
 
     fun `test FoldlAccDefvarResolution`() {
-        val element = doTest<TableGenFoldlAccumulator>()
+        val element = doTest<TableGenBangOperatorDefinition>()
         assertEquals(element.name, "acc")
     }
 
