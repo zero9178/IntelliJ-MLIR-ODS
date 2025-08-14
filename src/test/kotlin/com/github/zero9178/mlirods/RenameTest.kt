@@ -43,6 +43,18 @@ class RenameTest : BasePlatformTestCase() {
         doTest("j")
     }
 
+    fun `test ForeachDefvarResolution`() {
+        doTest("j")
+    }
+
+    fun `test FoldlAccDefvarResolution`() {
+        doTest("j")
+    }
+
+    fun `test FoldlIteratorDefvarResolution`() {
+        doTest("j")
+    }
+
     private fun doTest(newName: String) {
         val name = getTestName(false).trim()
 

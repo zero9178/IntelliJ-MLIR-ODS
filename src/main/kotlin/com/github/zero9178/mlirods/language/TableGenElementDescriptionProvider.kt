@@ -13,16 +13,16 @@ import com.intellij.usageView.UsageViewTypeLocation
 
 private class TableGenElementDescriptionProvider : ElementDescriptionProvider {
     override fun getElementDescription(
-        element: PsiElement,
-        location: ElementDescriptionLocation
+        element: PsiElement, location: ElementDescriptionLocation
     ): @NlsSafe String? {
-        if (element is PsiNamedElement)
-            if (location is UsageViewLongNameLocation || location is UsageViewNodeTextLocation)
-                getElementDescription(element, UsageViewTypeLocation.INSTANCE)?.let {
-                    element.name?.let { name ->
-                        return "$it '$name'"
-                    }
-                }
+        if (element is PsiNamedElement) if (location is UsageViewLongNameLocation || location is UsageViewNodeTextLocation) getElementDescription(
+            element,
+            UsageViewTypeLocation.INSTANCE
+        )?.let {
+            element.name?.let { name ->
+                return "$it '$name'"
+            }
+        }
 
 
         if (location !is UsageViewTypeLocation) return null
@@ -32,15 +32,25 @@ private class TableGenElementDescriptionProvider : ElementDescriptionProvider {
             is TableGenDefStatement -> "record"
             is TableGenDefvarStatement -> "variable"
             is TableGenClassStatement -> "class"
-            is TableGenForeachOperatorValueNode, is TableGenFoldlOperatorValueNode -> "iterator"
-            is TableGenFoldlAccumulator -> "accumulator"
+            is TableGenBangOperatorDefinition -> {
+                when (val parent = element.parent) {
+                    is TableGenForeachOperatorValueNode -> "iterator"
+                    is TableGenFoldlOperatorValueNode -> {
+                        when (element) {
+                            parent.iterator -> "iterator"
+                            parent.accmulator -> "accumulator"
+                            else -> null
+                        }
+                    }
+                    else -> null
+                }
+            }
+
             is TableGenFile -> "file"
-            else ->
-                if (element.language == TableGenLanguage.INSTANCE)
-                    // Break infinite recursion between 'FindUsageProvider' and 'ElementDescriptionProvider'.
-                    ""
-                else
-                    null
-        }
+            else -> null
+        } ?: if (element.language == TableGenLanguage.INSTANCE)
+        // Break infinite recursion between 'FindUsageProvider' and 'ElementDescriptionProvider'.
+            ""
+        else null
     }
 }
