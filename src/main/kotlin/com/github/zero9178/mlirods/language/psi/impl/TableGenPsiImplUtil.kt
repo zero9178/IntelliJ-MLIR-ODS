@@ -22,6 +22,7 @@ import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.util.childLeafs
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
+import kotlinx.html.emptyMap
 import javax.swing.Icon
 import kotlin.io.path.relativeToOrNull
 
@@ -380,6 +381,12 @@ class TableGenPsiImplUtil {
                 acc + getStringValue(c)
             }
             return TableGenStringValue(res)
+        }
+
+        @JvmStatic
+        fun getDefMap(element: TableGenForeachOperatorValueNode): Map<String, List<TableGenIdentifierElement>> {
+            val name = element.name ?: return emptyMap()
+            return mapOf(name to listOf(element))
         }
     }
 }

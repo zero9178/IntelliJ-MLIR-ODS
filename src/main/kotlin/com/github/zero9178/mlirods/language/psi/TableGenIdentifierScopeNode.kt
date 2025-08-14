@@ -11,5 +11,5 @@ interface TableGenIdentifierScopeNode : PsiElement {
      * Elements with the same name
      */
     val defMap: Map<String, List<TableGenIdentifierElement>>
-        get() = TODO()
+        get() = emptyMap()
 }

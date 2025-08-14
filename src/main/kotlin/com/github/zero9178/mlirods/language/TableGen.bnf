@@ -725,6 +725,9 @@ foreach_operator_value_node ::= '!foreach' '(' bang_operator_definition ',' valu
 
         getType
     ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
 }
 
 foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_operator_definition ',' bang_operator_definition ',' value_node ')' {
@@ -737,6 +740,9 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
         iterator="/bang_operator_definition[1]"
 
         getType
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
     ]
 }
 
