@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub
@@ -8,6 +9,7 @@ import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import com.intellij.util.resettableLazy
 import com.intellij.util.takeWhileInclusive
 
 abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableGenClassStatementStub>,
@@ -46,5 +48,16 @@ abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableG
         }
 
         return super.classStatementsBefore(withSelf)
+    }
+
+    private var myDefMap = resettableLazy {
+        emptyMap<String, List<TableGenIdentifierElement>>()
+    }
+
+    override val defMap by myDefMap
+
+    override fun subtreeChanged() {
+        super.subtreeChanged()
+        myDefMap.reset()
     }
 }

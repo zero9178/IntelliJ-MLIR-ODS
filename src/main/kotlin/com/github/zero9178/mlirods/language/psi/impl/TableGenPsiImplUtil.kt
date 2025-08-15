@@ -22,6 +22,7 @@ import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.util.childLeafs
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
+import com.intellij.util.containers.sequenceOfNotNull
 import kotlinx.html.emptyMap
 import javax.swing.Icon
 import kotlin.io.path.relativeToOrNull
@@ -384,9 +385,12 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getDefMap(element: TableGenForeachOperatorValueNode): Map<String, List<TableGenIdentifierElement>> {
-            val name = element.name ?: return emptyMap()
-            return mapOf(name to listOf(element))
-        }
+        fun getDefMap(element: TableGenForeachOperatorValueNode): Map<String, List<TableGenIdentifierElement>> =
+            sequenceOfNotNull(element.iterator).filter { it.name != null }.groupBy { it.name!! }
+
+        @JvmStatic
+        fun getDefMap(element: TableGenFoldlOperatorValueNode): Map<String, List<TableGenIdentifierElement>> =
+            listOfNotNull(element.iterator, element.accmulator).asSequence().filter { it.name != null }
+                .groupBy { it.name!! }
     }
 }
