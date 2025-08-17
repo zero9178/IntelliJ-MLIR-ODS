@@ -1,82 +1,85 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
 import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
-import com.github.zero9178.mlirods.language.psi.TableGenFile
-import com.github.zero9178.mlirods.language.generated.TableGenTypes
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefvarStatementImpl
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
-import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode
+import com.github.zero9178.mlirods.language.stubs.TableGenFileStub
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
-import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes.Companion.DEFVAR_STATEMENT
-import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes.Companion.DEF_STATEMENT
-import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
-import com.intellij.psi.stubs.IndexSink
-import com.intellij.psi.stubs.StubBase
-import com.intellij.psi.stubs.StubElement
-import com.intellij.psi.stubs.StubInputStream
-import com.intellij.psi.stubs.StubOutputStream
-import com.intellij.psi.util.parentsOfType
+import com.intellij.psi.stubs.*
 
 /**
  * Stub interface for [TableGenIdentifierElement] elements.
  */
 interface TableGenIdentifierElementStub : StubElement<TableGenIdentifierElement> {
-    val name: String
+    val name: String?
 }
 
-
-class TableGenIdentifierElementStubElementType(debugName: String) :
+abstract class TableGenAbstractIdentifierElementStubElementType(
+    debugName: String,
+    constructor: (TableGenIdentifierElementStub, IStubElementType<*, *>) -> TableGenIdentifierElement
+) :
     TableGenStubElementType<TableGenIdentifierElementStub, TableGenIdentifierElement>(
         debugName,
-        { stub, elementType ->
-            when {
-                elementType === DEFVAR_STATEMENT -> TableGenDefvarStatementImpl(stub, elementType)
-                elementType === DEF_STATEMENT -> TableGenDefStatementImpl(stub, elementType)
-                else -> error("Unexpected stub type")
-            }
-        }) {
-
-    override fun shouldCreateStub(node: ASTNode): Boolean {
-        val psi = TableGenTypes.Factory.createElement(node)
-        if (psi !is TableGenIdentifierElement || psi.name == null) return false
-
-        // Def statements are always indexed.
-        if (psi is TableGenDefStatement) return true
-
-        return psi.parentsOfType<TableGenIdentifierScopeNode>(withSelf = false).all { it is TableGenFile }
-    }
+        constructor
+    ) {
 
     override fun createStub(
         psi: TableGenIdentifierElement, parentStub: StubElement<out PsiElement?>?
     ): TableGenIdentifierElementStub {
-        // Name non-nullness guaranteed by [shouldCreateStub].
-        return TableGenIdentifierElementStubImpl(psi.name!!, parentStub, this)
+        return TableGenIdentifierElementStubImpl(psi.name, parentStub, this)
     }
 
     override fun serialize(
         stub: TableGenIdentifierElementStub, dataStream: StubOutputStream
     ) {
-        dataStream.writeUTFFast(stub.name)
+        dataStream.writeName(stub.name)
     }
 
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenIdentifierElementStub {
-        return TableGenIdentifierElementStubImpl(dataStream.readUTFFast(), parentStub, this)
+        return TableGenIdentifierElementStubImpl(dataStream.readNameString(), parentStub, this)
     }
+}
 
-    override fun indexStub(stub: TableGenIdentifierElementStub, sink: IndexSink) {
-        sink.occurrence(IDENTIFIER_INDEX, stub.name)
+class TableGenDefvarStatementStubElementType(debugName: String) : TableGenAbstractIdentifierElementStubElementType(
+    debugName,
+    ::TableGenDefvarStatementImpl
+) {
+    override fun indexStub(
+        stub: TableGenIdentifierElementStub,
+        sink: IndexSink
+    ) {
+        // Only top-level 'defvar's should be in the index.
+        stub.name?.let {
+            when (stub.parentStub) {
+                is TableGenFileStub ->
+                    sink.occurrence(IDENTIFIER_INDEX, it)
+            }
+        }
+    }
+}
+
+class TableGenDefStatementStubElementType(debugName: String) : TableGenAbstractIdentifierElementStubElementType(
+    debugName,
+    ::TableGenDefStatementImpl
+) {
+    override fun indexStub(
+        stub: TableGenIdentifierElementStub,
+        sink: IndexSink
+    ) {
+        stub.name?.let {
+            sink.occurrence(IDENTIFIER_INDEX, it)
+        }
     }
 }
 
 private class TableGenIdentifierElementStubImpl(
-    override val name: String,
+    override val name: String?,
     parent: StubElement<out PsiElement>?,
-    elementType: TableGenIdentifierElementStubElementType,
+    elementType: TableGenAbstractIdentifierElementStubElementType,
 ) : StubBase<TableGenIdentifierElement>(
     parent, elementType
 ), TableGenIdentifierElementStub

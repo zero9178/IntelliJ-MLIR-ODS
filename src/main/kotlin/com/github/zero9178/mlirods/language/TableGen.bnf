@@ -360,7 +360,7 @@ def_statement ::= 'def' object_name? record_body {
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefStatementMixin"
-    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStubElementType"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStubElementType"
 }
 defm_statement ::= 'defm' object_name? <<parent_class_list multi_class_ref>>? ';' {pin=1}
 defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {pin=1}
@@ -382,7 +382,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value_node ';' {
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefvarStatementMixin"
-    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStubElementType"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefvarStatementStubElementType"
 }
 dump_statement ::= 'dump' value_node ';' {
     pin=1

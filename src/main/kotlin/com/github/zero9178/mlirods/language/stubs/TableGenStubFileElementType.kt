@@ -1,31 +1,48 @@
 package com.github.zero9178.mlirods.language.stubs
 
-import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.TableGenPreprocessingPsiBuilder
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.intellij.lang.ASTNode
 import com.intellij.lang.LanguageParserDefinitions
 import com.intellij.lang.PsiBuilderFactory
 import com.intellij.psi.ParsingDiagnostics
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.stubs.DefaultStubBuilder
 import com.intellij.psi.stubs.PsiFileStubImpl
+import com.intellij.psi.stubs.StubElement
+import com.intellij.psi.stubs.StubInputStream
 import com.intellij.psi.tree.IStubFileElementType
 import org.jetbrains.annotations.NonNls
 
-class TableGenFileStub(tableGenFile: TableGenFile) : PsiFileStubImpl<TableGenFile>(tableGenFile) {
+class TableGenFileStub(tableGenFile: TableGenFile?) : PsiFileStubImpl<TableGenFile>(tableGenFile) {
     override fun getType(): IStubFileElementType<TableGenFileStub> {
         return TableGenStubFileElementType.INSTANCE
     }
 }
 
 class TableGenStubFileElementType :
-    IStubFileElementType<TableGenFileStub>("FILE", TableGenLanguage.Companion.INSTANCE) {
+    IStubFileElementType<TableGenFileStub>("FILE", TableGenLanguage.INSTANCE) {
     override fun getExternalId(): @NonNls String {
         return "tablegen." + toString()
     }
 
     override fun getStubVersion(): Int {
-        return 7
+        return 8
+    }
+
+    override fun deserialize(
+        dataStream: StubInputStream,
+        parentStub: StubElement<*>?
+    ): TableGenFileStub {
+        return TableGenFileStub(null)
+    }
+
+    override fun getBuilder() = object : DefaultStubBuilder() {
+        override fun createStubForFile(file: PsiFile): StubElement<*> {
+            return TableGenFileStub(file as? TableGenFile)
+        }
     }
 
     companion object {
