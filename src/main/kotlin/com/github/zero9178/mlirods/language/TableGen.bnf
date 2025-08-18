@@ -404,6 +404,9 @@ foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
         lBrace='LBRACE'
         rBrace='RBRACE'
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenForeachStatementMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachStatementStubElementType"
 }
 foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_node)
 
@@ -413,6 +416,9 @@ if_statement ::= 'if' value_node 'then' if_body else_body? {
         elseBody="if_body[1]"
     ]
     pin=1
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIfStatementMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIfStatementStubElementType"
 }
 private else_body ::= 'else' if_body {pin=1}
 if_body ::= statement_block {
@@ -436,6 +442,9 @@ let_statement ::= 'let' let_list 'in' statement_block {
         lBrace='LBRACE'
         rBrace='RBRACE'
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenLetStatementMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetStatementStubElementType"
 }
 private let_list ::= let_item (',' let_item)*
 let_item ::= IDENTIFIER ('<' range_list '>')? '=' value_node {

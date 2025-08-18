@@ -23,6 +23,15 @@ interface TableGenStubElementTypes {
         val CLASS_STATEMENT = TableGenTypes.CLASS_STATEMENT!!
 
         @JvmField
+        val FOREACH_STATEMENT = TableGenTypes.FOREACH_STATEMENT!!
+
+        @JvmField
+        val LET_STATEMENT = TableGenTypes.LET_STATEMENT!!
+
+        @JvmField
+        val IF_STATEMENT = TableGenTypes.IF_STATEMENT!!
+
+        @JvmField
         val FIELD_BODY_ITEM = TableGenTypes.FIELD_BODY_ITEM!!
 
         @JvmField
