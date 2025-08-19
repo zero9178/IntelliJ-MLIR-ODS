@@ -3,29 +3,36 @@ package com.github.zero9178.mlirods.language.stubs
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.StubElement
-import com.intellij.psi.util.childrenOfType
 import com.intellij.util.AstLoadingFilter
 
-/**
- * Returns a sequence of all child elements of this that are of [elementType].
- * Note that even if the Psi is loaded, only Psi elements that a stub would be created for are returned.
- */
-inline fun <reified C : PsiElement, T : StubElement<*>> StubBasedPsiElementBase<T>.stubbedChildren(elementType: TableGenStubElementType<*, C>): Sequence<C> {
-    greenStub?.let { stub ->
-        return stub.stubbedChildren(elementType)
-    }
-
-    return childrenOfType<C>().asSequence().filter {
-        elementType.shouldCreateStub(it.node)
-    }
+inline fun <reified C, T> Sequence<T>.filterIsInstance(vararg klasses: Class<out C>) = mapNotNull { c ->
+    if (klasses.any { it.isInstance(c) })
+        c as C
+    else null
 }
 
-inline fun <reified C : PsiElement, T : PsiElement> StubElement<T>.stubbedChildren(elementType: TableGenStubElementType<*, C>): Sequence<C> {
-    return childrenStubs.asSequence().filter {
-        it?.elementType == elementType
-    }.mapNotNull {
+/**
+ * Returns a sequence of all child elements of this that are of type [C].
+ */
+inline fun <reified C : PsiElement> StubBasedPsiElementBase<*>.stubbedChildren() = stubbedChildren(C::class.java)
+
+/**
+ * Returns a sequence of all child elements of this that are one of [klasses].
+ */
+inline fun <reified C : PsiElement> StubBasedPsiElementBase<*>.stubbedChildren(vararg klasses: Class<out C>): Sequence<C> {
+    stub?.let { stub ->
+        return stub.stubbedChildren(*klasses)
+    }
+
+    return children.asSequence().filterIsInstance(*klasses)
+}
+
+inline fun <reified C : PsiElement> StubElement<*>.stubbedChildren() = stubbedChildren(C::class.java)
+
+inline fun <reified C : PsiElement> StubElement<*>.stubbedChildren(vararg klasses: Class<out C>): Sequence<C> {
+    return childrenStubs.asSequence().mapNotNull {
         it.psi
-    }.filterIsInstance<C>()
+    }.filterIsInstance(*klasses)
 }
 
 /**

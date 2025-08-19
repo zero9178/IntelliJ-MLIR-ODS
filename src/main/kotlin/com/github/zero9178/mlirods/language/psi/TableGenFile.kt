@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.TableGenFileType
 import com.github.zero9178.mlirods.language.TableGenLanguage
+import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
@@ -10,6 +11,8 @@ import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.stubs.IStubElementType
+import com.intellij.psi.tree.TokenSet
+import com.intellij.util.ArrayFactory
 import com.intellij.util.resettableLazy
 
 class TableGenFile(viewProvider: FileViewProvider, val context: TableGenContext) :
@@ -55,8 +58,29 @@ class TableGenFile(viewProvider: FileViewProvider, val context: TableGenContext)
     val classMap: Map<String, List<TableGenClassStatement>> by myClassMap
 
 
+    private var myDirectIdMap = resettableLazy {
+        withGreenStubOrAst<(TokenSet, ArrayFactory<TableGenIdentifierElement>) -> Array<TableGenIdentifierElement>>({
+            it::getChildrenByType
+        }) {
+            it::getChildrenAsPsiElements
+        }(TokenSet.create(TableGenTypes.DEF_STATEMENT, TableGenTypes.DEFVAR_STATEMENT)) {
+            arrayOfNulls<TableGenIdentifierElement>(it)
+        }
+            .mapNotNull {
+                val name = it.name ?: return@mapNotNull null
+                name to it
+            }.groupBy({
+                it.first
+            }) {
+                TableGenIdentifierScopeNode.IdMapEntry(it.second)
+            }
+    }
+
+    override val directIdMap by myDirectIdMap
+
     override fun subtreeChanged() {
         super.subtreeChanged()
         myClassMap.reset()
+        myDirectIdMap.reset()
     }
 }

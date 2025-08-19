@@ -177,6 +177,16 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.name, "i")
     }
 
+    fun `test FieldDefResolutionLexical`() {
+        val element = doTest<TableGenDefvarStatement>()
+        assertEquals(element.name, "i")
+    }
+
+    fun `test FieldDefParentResolutionLexical`() {
+        val element = doTest<TableGenTemplateArgDecl>()
+        assertEquals(element.name, "i")
+    }
+
     fun `test ParentClassFieldDefResolution`() {
         val element = doTest<TableGenFieldBodyItem>()
         assertEquals(element.name, "i")

@@ -12,6 +12,8 @@ import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
 import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.isAncestor
+import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parents
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.withPrevious
@@ -53,14 +55,6 @@ private fun traverse(
  */
 class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
     PsiReferenceBase.Poly<TableGenIdentifierValueNode>(element) {
-
-    override fun hashCode(): Int {
-        return element.hashCode()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        return element === (other as? TableGenIdentifierReference)?.element
-    }
 
     override fun getVariants(): Array<out Any?> {
         return localResolveSequence(false).filterIsInstance<TableGenIdentifierElement>().map {
@@ -104,13 +98,37 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
 
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
-        CachedValuesManager.getProjectPsiDependentCache(element) {
+        CachedValuesManager.getProjectPsiDependentCache(element) { element ->
             val name = element.identifier.text
 
-            val def = localResolveSequence().firstNotNullOfOrNull {
-                if (it is TableGenIdentifierElement) if (it.name == name) return@firstNotNullOfOrNull it
+            val def = element.parentOfType<TableGenIdentifierScopeNode>()?.run {
+                idMap[name]?.let { list ->
+                    // Find the last element that occurs before 'element'.
+                    // We can use binary search due to the lexicographical ordering.
+                    var index = list.binarySearch {
+                        it.compareTo(element)
+                    }
+                    // A positive value is an exact match.
+                    if (index > 0)
+                        return@let list[index]
 
-                null
+                    // Otherwise, an inverse insertion point is returned that points to the last element before
+                    // 'element'.
+                    index = -(index + 1) - 1
+
+                    // Not found cases.
+                    if (index >= list.size || index < 0)
+                        null
+                    // Special case: If the found element is an ancestor of 'element', and directly nested within its
+                    // parent scope, then it should be skipped. This avoids cases such as returning a 'defvar i = i;'
+                    // statement when resolving the identifier in the initialization.
+                    else if (list[index].occurrence.parent == this && list[index].occurrence.isAncestor(element)) {
+                        if (index == 0)
+                            null
+                        else
+                            list[index - 1]
+                    } else list[index]
+                }?.element
             }
 
             // Lookup in the same file succeeded.
@@ -123,6 +141,6 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
                 name,
                 project,
                 TableGenIncludedSearchScope(element, project)
-            ).map { PsiElementResolveResult(it) }.toTypedArray()
+            ).map { res -> PsiElementResolveResult(res) }.toTypedArray()
         }
 }
