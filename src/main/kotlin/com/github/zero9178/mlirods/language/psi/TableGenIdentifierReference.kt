@@ -13,7 +13,6 @@ import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.isAncestor
-import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.parents
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.withPrevious
@@ -101,7 +100,7 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
         CachedValuesManager.getProjectPsiDependentCache(element) { element ->
             val name = element.identifier.text
 
-            val def = element.parentOfType<TableGenIdentifierScopeNode>()?.run {
+            val def = TableGenIdentifierScopeNode.getParentScope(element)?.run {
                 idMap[name]?.let { list ->
                     // Find the last element that occurs before 'element'.
                     // We can use binary search due to the lexicographical ordering.

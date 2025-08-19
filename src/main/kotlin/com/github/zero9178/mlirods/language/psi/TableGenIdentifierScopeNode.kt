@@ -3,7 +3,7 @@ package com.github.zero9178.mlirods.language.psi
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.childrenOfType
-import com.intellij.psi.util.parentOfType
+import com.intellij.psi.util.parents
 
 /**
  * Interface implemented by any [PsiElement] which creates a scope of elements found by 'identifier' lookup.
@@ -55,7 +55,7 @@ interface TableGenIdentifierScopeNode : PsiElement {
      */
     val idMap: Map<String, List<IdMapEntry>>
         get() = CachedValuesManager.getProjectPsiDependentCache(this) {
-            val parentMap = parentOfType<TableGenIdentifierScopeNode>(withSelf = false)?.idMap
+            val parentMap = parentScope?.idMap
                 ?: return@getProjectPsiDependentCache directIdMap
 
             val result = directIdMap.toMutableMap()
@@ -69,4 +69,36 @@ interface TableGenIdentifierScopeNode : PsiElement {
             }
             result
         }
+
+    /**
+     * Returns true if [element], which must be a direct child of 'this', is within the scope created by 'this'.
+     * If not, then 'this' is not the parent scope of [element] (despite being the parent element).
+     *
+     * This is used for Psi elements where the scope does not span all children, e.g. the iterable argument of
+     * '!foreach'.
+     */
+    fun isWithinNewScope(element: PsiElement): Boolean = true
+
+    /**
+     * Returns the scope that 'this' is directly contained in or null if it has no parent scope.
+     */
+    val parentScope: TableGenIdentifierScopeNode?
+        get() = getParentScope(this)
+
+    companion object {
+        /**
+         * Returns the scope that [element] is directly contained in or null if it has no parent scope.
+         */
+        fun getParentScope(element: PsiElement): TableGenIdentifierScopeNode? =
+            element.parents(withSelf = true).windowed(2, partialWindows = false).mapNotNull {
+                val prev = it[0]
+                val curr = it[1]
+                if (curr !is TableGenIdentifierScopeNode)
+                    null
+                else if (curr.isWithinNewScope(prev))
+                    curr
+                else
+                    null
+            }.firstOrNull()
+    }
 }
