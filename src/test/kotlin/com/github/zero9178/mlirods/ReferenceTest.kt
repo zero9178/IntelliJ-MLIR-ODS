@@ -231,6 +231,16 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.name, "i")
     }
 
+    fun `test ForeachDefvarResolutionIterable`() {
+        val element = doTest<TableGenDefvarStatement>()
+        assertEquals(element.name, "i")
+    }
+
+    fun `test ForeachDefvarResolutionIterableParent`() {
+        val element = doTest<TableGenDefvarStatement>()
+        assertEquals(element.name, "i")
+    }
+
     fun `test FoldlIteratorDefvarResolution`() {
         val element = doTest<TableGenBangOperatorDefinition>()
         assertEquals(element.name, "i")
@@ -239,6 +249,12 @@ class ReferenceTest : BasePlatformTestCase() {
     fun `test FoldlAccDefvarResolution`() {
         val element = doTest<TableGenBangOperatorDefinition>()
         assertEquals(element.name, "acc")
+    }
+
+
+    fun `test FoldlDefvarResolutionIterable`() {
+        val element = doTest<TableGenDefvarStatement>()
+        assertEquals(element.name, "i")
     }
 
     fun `test ParentMultiClassListResolution`() {

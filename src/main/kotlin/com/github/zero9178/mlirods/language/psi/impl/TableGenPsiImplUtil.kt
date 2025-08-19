@@ -396,6 +396,9 @@ class TableGenPsiImplUtil {
             }
 
         @JvmStatic
+        fun isWithinNewScope(self: TableGenForeachOperatorValueNode, element: PsiElement) = element == self.body
+
+        @JvmStatic
         fun getDirectIdMap(element: TableGenFoldlOperatorValueNode): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
             buildMap {
                 listOfNotNull(element.iterator, element.accmulator).forEach {
@@ -404,5 +407,9 @@ class TableGenPsiImplUtil {
                     }
                 }
             }
+
+        @JvmStatic
+        fun isWithinNewScope(self: TableGenFoldlOperatorValueNode, element: PsiElement) = element == self.body
+
     }
 }

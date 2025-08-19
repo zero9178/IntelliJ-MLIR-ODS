@@ -734,6 +734,7 @@ foreach_operator_value_node ::= '!foreach' '(' bang_operator_definition ',' valu
 
         getDirectIdMap
         getType
+        isWithinNewScope
     ]
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
@@ -751,6 +752,7 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
 
         getDirectIdMap
         getType
+        isWithinNewScope
     ]
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
