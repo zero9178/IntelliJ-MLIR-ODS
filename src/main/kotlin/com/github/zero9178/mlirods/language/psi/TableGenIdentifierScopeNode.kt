@@ -38,16 +38,7 @@ interface TableGenIdentifierScopeNode : PsiElement {
      * Every occurrence must therefore be in the same file as 'this' and must start after 'this'.
      */
     val directIdMap: Map<String, List<IdMapEntry>>
-        get() = CachedValuesManager.getProjectPsiDependentCache(this) { element ->
-            element.childrenOfType<TableGenIdentifierElement>().mapNotNull {
-                val name = it.name ?: return@mapNotNull null
-                name to it
-            }.groupBy({
-                it.first
-            }) {
-                IdMapEntry(it.second)
-            }
-        }
+        get() = emptyMap<String, List<IdMapEntry>>()
 
     /**
      * Same as [directIdMap], but contains elements from every parent scope as well.

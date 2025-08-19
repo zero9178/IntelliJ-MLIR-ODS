@@ -1,9 +1,11 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIfBody
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIfStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetStatement
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenForeachStatementImpl
+import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIfBodyImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIfStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenLetStatementImpl
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode
@@ -40,6 +42,11 @@ class TableGenForeachStatementStubElementType(debugName: String) :
 class TableGenIfStatementStubElementType(debugName: String) :
     TableGenAbstractStatementStubElementType<TableGenIfStatement>(
         debugName, ::TableGenIfStatementImpl
+    )
+
+class TableGenIfBodyStubElementType(debugName: String) :
+    TableGenAbstractStatementStubElementType<TableGenIfBody>(
+        debugName, ::TableGenIfBodyImpl
     )
 
 class TableGenLetStatementStubElementType(debugName: String) :

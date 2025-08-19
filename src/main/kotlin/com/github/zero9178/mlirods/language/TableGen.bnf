@@ -430,6 +430,9 @@ if_body ::= statement_block {
         lBrace='LBRACE'
         rBrace='RBRACE'
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIfBodyMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIfBodyStubElementType"
 }
 
 let_statement ::= 'let' let_list 'in' statement_block {
