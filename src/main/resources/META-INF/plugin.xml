@@ -58,7 +58,9 @@
         <stubElementTypeHolder class="com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes"
                                externalIdPrefix="tablegen."/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenIdentifierIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllIdentifiersIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllClassesIndex"/>
         <elementDescriptionProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenElementDescriptionProvider"/>
         <usageTypeProvider

@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
+import com.github.zero9178.mlirods.index.ALL_CLASSES_INDEX
 import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassStatementImpl
@@ -46,6 +47,7 @@ class TableGenClassStatementStubElementType(debugName: String) :
 
     override fun indexStub(stub: TableGenClassStatementStub, sink: IndexSink) {
         sink.occurrence(CLASS_INDEX, stub.name)
+        sink.occurrence(ALL_CLASSES_INDEX, 0)
     }
 }
 
