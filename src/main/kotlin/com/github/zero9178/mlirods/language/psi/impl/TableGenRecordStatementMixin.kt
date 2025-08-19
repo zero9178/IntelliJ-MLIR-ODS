@@ -1,8 +1,12 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
+import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
@@ -21,6 +25,23 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
     constructor(node: ASTNode) : super(node)
 
     constructor(stub: StubT, stubType: IStubElementType<*, *>) : super(stub, stubType)
+
+    /**
+     * Returns all id entries originating from the record body.
+     */
+    protected val bodyIdEntries: Sequence<IdMapEntry>
+        get() = baseClassRefs.mapNotNull {
+            it.referencedClass?.let { klass ->
+                klass to it
+            }
+        }.flatMap { (klass, ref) ->
+            klass.allFields.map {
+                IdMapEntry(it, ref)
+            }
+        } + stubbedChildren<TableGenIdentifierElement>(
+            TableGenDefvarStatement::class.java,
+            TableGenFieldBodyItem::class.java,
+        ).map(::IdMapEntry)
 
     private var myDirectFields = resettableLazy {
         getFieldBodyItemList().filter { it.name != null }.associateBy {

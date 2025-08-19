@@ -41,8 +41,6 @@ fun UsefulTestCase.installCompileCommands(
         fireEvents = true
     )
 
-    IndexingTestUtil.waitUntilIndexesAreReady(project)
-
     val list = map.toList() + additionalPropagation
     PlatformTestUtil.waitWhileBusy {
         list.any {
@@ -53,4 +51,6 @@ fun UsefulTestCase.installCompileCommands(
             else file.context.includePaths != it.second.paths
         }
     }
+
+    IndexingTestUtil.waitUntilIndexesAreReady(project)
 }

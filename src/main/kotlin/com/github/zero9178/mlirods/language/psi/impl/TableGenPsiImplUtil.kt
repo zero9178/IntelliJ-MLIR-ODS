@@ -6,7 +6,10 @@ import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub
 import com.github.zero9178.mlirods.language.types.*
-import com.github.zero9178.mlirods.language.values.*
+import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
+import com.github.zero9178.mlirods.language.values.TableGenStringValue
+import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
+import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.intellij.extapi.psi.ASTDelegatePsiElement
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -381,5 +384,25 @@ class TableGenPsiImplUtil {
             }
             return TableGenStringValue(res)
         }
+
+        @JvmStatic
+        fun getDirectIdMap(element: TableGenForeachOperatorValueNode): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
+            buildMap {
+                element.iterator?.let {
+                    it.name?.let { name ->
+                        put(name, listOf(TableGenIdentifierScopeNode.IdMapEntry(it)))
+                    }
+                }
+            }
+
+        @JvmStatic
+        fun getDirectIdMap(element: TableGenFoldlOperatorValueNode): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
+            buildMap {
+                listOfNotNull(element.iterator, element.accmulator).forEach {
+                    it.name?.let { name ->
+                        put(name, listOf(TableGenIdentifierScopeNode.IdMapEntry(it)))
+                    }
+                }
+            }
     }
 }

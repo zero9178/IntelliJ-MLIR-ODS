@@ -1,13 +1,14 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
 import com.github.zero9178.mlirods.language.psi.createIdentifier
-import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub
 import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
+import com.intellij.util.resettableLazy
 import com.intellij.util.takeWhileInclusive
 
 abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableGenClassStatementStub>,
@@ -38,13 +39,29 @@ abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableG
 
     override fun classStatementsBefore(withSelf: Boolean): Sequence<TableGenClassStatement> {
         greenStub?.let { stub ->
-            return stub.parentStub.stubbedChildren(
-                TableGenStubElementTypes.CLASS_STATEMENT
-            ).takeWhileInclusive {
+            return stub.parentStub.stubbedChildren<TableGenClassStatement>().takeWhileInclusive {
                 it !== this
             }.toList().asReversed().asSequence().drop(if (withSelf) 0 else 1)
         }
 
         return super.classStatementsBefore(withSelf)
+    }
+
+    private var myDirectIdMap = resettableLazy {
+        (templateArgDeclList.asSequence().map(::IdMapEntry) + bodyIdEntries).mapNotNull {
+            val name = it.element.name ?: return@mapNotNull null
+            name to it
+        }.groupBy({
+            it.first
+        }) {
+            it.second
+        }
+    }
+
+    override val directIdMap by myDirectIdMap
+
+    override fun subtreeChanged() {
+        super.subtreeChanged()
+        myDirectIdMap.reset()
     }
 }
