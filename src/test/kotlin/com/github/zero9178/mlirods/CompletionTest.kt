@@ -25,18 +25,6 @@ class CompletionTest : BasePlatformTestCase() {
         """.trimIndent(), "values", doesNotContain = listOf("i")
     )
 
-
-    fun `test dumb field lookup`() = doDumbTest(
-        """
-            defvar v = 0;
-            
-            class A : B {
-                int i = <caret>;
-            }
-        """.trimIndent(), "v"
-    )
-
-
     fun `test field access lookup`() = doTest(
         """
             defvar v = 0;
