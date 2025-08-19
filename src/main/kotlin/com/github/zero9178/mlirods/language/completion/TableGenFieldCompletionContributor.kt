@@ -22,10 +22,7 @@ private class TableGenFieldCompletionContributor : CompletionContributor() {
         extend(
             null,
             PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(
-                StandardPatterns.or(
-                    PlatformPatterns.psiElement(TableGenIdentifierValueNode::class.java),
-                    PlatformPatterns.psiElement(TableGenLetBodyItem::class.java),
-                )
+                PlatformPatterns.psiElement(TableGenLetBodyItem::class.java)
             ),
             object : CompletionProvider<CompletionParameters>() {
                 override fun addCompletions(
