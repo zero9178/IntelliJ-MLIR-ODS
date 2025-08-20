@@ -2,7 +2,6 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.childrenOfType
 import com.intellij.psi.util.parents
 
 /**
@@ -52,9 +51,10 @@ interface TableGenIdentifierScopeNode : PsiElement {
             val result = directIdMap.toMutableMap()
             parentMap.entries.forEach { (k, v) ->
                 // Drop all elements from the parent that occur before 'this'.
-                result.merge(k, v.takeWhile {
-                    it < this
-                }) { directList, parentList ->
+                val value = v.takeWhile { it < this }
+                if (value.isEmpty()) return@forEach
+
+                result.merge(k, value) { directList, parentList ->
                     parentList + directList
                 }
             }

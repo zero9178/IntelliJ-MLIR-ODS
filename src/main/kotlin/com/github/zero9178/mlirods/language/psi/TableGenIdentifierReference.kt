@@ -10,6 +10,7 @@ import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.isAncestor
 import com.intellij.util.concurrency.annotations.RequiresReadLock
@@ -74,11 +75,16 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
             val project = element.project
             if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
 
-            // Otherwise, use the index to search in TableGen files included by this file.
+            // Otherwise, use the index to search in TableGen files included by this file and the global scope.
             IDENTIFIER_INDEX.getElements(
                 name,
                 project,
-                TableGenIncludedSearchScope(element, project)
+                GlobalSearchScope.union(
+                    arrayOf(
+                        TableGenIncludedSearchScope(element, project),
+                        GlobalSearchScope.fileScope(element.containingFile)
+                    )
+                )
             ).map { res -> PsiElementResolveResult(res) }.toTypedArray()
         }
 }
