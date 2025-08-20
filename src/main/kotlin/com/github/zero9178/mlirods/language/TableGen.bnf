@@ -108,9 +108,25 @@ private meta private_list_closing_recover ::= !(<<follows>> | <<item>>)
 // The rule contains two parameters:
 // [0] Should be the closing delimiter.
 // [1] Should be the follow set of the rule *after* the closing token.
+// [2] Should be the item.
 private meta trailing_item_list ::=
     <<private_list_closing <<closing>> <<private_list_closing_recover <<follows>> <<item>>>>>>
     <<item>> <<private_list_trailing <<closing>> <<item>> <<private_list_trailing_recover <<closing>>>>>>* ','? {
+    // If we didn't encounter the closing character then we will attempt to parse as much as possible.
+    pin=1
+}
+
+private meta private_list_trailing_no_comma ::= !(<<closing>>) ',' <<item>> {
+    pin=2
+    recoverWhile="<<recover>>"
+}
+private meta private_list_trailing_no_comma_recover ::= !(<<closing>> | ',')
+
+// Same as 'trailing_item_list' but without a trailing comma.
+private meta trailing_item_list_no_comma ::=
+    <<private_list_closing <<closing>> <<private_list_closing_recover <<follows>> <<item>>>>>>
+    <<item>>
+    <<private_list_trailing_no_comma <<closing>> <<item>> <<private_list_trailing_no_comma_recover <<closing>>>>>>* {
     // If we didn't encounter the closing character then we will attempt to parse as much as possible.
     pin=1
 }
@@ -673,7 +689,8 @@ list_init_value_node ::= '[' <<value_node_list ']' (value_node_follows | '<')>>?
         getType
     ]
 }
-dag_init_value_node ::= '(' dag_arg [dag_arg (',' dag_arg)*] ')' {
+
+dag_init_value_node ::= '(' dag_arg <<trailing_item_list_no_comma ')' value_node_follows dag_arg>>? ')' {
     pin(".*")=1
     methods=[
         operator="dag_arg[0]"

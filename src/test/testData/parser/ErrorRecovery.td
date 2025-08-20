@@ -67,3 +67,12 @@ def : Foo<0>, {
 defvar d = (5 5, 3:, );
 
 def IntTypesOp : TEST_Op<"int_types", >;
+
+def {
+    dag arguments = (ins
+        StrAttr:$sym_name,
+        Variadic<>
+        OptionalAttr<StrAttr>:$sym_visibility,
+        StrAttr:$sym_name
+    );
+}
