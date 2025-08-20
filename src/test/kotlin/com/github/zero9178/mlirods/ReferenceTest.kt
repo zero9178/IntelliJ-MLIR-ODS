@@ -267,6 +267,17 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
     }
 
+    fun `test in let statement`() {
+        val statement = doTestInline<TableGenDefStatement>("""
+            class AArch64Unsupported { list<Predicate> F; }
+
+            let F = [] in def SVE2p1Unsupported : AArch64Unsupported;
+
+            defvar v = <caret>SVE2p1Unsupported;
+        """.trimIndent())
+        assertEquals(statement.name, "SVE2p1Unsupported")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }
@@ -286,4 +297,16 @@ class ReferenceTest : BasePlatformTestCase() {
         return assertInstanceOf(myFixture.elementAtCaret, T::class.java)
     }
 
+
+    private inline fun <reified T> doTestInline(source: String): T {
+        val mainVF = myFixture.createFile("test.td", source)
+        installCompileCommands(
+            project, mapOf(
+                mainVF to IncludePaths(emptyList())
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(mainVF)
+        return assertInstanceOf(myFixture.elementAtCaret, T::class.java)
+    }
 }
