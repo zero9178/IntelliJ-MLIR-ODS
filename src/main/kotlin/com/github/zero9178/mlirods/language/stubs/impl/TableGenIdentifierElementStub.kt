@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
+import com.github.zero9178.mlirods.index.ALL_IDENTIFIERS_INDEX
 import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefvarStatementImpl
@@ -55,8 +56,10 @@ class TableGenDefvarStatementStubElementType(debugName: String) : TableGenAbstra
         // Only top-level 'defvar's should be in the index.
         stub.name?.let {
             when (stub.parentStub) {
-                is TableGenFileStub ->
+                is TableGenFileStub -> {
                     sink.occurrence(IDENTIFIER_INDEX, it)
+                    sink.occurrence(ALL_IDENTIFIERS_INDEX, 0)
+                }
             }
         }
     }
@@ -73,6 +76,7 @@ class TableGenDefStatementStubElementType(debugName: String) : TableGenAbstractI
         stub.name?.let {
             sink.occurrence(IDENTIFIER_INDEX, it)
         }
+        sink.occurrence(ALL_IDENTIFIERS_INDEX, 0)
     }
 }
 
