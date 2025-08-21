@@ -3,6 +3,20 @@
 # MLIR ODS Changelog
 
 ## [Unreleased]
+
+### Added
+- Code completion for identifiers in included files.
+- Brace insertion for click string literals. Typing `[{` will now automatically insert `}]`.
+- Parameter info popup for class instantiation now shows the parameter name and type of the corresponding template arguments of the class.
+- Implemented global `def` lookup. 
+### Fixed
+- Better error recovery for invalid syntax in `dag` arguments.
+- Better error recovery for invalid syntax in `dag` init lists.
+- Better error recovery for invalid syntax in inheritance list.
+- Fixed an exception when an included file gets deleted.
+- `include` statements included as part of the context (i.e. `test.td` file is only used as part of compilation of `other.td` and `other.td` has includes before `test.td`) are now properly tracked. 
+
+## [0.9.0] - 2025-07-22
 ### Added
 - Trailing comma syntax for slice elements
 - Parsing of `include` statements anywhere in the file
