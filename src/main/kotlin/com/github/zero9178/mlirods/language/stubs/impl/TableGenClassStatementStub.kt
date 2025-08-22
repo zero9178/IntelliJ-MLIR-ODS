@@ -15,6 +15,7 @@ import com.intellij.psi.stubs.*
  */
 interface TableGenClassStatementStub : StubElement<TableGenClassStatement> {
     val name: String
+    val hasBody: Boolean
 }
 
 class TableGenClassStatementStubElementType(debugName: String) :
@@ -30,19 +31,20 @@ class TableGenClassStatementStubElementType(debugName: String) :
     override fun createStub(
         psi: TableGenClassStatement, parentStub: StubElement<out PsiElement?>?
     ): TableGenClassStatementStub {
-        return TableGenClassStatementStubImpl(psi.identifier!!.text, parentStub)
+        return TableGenClassStatementStubImpl(psi.identifier!!.text, psi.hasBody, parentStub)
     }
 
     override fun serialize(
         stub: TableGenClassStatementStub, dataStream: StubOutputStream
     ) {
         dataStream.writeUTFFast(stub.name)
+        dataStream.writeBoolean(true)
     }
 
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenClassStatementStub {
-        return TableGenClassStatementStubImpl(dataStream.readUTFFast(), parentStub)
+        return TableGenClassStatementStubImpl(dataStream.readUTFFast(), dataStream.readBoolean(), parentStub)
     }
 
     override fun indexStub(stub: TableGenClassStatementStub, sink: IndexSink) {
@@ -53,6 +55,7 @@ class TableGenClassStatementStubElementType(debugName: String) :
 
 private class TableGenClassStatementStubImpl(
     override val name: String,
+    override val hasBody: Boolean,
     parent: StubElement<out PsiElement>?
 ) : StubBase<TableGenClassStatement>(
     parent, TableGenStubElementTypes.CLASS_STATEMENT

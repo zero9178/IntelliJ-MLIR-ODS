@@ -411,5 +411,16 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun isWithinNewScope(self: TableGenFoldlOperatorValueNode, element: PsiElement) = element == self.body
 
+        @JvmStatic
+        fun isDeclaration(self: TableGenClassStatement): Boolean {
+            return self.templateArgDeclList.isEmpty() && self.classRefList.isEmpty() && !self.hasBody
+        }
+
+        @JvmStatic
+        fun getHasBody(self: TableGenClassStatement): Boolean {
+            self.stub?.let { return it.hasBody }
+
+            return self.lBrace != null || self.rBrace != null
+        }
     }
 }

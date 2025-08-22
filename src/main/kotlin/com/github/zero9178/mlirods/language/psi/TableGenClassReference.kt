@@ -68,14 +68,13 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
                 val name = element.className
                 val file = element.containingFile as? TableGenFile ?: return@disallowTreeLoading emptyArray()
 
-                // TODO: This currently picks the first occurrence of a class statement with a given name within the
+                // TODO: This currently returns all occurrences of a class statement with a given name within the
                 //  same file. We do not yet fully understand the class logic yet to implement this correctly. In
-                //  theory, we even need to search in the class index first whether includes create a class statement
-                //  first.
-                val klass = file.classMap[name]?.firstOrNull()
+                //  theory, we even need to search in the class index first whether includes create a class statement.
+                val klass = file.classMap[name].orEmpty()
 
                 // Lookup in the same file succeeded.
-                if (klass != null) return@disallowTreeLoading arrayOf(PsiElementResolveResult(klass))
+                if (klass.isNotEmpty()) return@disallowTreeLoading klass.map(::PsiElementResolveResult).toTypedArray()
 
                 val project = element.project
                 if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
