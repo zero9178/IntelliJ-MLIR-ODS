@@ -278,6 +278,23 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(statement.name, "SVE2p1Unsupported")
     }
 
+    fun `test class decl statement`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class Instruction;
+
+            class Instruction {
+                int i = 0;
+            }
+            
+            def : Instruction {
+                let <caret>i = 5;
+            }
+        """.trimIndent()
+        )
+        assertEquals(field.fieldName, "i")
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }

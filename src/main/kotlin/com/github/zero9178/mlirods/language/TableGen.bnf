@@ -234,6 +234,8 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
         getPlaceHolderText
         getFoldingTextRanges
         getPresentation
+        getHasBody
+        isDeclaration
     ]
     implements=[
         abstract_class_statement
@@ -242,6 +244,7 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
         "com.intellij.navigation.NavigationItem"
         "com.intellij.psi.PsiNameIdentifierOwner"
         "com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenClassStatementEx"
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassStatementMixin"

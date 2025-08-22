@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Class statement lookup used for fields now finds definitions before declarations.
+
 ## [0.10.0] - 2025-08-21
 
 ### Added
