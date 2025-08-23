@@ -3,6 +3,8 @@ package com.github.zero9178.mlirods.language.psi.impl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
+import com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
@@ -44,12 +46,27 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
         ).map(::IdMapEntry)
 
     private var myDirectFields = resettableLazy {
-        getFieldBodyItemList().filter { it.name != null }.associateBy {
-            it.name!!
-        }
+        directFieldAssignments.mapNotNull { (k, v) ->
+            val field = v.asReversed().firstNotNullOfOrNull {
+                it as? TableGenFieldBodyItem
+            } ?: return@mapNotNull null
+            k to field
+        }.toMap()
     }
 
     override val directFields by myDirectFields
+
+    private var myDirectFieldAssignments = resettableLazy {
+        stubbedChildren<TableGenFieldIdentifierNode>(
+            TableGenFieldBodyItem::class.java,
+            TableGenLetBodyItem::class.java
+        ).mapNotNull {
+            val name = it.fieldName ?: return@mapNotNull null
+            name to it
+        }.groupBy({ it.first }) { it.second }
+    }
+
+    override val directFieldAssignments by myDirectFieldAssignments
 
     override val baseClassRefs: Sequence<TableGenClassRef>
         get() = getClassRefList().asSequence()
@@ -57,5 +74,6 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
     override fun subtreeChanged() {
         super.subtreeChanged()
         myDirectFields.reset()
+        myDirectFieldAssignments.reset()
     }
 }

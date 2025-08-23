@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 
@@ -56,6 +57,12 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     val directFields: Map<String, TableGenFieldBodyItem>
 
     /**
+     * Returns a map of all field assignments in order of application (earliest to latest) that directly occur within
+     * 'this'.
+     */
+    val directFieldAssignments: Map<String, List<TableGenFieldIdentifierNode>>
+
+    /**
      * Returns a sequence of all fields of this class, including inherited fields.
      */
     val allFields: Sequence<TableGenFieldBodyItem>
@@ -63,6 +70,27 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
             it.referencedClass
         }.flatMap {
             it.allFields
+        }
+
+    /**
+     * Returns a map of all field assignments in order of application (earliest to latest), including from all
+     * transitive base classes.
+     * The first element in a list is therefore always a field body item (if valid TableGen), followed by let body
+     * items.
+     */
+     val allFieldAssignments: Map<String, List<TableGenFieldIdentifierNode>>
+        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+            val result = directFieldAssignments.toMutableMap()
+            baseClassRefs.toList().asReversed().mapNotNull { it.referencedClass }.map {
+                it.allFieldAssignments
+            }.forEach {
+                it.forEach { (k, v) ->
+                    result.merge(k, v) { existing, parent ->
+                        parent + existing
+                    }
+                }
+            }
+            result
         }
 
     /**

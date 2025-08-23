@@ -82,6 +82,8 @@
                                  implementationClass="com.github.zero9178.mlirods.language.TableGenFindUsageProvider"/>
         <codeInsight.parameterInfo language="TableGen"
                                    implementationClass="com.github.zero9178.mlirods.language.TableGenParameterInfoHandler"/>
+        <codeInsight.lineMarkerProvider language="TableGen"
+                                        implementationClass="com.github.zero9178.mlirods.language.linemarkers.TableGenOverridingFieldAssignmentLineMarkerProvider"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">

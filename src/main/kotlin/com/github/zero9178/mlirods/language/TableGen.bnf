@@ -348,7 +348,9 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value_node ';' {
     methods=[
         field_identifier="IDENTIFIER"
 
+        getName
         getReference
+        getTextOffset
     ]
 }
 

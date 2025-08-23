@@ -211,6 +211,13 @@ class TableGenPsiImplUtil {
             return element.nameIdentifier?.textOffset ?: element.startOffset
         }
 
+        @JvmStatic
+        fun getName(element: TableGenFieldIdentifierNode) = element.fieldName
+
+        @JvmStatic
+        fun getTextOffset(element: TableGenFieldIdentifierNode) =
+            element.fieldIdentifier?.startOffset ?: element.startOffset
+
         private class TableGenItemPresentation(
             private val element: PsiNamedElement,
             private val icon: Icon = MyIcons.TableGenIcon
