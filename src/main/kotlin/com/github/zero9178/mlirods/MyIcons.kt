@@ -11,4 +11,10 @@ object MyIcons {
 
     @JvmField
     val TableGenDef = IconLoader.getIcon("/icons/tablegen-def.svg", javaClass)
+
+    @JvmField
+    val TableGenOverriding = IconLoader.getIcon("/icons/tablegen-overridingMethod.svg", javaClass)
+
+    @JvmField
+    val TableGenOverridden = IconLoader.getIcon("/icons/tablegen-overriddenMethod.svg", javaClass)
 }

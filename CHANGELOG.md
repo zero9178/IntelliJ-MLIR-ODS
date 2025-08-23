@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Line markers to `let` body items that navigates to the previous `let` statement that is overridden.
+
 ### Fixed
 
 - Class statement lookup used for fields now finds definitions before declarations.
