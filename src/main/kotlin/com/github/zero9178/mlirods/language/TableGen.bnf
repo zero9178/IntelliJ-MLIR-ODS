@@ -348,10 +348,11 @@ let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value_node ';' {
     methods=[
         field_identifier="IDENTIFIER"
 
-        getName
-        getReference
-        getTextOffset
+        toString
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetBodyItemStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenLetBodyItemMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetBodyItemStubElementType"
 }
 
 // Custom variant of 'value' that does not support bits access or bits init lists as the syntax is ambiguous with

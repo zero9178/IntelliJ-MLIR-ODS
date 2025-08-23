@@ -89,11 +89,6 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getReference(element: TableGenLetBodyItem): PsiReference? {
-            return TableGenLetReference(element)
-        }
-
-        @JvmStatic
         fun getReference(element: TableGenFieldAccessValueNode): PsiReference? {
             return TableGenFieldAccessReference(element)
         }
