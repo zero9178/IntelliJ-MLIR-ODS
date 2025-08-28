@@ -47,7 +47,7 @@ class TableGenRecordType private constructor(
     /**
      * The name of the record being referenced.
      */
-    val recordName: String,
+    val recordName: String?,
     private val myRecord: () -> TableGenFieldScopeNode?
 ) :
     TableGenType() {
@@ -58,9 +58,7 @@ class TableGenRecordType private constructor(
          * The given record must have name.
          */
         fun <T> create(record: T) where T : TableGenFieldScopeNode, T : PsiNamedElement =
-            TableGenRecordType(checkNotNull(record.name) {
-                "Record must be named"
-            }) {
+            TableGenRecordType(record.name) {
                 record
             }
 
