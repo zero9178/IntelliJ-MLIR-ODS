@@ -61,6 +61,7 @@
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllIdentifiersIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllClassesIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenMayDeriveClassIndex"/>
         <elementDescriptionProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenElementDescriptionProvider"/>
         <usageTypeProvider
@@ -84,6 +85,8 @@
                                    implementationClass="com.github.zero9178.mlirods.language.TableGenParameterInfoHandler"/>
         <codeInsight.lineMarkerProvider language="TableGen"
                                         implementationClass="com.github.zero9178.mlirods.language.linemarkers.TableGenOverridingFieldAssignmentLineMarkerProvider"/>
+        <codeInsight.lineMarkerProvider language="TableGen"
+                                        implementationClass="com.github.zero9178.mlirods.language.linemarkers.TableGenDerivesClassLineMarkerProvider"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
