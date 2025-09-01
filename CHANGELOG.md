@@ -7,6 +7,7 @@
 ### Added
 
 - Line markers to `let` body items that navigates to the previous `let` statement that is overridden.
+- Line markers to `class` statements that allows navigation to derived `def`- and `class` statements.
 
 ### Fixed
 

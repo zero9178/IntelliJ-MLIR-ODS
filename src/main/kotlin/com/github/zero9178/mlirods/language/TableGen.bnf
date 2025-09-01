@@ -241,9 +241,6 @@ class_statement ::= 'class' IDENTIFIER template_arg_list? record_body {
         abstract_class_statement
         scope_item
 
-        "com.intellij.navigation.NavigationItem"
-        "com.intellij.psi.PsiNameIdentifierOwner"
-        "com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode"
         "com.github.zero9178.mlirods.language.psi.impl.TableGenClassStatementEx"
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub"
@@ -367,7 +364,7 @@ def_statement ::= 'def' object_name? record_body {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
-        "com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode"
+        "com.github.zero9178.mlirods.language.psi.TableGenRecord"
         scope_item
     ]
     methods=[
@@ -380,7 +377,7 @@ def_statement ::= 'def' object_name? record_body {
         getTextOffset
         getPresentation
     ]
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStubElementType"
 }

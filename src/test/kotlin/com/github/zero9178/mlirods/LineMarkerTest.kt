@@ -8,13 +8,20 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 class LineMarkerTest : BasePlatformTestCase() {
     fun `test let override`() = doTest(
         """
-            class A {
+            class <lineMarker descr="Navigate to derived records of 'A'">A</lineMarker> {
                 int i = 5;
                 let i = 7;
             }
             def B : A {
                 let <lineMarker descr="Navigate to previous value of 'i'">i</lineMarker> = 8;
             }
+        """.trimIndent()
+    )
+
+    fun `test derived class`() = doTest(
+        """
+            class <lineMarker descr="Navigate to derived records of 'A'">A</lineMarker> {}
+            class B : A;
         """.trimIndent()
     )
 
