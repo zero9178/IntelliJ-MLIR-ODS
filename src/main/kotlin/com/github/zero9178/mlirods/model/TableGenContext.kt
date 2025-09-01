@@ -13,6 +13,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.checkCanceled
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
+import com.intellij.openapi.util.RecursionManager
 import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.originalFileOrSelf
@@ -307,22 +308,24 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
     @RequiresReadLock
     private fun getAllIncludedFiles(file: TableGenFile): Set<VirtualFile> = CachedValuesManager.getCachedValue(file) {
-        val instance = PsiManager.getInstance(project)
+        RecursionManager.doPreventingRecursion(file, true) {
+            val instance = PsiManager.getInstance(project)
 
-        val result = mutableSetOf<VirtualFile>()
-        file.includeDirectives.mapNotNull {
-            it.includedFile
-        }.mapNotNull {
-            if (!it.isValid) return@mapNotNull null
+            val result = mutableSetOf<VirtualFile>()
+            file.includeDirectives.mapNotNull {
+                it.includedFile
+            }.mapNotNull {
+                if (!it.isValid) return@mapNotNull null
 
-            result += it
-            instance.findFile(it) as? TableGenFile
-        }.forEach {
-            result += getAllIncludedFiles(it)
+                result += it
+                instance.findFile(it) as? TableGenFile
+            }.forEach {
+                result += getAllIncludedFiles(it)
+            }
+
+            CachedValueProvider.Result.create(result, result + file + contextChangedModificationTracker)
         }
-
-        CachedValueProvider.Result.create(result, result + file + contextChangedModificationTracker)
-    }
+    } ?: emptySet()
 
     /**
      * Returns the set of all files that are included in [file], directly, transitively or as part of the active

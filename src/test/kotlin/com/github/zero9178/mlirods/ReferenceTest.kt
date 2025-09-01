@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.psi.PsiFile
@@ -52,6 +53,25 @@ class ReferenceTest : BasePlatformTestCase() {
         myFixture.configureFromExistingVirtualFile(testFile)
         val element = assertInstanceOf(myFixture.elementAtCaret, TableGenClassStatement::class.java)
         assertEquals(element.name, "A")
+    }
+
+    fun `test infinite include recursion`() {
+        val testFile = myFixture.createFile(
+            "test.td", """
+            include "test.td"
+            
+            defvar i = <caret>a;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project,
+            mapOf(
+                testFile to IncludePaths(listOf(testFile.parent))
+            ),
+        )
+
+        myFixture.configureFromExistingVirtualFile(testFile)
+        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
     }
 
     fun `test included before context`() {
