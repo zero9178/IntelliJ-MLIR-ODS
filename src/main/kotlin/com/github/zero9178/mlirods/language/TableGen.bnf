@@ -10,7 +10,7 @@
   psiImplUtilClass="com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil"
   parserImports=["import static com.github.zero9178.mlirods.language.generated.TableGenParserUtil.*"]
 
-  generate=[exact-types="all" visitor="no"]
+  generate=[exact-types="all" visitor-value="R"]
   elementTypeHolderClass="com.github.zero9178.mlirods.language.generated.TableGenTypes"
   elementTypeClass="com.github.zero9178.mlirods.language.TableGenElementType"
   tokenTypeClass="com.github.zero9178.mlirods.language.TableGenTokenType"
@@ -588,8 +588,6 @@ concat_value_node ::= value_node concat_value_node_suffix {
     methods = [
         left_operand="/value_node[0]"
         right_operand="/value_node[1]"
-
-        getType
     ]
 }
 
@@ -602,7 +600,6 @@ field_access_value_node ::= value_node field_access_value_node_suffix {
         field_identifier="IDENTIFIER"
 
         getReference
-        getType
     ]
     pin=2
 }
@@ -619,11 +616,7 @@ bit_range ::= value_node ('...' | '-') value_node {
 private slice_access_value_node_suffix ::= '[' <<trailing_item_list ']' value_node_follows slice_element>> ']' {
     pin=1
 }
-slice_access_value_node ::= value_node slice_access_value_node_suffix {
-    methods=[
-        getType
-    ]
-}
+slice_access_value_node ::= value_node slice_access_value_node_suffix
 slice_element ::= slice_element_range
                 | single_slice_element
 single_slice_element ::= value_node {extends=slice_element}
@@ -652,7 +645,6 @@ integer_value_node ::= '-'? INTEGER {
     methods=[
         evaluate
         evaluateAtomic
-        getType
     ]
 }
 string_value_node ::= block_string_value
@@ -664,7 +656,6 @@ string_value_node ::= block_string_value
     methods=[
         evaluate
         evaluateAtomic
-        getType
     ]
 }
 block_string_value ::= BLOCK_STRING_LITERAL {
@@ -672,14 +663,9 @@ block_string_value ::= BLOCK_STRING_LITERAL {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
     methods = [
         getPlaceHolderText
-        getType
     ]
 }
-bool_value_node ::= 'true' | 'false' {
-    methods=[
-        getType
-    ]
-}
+bool_value_node ::= 'true' | 'false'
 undef_value_node ::= '?'
 
 bits_init_value_node ::= '{' <<value_node_list '}' value_node_follows>>? '}' {
@@ -688,17 +674,12 @@ bits_init_value_node ::= '{' <<value_node_list '}' value_node_follows>>? '}' {
 
 list_init_value_node ::= '[' <<value_node_list ']' (value_node_follows | '<')>>? ']' ('<' type_node '>')? {
     pin=1
-    methods=[
-        getType
-    ]
 }
 
 dag_init_value_node ::= '(' dag_arg <<trailing_item_list_no_comma ')' value_node_follows dag_arg>>? ')' {
     pin(".*")=1
     methods=[
         operator="dag_arg[0]"
-
-        getType
     ]
 }
 dag_arg ::= value_node (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
@@ -707,8 +688,6 @@ dag_arg ::= value_node (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
 identifier_value_node ::= IDENTIFIER {
     methods=[
         getReference
-
-        getType
     ]
 }
 
@@ -725,7 +704,6 @@ class_instantiation_value_node ::= IDENTIFIER '<' arg_value_list? '>' {
 
         getClassName
         getReference
-        getType
     ]
 }
 // Note: This is a simplification from the official syntax that is easier to parse.
@@ -756,7 +734,6 @@ foreach_operator_value_node ::= '!foreach' '(' bang_operator_definition ',' valu
         iterator="/bang_operator_definition"
 
         getDirectIdMap
-        getType
         isWithinNewScope
     ]
     implements=[
@@ -774,7 +751,6 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
         iterator="/bang_operator_definition[1]"
 
         getDirectIdMap
-        getType
         isWithinNewScope
     ]
     implements=[

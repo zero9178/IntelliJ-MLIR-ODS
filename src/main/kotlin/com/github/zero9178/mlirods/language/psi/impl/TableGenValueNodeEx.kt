@@ -1,7 +1,8 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.language.types.TableGenType
-import com.github.zero9178.mlirods.language.types.TableGenUnknownType
+import com.github.zero9178.mlirods.language.types.TableGenTypeOfValueVisitor
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
@@ -16,10 +17,15 @@ class TableGenEvaluationContext
 
 interface TableGenValueNodeEx : PsiElement {
     /**
+     * Generic accept method allowing 'TableGenVisitor's with return values.
+     */
+    fun <R> accept(visitor: TableGenVisitor<R>): R
+
+    /**
      * Returns the type of this TableGen expression.
      */
     val type: TableGenType
-        get() = TableGenUnknownType
+        get() = accept(TableGenTypeOfValueVisitor)
 
     /**
      * Performs constant evaluation of this value within the given context.
