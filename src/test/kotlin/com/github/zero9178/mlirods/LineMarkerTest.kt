@@ -9,8 +9,8 @@ class LineMarkerTest : BasePlatformTestCase() {
     fun `test let override`() = doTest(
         """
             class <lineMarker descr="Navigate to derived records of 'A'">A</lineMarker> {
-                int i = 5;
-                let i = 7;
+                int <lineMarker descr="Navigate to overriding values of 'i'">i</lineMarker> = 5;
+                let <lineMarker descr="Navigate to overriding values of 'i'">i</lineMarker> = 7;
             }
             def B : A {
                 let <lineMarker descr="Navigate to previous value of 'i'">i</lineMarker> = 8;

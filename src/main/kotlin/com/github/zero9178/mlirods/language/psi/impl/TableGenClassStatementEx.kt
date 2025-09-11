@@ -54,4 +54,14 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
                 }
             }?.toList() ?: emptyList()
         }.asSequence()
+
+    override val mostDerivedRecords: Sequence<TableGenRecord>
+        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+            (allDerivedRecords + sequenceOf(this)).filter {
+                when (it) {
+                    is TableGenClassStatement -> it.directivelyDerivedRecords.firstOrNull() == null
+                    else -> true
+                }
+            }.toList()
+        }.asSequence()
 }
