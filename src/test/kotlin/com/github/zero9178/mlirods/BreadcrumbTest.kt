@@ -3,47 +3,43 @@ package com.github.zero9178.mlirods
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.breadcrumbs.Crumb
 import com.intellij.util.Consumer
-import javax.swing.Icon
 
 class BreadcrumbTest : BasePlatformTestCase() {
-    fun `test class`() = doTestData(
+    fun `test class`() = doTest(
         """
         class A {
             <caret>
         }
-    """.trimIndent(), listOf(IconAndText("A", MyIcons.TableGenClass))
+    """.trimIndent(), arrayOf("A")
     )
 
-    fun `test let`() = doTestData(
+    fun `test let`() = doTest(
         """
         def A {
             let f = [<caret>];
         }
-    """.trimIndent(), listOf(IconAndText("A", MyIcons.TableGenDef), IconAndText("let f ="))
+    """.trimIndent(), arrayOf("A", "let f")
     )
 
-    fun `test def`() = doTestData(
+    fun `test def`() = doTest(
         """
         def A {
             <caret>
         }
-    """.trimIndent(), listOf(IconAndText("A", MyIcons.TableGenDef))
+    """.trimIndent(), arrayOf("A")
     )
 
-    fun `test field`() = doTestData(
+    fun `test field`() = doTest(
         """
         def A {
             list<int> f = [<caret>];
         }
-    """.trimIndent(), listOf(IconAndText("A", MyIcons.TableGenDef), IconAndText("f", MyIcons.TableGenDef))
+    """.trimIndent(), arrayOf("A", "f")
     )
 
-    data class IconAndText(val text: String, val icon: Icon? = null)
-
-    private fun doTestData(source: String, data: List<IconAndText>) = doTest(source, data.map {
+    private fun doTest(source: String, data: Array<String>) = doTest(source, data.map {
         Consumer<Crumb> { c ->
-            assertEquals(it.text, c.text)
-            assertEquals(it.icon, c.icon)
+            assertEquals(it, c.text)
         }
     })
 
