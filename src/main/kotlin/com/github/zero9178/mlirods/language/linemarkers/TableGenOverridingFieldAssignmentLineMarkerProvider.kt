@@ -35,7 +35,11 @@ private class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerPr
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
         if (element.elementType != TableGenTypes.IDENTIFIER) return null
 
-        val parent = element.parent as? TableGenLetBodyItem ?: return null
+        val parent = element.parent
+        when (parent) {
+            is TableGenLetBodyItem, is TableGenFieldBodyItem -> {}
+            else -> return null
+        }
 
         val scope = parent.parentOfType<TableGenFieldScopeNode>() ?: return null
         val fieldName = parent.fieldName
@@ -46,7 +50,8 @@ private class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerPr
 
         // There is no value in showing a gutter for overwriting a field: The user could simply navigate to the
         // definition via the field identifier.
-        if (overwriting is TableGenFieldBodyItem)
+        // This is not true if the parent itself is a field body item.
+        if (overwriting is TableGenFieldBodyItem && parent !is TableGenFieldBodyItem)
             return null
 
         return LineMarkerInfo(

@@ -25,6 +25,17 @@ class LineMarkerTest : BasePlatformTestCase() {
         """.trimIndent()
     )
 
+    fun `test field redef`() = doTest(
+        """
+            class <lineMarker descr="Navigate to derived records of 'A'">A</lineMarker> {
+                int <lineMarker descr="Navigate to overriding values of 'i'">i</lineMarker> = 5;
+            }
+            def B : A {
+                int <lineMarker descr="Navigate to previous value of 'i'">i</lineMarker> = 7;
+            }
+        """.trimIndent()
+    )
+
     private fun doTest(source: String) = run {
         val file = myFixture.configureByText("test.td", source)
         IndexingTestUtil.waitUntilIndexesAreReady(project)
