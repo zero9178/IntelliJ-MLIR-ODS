@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
+import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStub
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -36,4 +37,7 @@ abstract class TableGenDefStatementMixin : TableGenRecordStatementMixin<TableGen
         super.subtreeChanged()
         myDirectIdMap.reset()
     }
+
+    override val mostDerivedRecords: Sequence<TableGenRecord>
+        get() = sequenceOf(this)
 }

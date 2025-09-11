@@ -86,6 +86,8 @@
         <codeInsight.lineMarkerProvider language="TableGen"
                                         implementationClass="com.github.zero9178.mlirods.language.linemarkers.TableGenOverridingFieldAssignmentLineMarkerProvider"/>
         <codeInsight.lineMarkerProvider language="TableGen"
+                                        implementationClass="com.github.zero9178.mlirods.language.linemarkers.TableGenOverriddenFieldAssignmentLineMarkerProvider"/>
+        <codeInsight.lineMarkerProvider language="TableGen"
                                         implementationClass="com.github.zero9178.mlirods.language.linemarkers.TableGenDerivesClassLineMarkerProvider"/>
     </extensions>
 
