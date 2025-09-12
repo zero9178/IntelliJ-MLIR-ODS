@@ -70,6 +70,7 @@ WHITE_SPACE_OR_CC_COMMENT=({WHITE_SPACE}|{BLOCK_COMMENT})
 ("then")                                        { return TableGenTypes.THEN; }
 ("true")                                        { return TableGenTypes.TRUE; }
 ("!cond")                                       { return TableGenTypes.BANG_COND; }
+("!cast")                                       { return TableGenTypes.BANG_CAST; }
 ("!foreach")                                    { return TableGenTypes.BANG_FOREACH; }
 ("!foldl")                                      { return TableGenTypes.BANG_FOLDL; }
 ("!"[a-zA-Z]+)                                  { return TableGenTypes.BANG_OPERATOR; }
