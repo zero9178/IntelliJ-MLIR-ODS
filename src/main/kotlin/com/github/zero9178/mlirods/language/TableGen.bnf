@@ -71,6 +71,7 @@
     BANG_COND="!cond"
     BANG_FOREACH="!foreach"
     BANG_FOLDL="!foldl"
+    BANG_CAST="!cast"
     // Used by live preview only.
     WHITE_SPACE="regexp:\s*"
   ]
@@ -632,6 +633,7 @@ private simple_value_node ::= integer_value_node
                           | class_instantiation_value_node
                           | identifier_value_node
                           | cond_operator_value_node
+                          | cast_operator_value_node
                           | foreach_operator_value_node
                           | foldl_operator_value_node
                           | bang_operator_value_node
@@ -756,6 +758,10 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
     ]
+}
+
+cast_operator_value_node ::= '!cast' '<' type_node '>' '(' value_node ')' {
+    pin=1
 }
 
 bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_node_list ')' value_node_follows>>? ')' {pin=1}

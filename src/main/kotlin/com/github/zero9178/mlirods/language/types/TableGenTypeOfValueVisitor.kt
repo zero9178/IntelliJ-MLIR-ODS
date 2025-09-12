@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.types
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorDefinition
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBoolValueNode
+import com.github.zero9178.mlirods.language.generated.psi.TableGenCastOperatorValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenConcatValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDagInitValueNode
@@ -114,4 +115,7 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
 
     override fun visitFoldlOperatorValueNode(element: TableGenFoldlOperatorValueNode): TableGenType =
         element.start?.type ?: TableGenUnknownType
+
+    override fun visitCastOperatorValueNode(o: TableGenCastOperatorValueNode) =
+        o.typeNode?.toType() ?: TableGenUnknownType
 }

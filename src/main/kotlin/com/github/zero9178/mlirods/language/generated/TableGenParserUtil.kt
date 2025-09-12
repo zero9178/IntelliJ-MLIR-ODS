@@ -26,6 +26,7 @@ class TableGenParserUtil {
             if (!result) result = TableGenParser.class_instantiation_value_node(builder, level + 1)
             if (!result) result = TableGenParser.identifier_value_node(builder, level + 1)
             if (!result) result = TableGenParser.cond_operator_value_node(builder, level + 1)
+            if (!result) result = TableGenParser.cast_operator_value_node(builder, level + 1)
             if (!result) result = TableGenParser.foreach_operator_value_node(builder, level + 1)
             if (!result) result = TableGenParser.foldl_operator_value_node(builder, level + 1)
             if (!result) result = TableGenParser.bang_operator_value_node(builder, level + 1)
