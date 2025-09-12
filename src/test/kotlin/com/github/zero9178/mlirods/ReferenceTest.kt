@@ -1,7 +1,6 @@
 package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.language.generated.psi.*
-import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.psi.PsiFile
@@ -313,6 +312,17 @@ class ReferenceTest : BasePlatformTestCase() {
         """.trimIndent()
         )
         assertEquals(field.fieldName, "i")
+    }
+
+    fun `test foreach statement`() {
+        val iter = doTestInline<TableGenForeachIterator>(
+            """
+            foreach i = [0, 1, 2] in {
+                defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        assertEquals("i", iter.name)
     }
 
     override fun getTestDataPath(): String? {

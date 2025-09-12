@@ -428,7 +428,22 @@ foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenForeachStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachStatementStubElementType"
 }
-foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_node)
+foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_node) {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+    ]
+    methods=[
+        name_identifier="IDENTIFIER"
+
+        getName
+        setName
+        getTextOffset
+    ]
+    pin=1
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenForeachIteratorMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachIteratorStubElementType"
+}
 
 if_statement ::= 'if' value_node 'then' if_body else_body? {
     methods=[
