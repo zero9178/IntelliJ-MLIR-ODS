@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.index.MAY_DERIVE_CLASS_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefvarStatementImpl
+import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenForeachIteratorImpl
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.stubs.TableGenFileStub
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
@@ -74,6 +75,11 @@ class TableGenDefvarStatementStubElementType(debugName: String) : TableGenAbstra
         }
     }
 }
+
+class TableGenForeachIteratorStubElementType(debugName: String) : TableGenAbstractIdentifierElementStubElementType(
+    debugName,
+    ::TableGenForeachIteratorImpl
+)
 
 sealed interface TableGenDefStatementStub : TableGenIdentifierElementStub {
     val baseClassNames: List<String>
