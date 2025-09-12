@@ -26,6 +26,9 @@ interface TableGenStubElementTypes {
         val FOREACH_STATEMENT = TableGenTypes.FOREACH_STATEMENT!!
 
         @JvmField
+        val FOREACH_ITERATOR = TableGenTypes.FOREACH_ITERATOR!!
+
+        @JvmField
         val LET_STATEMENT = TableGenTypes.LET_STATEMENT!!
 
         @JvmField
