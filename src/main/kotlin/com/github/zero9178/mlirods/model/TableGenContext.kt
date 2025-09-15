@@ -307,25 +307,22 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     }
 
     @RequiresReadLock
-    private fun getAllIncludedFiles(file: TableGenFile): Set<VirtualFile> = CachedValuesManager.getCachedValue(file) {
-        RecursionManager.doPreventingRecursion(file, true) {
-            val instance = PsiManager.getInstance(project)
+    private fun getAllIncludedFiles(file: TableGenFile, result: MutableSet<VirtualFile>) {
+        val instance = PsiManager.getInstance(project)
+        val workList = mutableListOf(file)
+        while (workList.isNotEmpty()) {
+            val last = workList.removeLast()
 
-            val result = mutableSetOf<VirtualFile>()
-            file.includeDirectives.mapNotNull {
+            workList += last.includeDirectives.mapNotNull {
                 it.includedFile
             }.mapNotNull {
                 if (!it.isValid) return@mapNotNull null
 
-                result += it
+                if (!result.add(it)) return@mapNotNull null
                 instance.findFile(it) as? TableGenFile
-            }.forEach {
-                result += getAllIncludedFiles(it)
             }
-
-            CachedValueProvider.Result.create(result, result + file + contextChangedModificationTracker)
         }
-    } ?: emptySet()
+    }
 
     /**
      * Returns the set of all files that are included in [file], directly, transitively or as part of the active
@@ -347,13 +344,14 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
             context.includedBeforeThis.asSequence().mapNotNull {
                 if (!it.isValid) return@mapNotNull null
 
-                result += it
+                if (!result.add(it)) return@mapNotNull null
+
                 instance.findFile(it) as? TableGenFile
             }.forEach {
-                result += getAllIncludedFiles(it)
+                getAllIncludedFiles(it, result)
             }
         }
-        result += getAllIncludedFiles(file)
+        getAllIncludedFiles(file, result)
         CachedValueProvider.Result.create(result, result + file + contextChangedModificationTracker)
     }
 }

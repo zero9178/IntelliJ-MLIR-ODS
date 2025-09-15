@@ -57,15 +57,20 @@ class ReferenceTest : BasePlatformTestCase() {
     fun `test infinite include recursion`() {
         val testFile = myFixture.createFile(
             "test.td", """
-            include "test.td"
+            include "other.td"
             
             defvar i = <caret>a;
+        """.trimIndent()
+        )
+        val otherFile = myFixture.createFile(
+            "other.td", """
+            include "test.td"
         """.trimIndent()
         )
         installCompileCommands(
             project,
             mapOf(
-                testFile to IncludePaths(listOf(testFile.parent))
+                testFile to IncludePaths(listOf(testFile.parent, otherFile.parent))
             ),
         )
 
