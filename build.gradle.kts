@@ -125,7 +125,11 @@ intellijPlatform {
 
         ides {
             select {
-                types = listOf(IntelliJPlatformType.IntellijIdeaUltimate, IntelliJPlatformType.CLion)
+                types = providers.gradleProperty("verifyIDEs").map {
+                    it.split(',').filter { it.isNotEmpty() }.map {
+                        IntelliJPlatformType.fromCode(it)
+                    }
+                }
                 sinceBuild = providers.gradleProperty("pluginSinceBuild")
                 untilBuild = providers.gradleProperty("pluginUntilBuild")
                 channels = listOf(
