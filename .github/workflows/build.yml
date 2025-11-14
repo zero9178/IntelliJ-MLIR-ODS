@@ -130,6 +130,9 @@ jobs:
     name: Verify plugin
     needs: [ build ]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        IDE: [IU, CL]
     steps:
 
       # Free GitHub Actions Environment Disk Space
@@ -158,14 +161,14 @@ jobs:
 
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
       - name: Run Plugin Verification tasks
-        run: ./gradlew verifyPlugin
+        run: ./gradlew verifyPlugin -PverifyIDEs=${{matrix.IDE}}
 
       # Collect Plugin Verifier Result
       - name: Collect Plugin Verifier Result
         if: ${{ always() }}
         uses: actions/upload-artifact@v5
         with:
-          name: pluginVerifier-result
+          name: pluginVerifier-result-${{matrix.IDE}}
           path: ${{ github.workspace }}/build/reports/pluginVerifier
 
   # Prepare a draft release for GitHub Releases page for the manual verification
