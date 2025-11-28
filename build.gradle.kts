@@ -170,7 +170,14 @@ tasks {
     }
 
     fun generateParserTask(suffix: String = "", config: GenerateParserTask.() -> Unit = {}) =
-        task<GenerateParserTask>("generateParser${suffix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }}") {
+        register<GenerateParserTask>(
+            "generateParser${
+                suffix.replaceFirstChar {
+                    if (it.isLowerCase()) it.titlecase(
+                        Locale.getDefault()
+                    ) else it.toString()
+                }
+            }") {
             purgeOldFiles.set(true)
             targetRootOutputDir.set(file("src/main/gen"))
             sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.bnf"))
@@ -191,7 +198,7 @@ tasks {
 
         dependsOn(initial)
     }
-    val stringLexer = task("generateStringLexer", GenerateLexerTask::class) {
+    val stringLexer = register<GenerateLexerTask>("generateStringLexer") {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/highlighting/TableGenString.flex"))
         targetOutputDir.set(file("src/main/gen/com/github/zero9178/mlirods/highlighting/generated"))
     }
