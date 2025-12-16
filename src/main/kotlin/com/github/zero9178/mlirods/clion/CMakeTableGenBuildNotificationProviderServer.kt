@@ -5,9 +5,7 @@ import com.github.zero9178.mlirods.lsp.isTableGenFile
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.fileEditor.FileEditor
-import com.intellij.openapi.progress.blockingContext
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -44,7 +42,7 @@ class CMakeTableGenBuildNotificationProviderService(private val project: Project
      * May be called from any thread.
      */
     fun showBuildNotification(configuration: CMakeConfiguration) = cs.launch {
-        val workSpace = project.serviceAsync<CMakeWorkspace>()
+        val workSpace = project.service<CMakeWorkspace>()
         val hostMachine = readAction {
             workSpace
                 .profileInfos
@@ -84,9 +82,7 @@ class CMakeTableGenBuildNotificationProviderService(private val project: Project
     internal fun performBuild() {
         val value = myConfiguration ?: return
         cs.launch {
-            blockingContext {
-                CMakeBuild.build(project, CMakeAppRunConfiguration.BuildAndRunConfigurations(value))
-            }
+            CMakeBuild.build(project, CMakeAppRunConfiguration.BuildAndRunConfigurations(value))
         }
     }
 }

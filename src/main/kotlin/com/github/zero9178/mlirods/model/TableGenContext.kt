@@ -1,19 +1,17 @@
 package com.github.zero9178.mlirods.model
-
-import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.TableGenFileType
+import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.serviceAsync
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.checkCanceled
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
-import com.intellij.openapi.util.RecursionManager
 import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.originalFileOrSelf
@@ -22,8 +20,8 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter
 import com.intellij.psi.impl.PsiManagerEx
 import com.intellij.psi.search.FileTypeIndex
-import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.rd.util.firstOrNull
@@ -37,8 +35,6 @@ import kotlinx.coroutines.flow.*
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import kotlin.sequences.forEach
-import kotlin.sequences.mapNotNull
 
 data class TableGenContext(
     /**
@@ -101,7 +97,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     private val myFileToContexts: MutableMap<VirtualFile, Value> = mutableMapOf()
     private val myLock = ReentrantReadWriteLock()
     private val fileManager = cs.async {
-        (project.serviceAsync<PsiManager>() as PsiManagerEx).fileManager
+        (project.service<PsiManager>() as PsiManagerEx).fileManager
     }
 
     // Extra flow purely used for profiling purposes. A replay of 1 makes sure that new subscribers immediately receive
@@ -162,7 +158,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
         cs.launch {
             // Apply value changes to all files mentioned in the compile commands.
-            project.serviceAsync<CompilationCommands>().stateFlow.collectLatest { state ->
+            project.service<CompilationCommands>().stateFlow.collectLatest { state ->
                 myProfilingRefreshFlow.emit(System.nanoTime() to true)
 
                 val updated = mutableSetOf<VirtualFile>()
@@ -248,7 +244,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     }
 
     private suspend fun pushUpdatesToIncludesAfterNewContext(updatedFile: VirtualFile) {
-        val instance = project.serviceAsync<PsiManager>()
+        val instance = project.service<PsiManager>()
 
         // Limit the read action from the Psi read to let write actions run as soon as possible.
         val (included, newContext) = readAction {
