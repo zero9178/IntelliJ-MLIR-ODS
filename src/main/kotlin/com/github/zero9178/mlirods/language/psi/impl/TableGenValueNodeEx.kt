@@ -7,6 +7,7 @@ import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 
 /**
@@ -47,4 +48,14 @@ interface TableGenIntegerValueNodeEx : TableGenAtomicValue {
 
 interface TableGenStringValueNodeEx : TableGenAtomicValue {
     override fun evaluateAtomic(): TableGenStringValue?
+}
+
+interface TableGenBlockStringValueNodeEx : TableGenStringValueNodeEx {
+    /**
+     *
+     */
+    val relevantTextRange: TextRange
+        get() {
+            return TextRange(2, textLength - 2)
+        }
 }

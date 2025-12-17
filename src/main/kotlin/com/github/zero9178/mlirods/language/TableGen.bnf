@@ -677,7 +677,12 @@ string_value_node ::= block_string_value
 }
 block_string_value ::= BLOCK_STRING_LITERAL {
     extends=string_value_node
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenFoldingElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenBlockStringValueNodeEx"
+        "com.intellij.psi.PsiLanguageInjectionHost"
+    ]
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenBlockStringValueMixin"
     methods = [
         getPlaceHolderText
     ]

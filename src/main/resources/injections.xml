@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="LanguageInjectionConfiguration">
+    <injection language="Markdown" injector-id="TableGen">
+        <display-name>Markdown description (MLIR)</display-name>
+        <place><![CDATA[tableGenStringValue().withParent(tableGenLetBodyItem().withFieldName("description"))]]></place>
+    </injection>
+</component>

@@ -7,6 +7,7 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.ultimate</depends>
     <depends optional="true" config-file="com.github.zero9178.mlirods-clion.xml">com.intellij.clion.cmake</depends>
+    <depends optional="true" config-file="com.github.zero9178.mlirods-intellilang.xml">org.intellij.intelliLang</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
