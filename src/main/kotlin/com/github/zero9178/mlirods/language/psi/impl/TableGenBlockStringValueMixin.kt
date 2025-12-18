@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringVal
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenStringValueNodeImpl
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.text.isLineBreak
 import com.intellij.psi.ElementManipulators
 import com.intellij.psi.LiteralTextEscaper
 import com.intellij.psi.PsiLanguageInjectionHost
@@ -83,8 +84,9 @@ class LeadingWhiteSpaceLiteralTextEscaper(host: TableGenBlockStringValue) :
         }
 
         for ((offset, line) in linesWithOffset)
-            if (line.isBlank())
-                myHostOffsetToLine[offset] = "\n"
+            if (line.length <= lowestPrefix) {
+                myHostOffsetToLine[offset] = line.dropWhile { it.isWhitespace() && !it.isLineBreak() }
+            }
             else
                 myHostOffsetToLine[offset + lowestPrefix] = line.drop(lowestPrefix)
 
@@ -118,6 +120,7 @@ class LeadingWhiteSpaceLiteralTextEscaper(host: TableGenBlockStringValue) :
 
             outChars.append(line)
         }
+//        outChars.append(range.substring(myHost.text))
         return valid
     }
 
@@ -127,12 +130,20 @@ class LeadingWhiteSpaceLiteralTextEscaper(host: TableGenBlockStringValue) :
     ): Int {
         val entry = myDecodedOffsetToLine.floorEntry(offsetInDecoded) ?: return -1
         return entry.value.startOffset + (offsetInDecoded - entry.key)
+//        return rangeInsideHost.startOffset + offsetInDecoded
     }
 
     override fun isOneLine() = false
 
-    override fun getRelevantTextRange(): TextRange = myHost.relevantTextRange.strip(myHost.text) {
-        it != '\n' && it.isWhitespace()
+    override fun getRelevantTextRange(): TextRange {
+        val textRange = myHost.relevantTextRange
+        val chars = myHost.text
+        var endOffset = textRange.endOffset
+        while (endOffset > textRange.startOffset && (chars[endOffset - 1].isWhitespace() && !chars[endOffset - 1].isLineBreak())) {
+            endOffset--
+        }
+
+        return TextRange(textRange.startOffset, endOffset)
     }
 }
 
