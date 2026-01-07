@@ -10,6 +10,7 @@ import com.github.zero9178.mlirods.model.TableGenContext
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
+import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.tree.TokenSet
 import com.intellij.util.ArrayFactory
@@ -23,7 +24,7 @@ class TableGenFile(viewProvider: FileViewProvider, val context: TableGenContext)
     /**
      * Returns a sequence of all stub elements that is one of the given [elementTypes].
      */
-    inline fun <reified T> stubStream(vararg elementTypes: IStubElementType<*, T>): Sequence<T> {
+    inline fun <reified T : PsiElement> stubStream(vararg elementTypes: IStubElementType<*, T>): Sequence<T> {
         val spine = stubbedSpine
         return (0 until spine.stubCount).asSequence().filter {
             elementTypes.contains(spine.getStubType(it))
