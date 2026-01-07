@@ -5,7 +5,6 @@ import com.intellij.execution.*
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeProfileInfo
@@ -41,7 +40,7 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
 
     init {
         val block: suspend CoroutineScope.() -> Unit = {
-            val workspace = project.serviceAsync<CMakeWorkspace>()
+            val workspace = project.service<CMakeWorkspace>()
             myProfileListFlow.value = readAction {
                 workspace.profileInfos.toList()
             }
@@ -66,7 +65,7 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
      * Starts an asynchronous operation to initialize the profile from the currently active target.
      */
     private fun initFromExecutionManager() = cs.launch {
-        val manager = project.serviceAsync<ExecutionTargetManager>()
+        val manager = project.service<ExecutionTargetManager>()
         val target = readAction {
             manager.activeTarget as? CMakeBuildProfileExecutionTarget
         } ?: return@launch
