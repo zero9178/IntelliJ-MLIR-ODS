@@ -1,27 +1,20 @@
 package com.github.zero9178.mlirods.clion
 
-import com.github.zero9178.mlirods.model.TableGenCompilationCommandsProvider
 import com.github.zero9178.mlirods.model.CompilationCommandsState
 import com.github.zero9178.mlirods.model.IncludePaths
+import com.github.zero9178.mlirods.model.TableGenCompilationCommandsProvider
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
-import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
+import com.intellij.openapi.vfs.newvfs.events.*
 import com.intellij.util.messages.impl.subscribeAsFlow
 import com.jetbrains.cidr.cpp.toolchains.CPPEnvironment
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.flow.*
 import org.yaml.snakeyaml.LoaderOptions
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.Constructor
@@ -45,63 +38,88 @@ private fun CPPEnvironment.toLocalVFS(path: String): VirtualFile? {
     }
 }
 
+private const val COMPILE_COMMANDS_FILE_NAME = "tablegen_compile_commands.yml"
+
+
 class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProvider {
+
+    private enum class VFSChange {
+        IncludeChanges, CompileCommandChange,
+    }
 
     override fun getCompilationCommandsFlow(project: Project): Flow<CompilationCommandsState> {
         // React to VCS changes that might create, move or delete one of the files returned by the flow.
         val vfsChangeFlow = project.messageBus.subscribeAsFlow(VirtualFileManager.VFS_CHANGES) {
-            send(Unit)
+            send(VFSChange.IncludeChanges)
+            send(VFSChange.CompileCommandChange)
             object : BulkFileListener {
                 override fun after(events: List<VFileEvent>) {
-                    if (events.any {
-                            it is VFileCreateEvent || it is VFileMoveEvent || it is VFileDeleteEvent
-                        }) trySend(Unit)
-                }
-            }
-        }
+                    events.forEach {
+                        when (it) {
+                            is VFileCreateEvent -> if (it.isDirectory) trySend(VFSChange.IncludeChanges)
+                            else if (it.childName == COMPILE_COMMANDS_FILE_NAME) trySend(VFSChange.CompileCommandChange)
 
-        return project.service<CMakeActiveProfileService>().profileFlow.filterNotNull().map {
-            it.generationDir.resolve("tablegen_compile_commands.yml") to it.environment
-        }.transform { (file, env) ->
-            if (env == null) return@transform
+                            is VFileMoveEvent -> if (it.file.isDirectory) trySend(VFSChange.IncludeChanges)
+                            else if (it.file.name == COMPILE_COMMANDS_FILE_NAME) trySend(VFSChange.CompileCommandChange)
 
-            try {
-                val result = file.inputStream().use { inputStream ->
-                    Yaml(Constructor(FileInfoDto::class.java, LoaderOptions())).loadAll(inputStream)
-                        .filterIsInstance<FileInfoDto>()
-                }
-                emit(result to env)
-            } catch (_: FileNotFoundException) {
-                // Swallow completely.
-            } catch (e: Throwable) {
-                // Rethrow cancellations.
-                currentCoroutineContext().ensureActive()
-                // Otherwise just warn.
-                LOG.warn(e)
-            }
-        }.combine(vfsChangeFlow) { (dtos, env), _ ->
-            val map = dtos.flatMap {
-                val virtualFile = env.toLocalVFS(it.filepath)
-                if (virtualFile == null) {
-                    LOG.warn("failed to find virtual file for ${it.filepath}")
-                    return@flatMap emptyList()
-                }
+                            is VFileDeleteEvent -> if (it.file.isDirectory) trySend(VFSChange.IncludeChanges)
+                            else if (it.file.name == COMPILE_COMMANDS_FILE_NAME) trySend(VFSChange.CompileCommandChange)
 
-                listOf(
-                    virtualFile to IncludePaths(
-                        it.includes.split(
-                            ';'
-                        ).flatMap { it ->
-                            val virtualFile = env.toLocalVFS(it)
-                            if (virtualFile == null) {
-                                LOG.warn("failed to find virtual file for $it")
-                                return@flatMap emptyList()
+                            is VFileContentChangeEvent -> {
+                                if (it.file.name == COMPILE_COMMANDS_FILE_NAME) trySend(VFSChange.CompileCommandChange)
                             }
-                            listOf(virtualFile)
-                        })
-                )
-            }.associate { it }
-            CompilationCommandsState(map)
+                        }
+                    }
+                }
+            }
         }
+        val compileCommandsChangeFlow = vfsChangeFlow.filter { it == VFSChange.CompileCommandChange }
+        val includeChangesFlow = vfsChangeFlow.filter { it == VFSChange.IncludeChanges }
+
+        return project.service<CMakeActiveProfileService>().profileFlow.filterNotNull()
+            .combine(compileCommandsChangeFlow) { profile, _ ->
+                profile.generationDir.resolve(COMPILE_COMMANDS_FILE_NAME) to profile.environment
+            }.transform { (file, env) ->
+                if (env == null) return@transform
+
+                try {
+                    val result = file.inputStream().use { inputStream ->
+                        Yaml(Constructor(FileInfoDto::class.java, LoaderOptions())).loadAll(inputStream)
+                            .filterIsInstance<FileInfoDto>()
+                    }
+                    emit(result to env)
+                } catch (_: FileNotFoundException) {
+                    // Swallow completely.
+                    emit(emptyList<FileInfoDto>() to env)
+                } catch (e: Throwable) {
+                    // Rethrow cancellations.
+                    currentCoroutineContext().ensureActive()
+                    // Otherwise just warn.
+                    LOG.warn(e)
+                }
+            }.distinctUntilChanged().combine(includeChangesFlow) { (dtos, env), _ ->
+                val map = dtos.flatMap { dto ->
+                    val virtualFile = env.toLocalVFS(dto.filepath)
+                    if (virtualFile == null) {
+                        LOG.warn("failed to find virtual file for ${dto.filepath}")
+                        return@flatMap emptyList()
+                    }
+
+                    listOf(
+                        virtualFile to IncludePaths(
+                            dto.includes.split(
+                                ';'
+                            ).flatMap {
+                                val virtualFile = env.toLocalVFS(it)
+                                if (virtualFile == null) {
+                                    LOG.warn("failed to find virtual file for $it")
+                                    return@flatMap emptyList()
+                                }
+                                listOf(virtualFile)
+                            })
+                    )
+                }.associate { it }
+                CompilationCommandsState(map)
+            }
     }
 }
