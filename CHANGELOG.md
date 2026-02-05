@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-02-05
+
 ### Added
 
 - Line markers for fields that are overwritten (either by `let` or another field).
@@ -12,7 +14,7 @@
 
 ### Fixed
 
-- Stale includes paths when `tablegen_compile_commands.yml` is modified, created or deleted. 
+- Stale includes paths when `tablegen_compile_commands.yml` is modified, created or deleted.
 
 ## [0.11.0] - 2025-09-01
 
@@ -179,7 +181,8 @@ items in the `Find usage` functionality confusing for users.
 
 - Support for using `tblgen-lsp-server` built as part of the opened CMake project
 
-[Unreleased]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.8.0...v0.9.0
