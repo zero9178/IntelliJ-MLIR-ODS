@@ -5,7 +5,7 @@
     <vendor>zero9178</vendor>
 
     <depends>com.intellij.modules.platform</depends>
-    <depends optional="true" config-file="com.github.zero9178.mlirods-lsp.xml">com.intellij.modules.lsp</depends>
+    <depends>com.intellij.modules.ultimate</depends>
     <depends optional="true" config-file="com.github.zero9178.mlirods-clion.xml">com.intellij.clion.cmake</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
@@ -92,7 +92,14 @@
         <breadcrumbsInfoProvider implementation="com.github.zero9178.mlirods.language.TableGenBreadcrumbsProvider"/>
     </extensions>
 
+    <extensions defaultExtensionNs="com.intellij.platform.lsp">
+        <serverSupportProvider
+                implementation="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProvider"/>
+    </extensions>
+
     <extensionPoints>
+        <extensionPoint name="tableGenServerSupportProvider" dynamic="true"
+                        interface="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProviderInterface"/>
         <extensionPoint name="compilationCommandsProvider" dynamic="true"
                         interface="com.github.zero9178.mlirods.model.TableGenCompilationCommandsProvider"/>
     </extensionPoints>
