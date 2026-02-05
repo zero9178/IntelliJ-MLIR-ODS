@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.clion
 
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.lsp.isTableGenFile
+import com.github.zero9178.mlirods.settings.TableGenToolsApplicationSettings
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -20,6 +21,7 @@ import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
 import com.jetbrains.cidr.cpp.execution.CMakeAppRunConfiguration
 import com.jetbrains.cidr.cpp.execution.build.CMakeBuild
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Function
@@ -30,6 +32,15 @@ import javax.swing.JComponent
  */
 @Service(Service.Level.PROJECT)
 class CMakeTableGenBuildNotificationProviderService(private val project: Project, private val cs: CoroutineScope) {
+
+    init {
+        cs.launch {
+            service<TableGenToolsApplicationSettings>().lspEnabledFlow.filter { !it }.collect {
+                // Clear the notification anytime the LSP is turned off.
+                clearNotifications()
+            }
+        }
+    }
 
     private var myConfiguration: CMakeConfiguration? by AtomicReference(null)
 
@@ -94,6 +105,7 @@ private class CMakeTableGenBuildNotificationProvider : EditorNotificationProvide
         project: Project, file: VirtualFile
     ): Function<in FileEditor, out JComponent?>? {
         if (!file.isTableGenFile) return null
+        if (!service<TableGenToolsApplicationSettings>().lspEnabled) return null
 
         val service = project.service<CMakeTableGenBuildNotificationProviderService>()
         if (!service.shouldShowNotification) return null

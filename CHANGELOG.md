@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added a settings page under `Tools` -> `TableGen` that allows disabling the LSP.
+
 ### Fixed
 
 - The plugin is now compatible with all JetBrains IDEs.

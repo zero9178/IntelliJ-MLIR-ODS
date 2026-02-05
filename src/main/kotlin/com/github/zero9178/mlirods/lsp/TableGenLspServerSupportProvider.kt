@@ -1,5 +1,7 @@
 package com.github.zero9178.mlirods.lsp
 
+import com.github.zero9178.mlirods.settings.TableGenToolsApplicationSettings
+import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -12,6 +14,8 @@ internal class TableGenLspServerSupportProvider : LspServerSupportProvider {
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter
     ) {
+        if (!service<TableGenToolsApplicationSettings>().lspEnabled) return
+
         if (!file.isTableGenFile) return
 
         EP_NAME.findFirstSafe {
