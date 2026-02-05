@@ -11,10 +11,31 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
+import com.intellij.platform.lsp.api.customization.LspCodeActionsCustomizer
+import com.intellij.platform.lsp.api.customization.LspCodeActionsDisabled
 import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
+import com.intellij.platform.lsp.api.customization.LspCommandsCustomizer
+import com.intellij.platform.lsp.api.customization.LspCompletionCustomizer
+import com.intellij.platform.lsp.api.customization.LspCompletionDisabled
 import com.intellij.platform.lsp.api.customization.LspCompletionSupport
+import com.intellij.platform.lsp.api.customization.LspCustomization
+import com.intellij.platform.lsp.api.customization.LspDiagnosticsCustomizer
+import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
+import com.intellij.platform.lsp.api.customization.LspDocumentColorCustomizer
+import com.intellij.platform.lsp.api.customization.LspDocumentLinkCustomizer
+import com.intellij.platform.lsp.api.customization.LspDocumentLinkDisabled
 import com.intellij.platform.lsp.api.customization.LspDocumentLinkSupport
+import com.intellij.platform.lsp.api.customization.LspFindReferencesCustomizer
+import com.intellij.platform.lsp.api.customization.LspFindReferencesDisabled
 import com.intellij.platform.lsp.api.customization.LspFindReferencesSupport
+import com.intellij.platform.lsp.api.customization.LspFormattingCustomizer
+import com.intellij.platform.lsp.api.customization.LspGoToDefinitionCustomizer
+import com.intellij.platform.lsp.api.customization.LspGoToDefinitionDisabled
+import com.intellij.platform.lsp.api.customization.LspGoToTypeDefinitionCustomizer
+import com.intellij.platform.lsp.api.customization.LspGoToTypeDefinitionDisabled
+import com.intellij.platform.lsp.api.customization.LspHoverCustomizer
+import com.intellij.platform.lsp.api.customization.LspSemanticTokensCustomizer
+import com.intellij.platform.lsp.api.customization.LspSemanticTokensDisabled
 import com.intellij.platform.lsp.api.customization.LspSemanticTokensSupport
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
@@ -112,30 +133,38 @@ class TableGenLspServerDescriptor(
 
     override fun isSupportedFile(file: VirtualFile) = file.extension == "td"
 
-    /**
-     * tblgen-lsp-server at the moment does not support 'codeAction'.
-     * See https://github.com/llvm/llvm-project/blob/05b907f66b6aed06b8ad3b27883b9108a77858d2/mlir/lib/Tools/tblgen-lsp-server/LSPServer.cpp#L196
-     */
-    override val lspCodeActionsSupport: LspCodeActionsSupport?
-        get() = null
+    override val lspCustomization: LspCustomization
+        // We want to disable everything that is provided by the plugin as our implementation is hopefully higher
+        // quality than what the LSP interface allows.
+        get() = object : LspCustomization() {
+            /**
+             * tblgen-lsp-server at the moment does not support 'codeAction'.
+             * See https://github.com/llvm/llvm-project/blob/05b907f66b6aed06b8ad3b27883b9108a77858d2/mlir/lib/Tools/tblgen-lsp-server/LSPServer.cpp#L196
+             */
+            override val codeActionsCustomizer: LspCodeActionsCustomizer
+                get() = LspCodeActionsDisabled
 
-    override val lspDocumentLinkSupport: LspDocumentLinkSupport?
-        get() = null
+            override val completionCustomizer: LspCompletionCustomizer
+                get() = LspCompletionDisabled
 
-    override val lspCompletionSupport: LspCompletionSupport?
-        get() = null
+            override val diagnosticsCustomizer: LspDiagnosticsCustomizer
+                get() = LspDiagnosticsSupport()
 
-    override val lspFindReferencesSupport: LspFindReferencesSupport?
-        get() = null
+            override val findReferencesCustomizer: LspFindReferencesCustomizer
+                get() = LspFindReferencesDisabled
 
-    override val lspGoToDefinitionSupport: Boolean
-        get() = false
+            override val goToDefinitionCustomizer: LspGoToDefinitionCustomizer
+                get() = LspGoToDefinitionDisabled
 
-    override val lspGoToTypeDefinitionSupport: Boolean
-        get() = false
+            override val goToTypeDefinitionCustomizer: LspGoToTypeDefinitionCustomizer
+                get() = LspGoToTypeDefinitionDisabled
 
-    override val lspSemanticTokensSupport: LspSemanticTokensSupport?
-        get() = null
+            override val semanticTokensCustomizer: LspSemanticTokensCustomizer
+                get() = LspSemanticTokensDisabled
+
+            override val documentLinkCustomizer: LspDocumentLinkCustomizer
+                get() = LspDocumentLinkDisabled
+        }
 }
 
 fun restartTableGenLSPAsync(project: Project) {
