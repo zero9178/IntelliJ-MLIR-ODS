@@ -1,6 +1,4 @@
 <idea-plugin>
-    <depends>com.intellij.modules.lsp</depends>
-
     <extensions defaultExtensionNs="com.intellij">
         <editorNotificationProvider
                 implementation="com.github.zero9178.mlirods.clion.CMakeTableGenBuildNotificationProvider"/>

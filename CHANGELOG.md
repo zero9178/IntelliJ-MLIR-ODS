@@ -4,10 +4,6 @@
 
 ## [Unreleased]
 
-### Fixed
-
-- The plugin is now compatible with all JetBrains IDEs.
-
 ## [0.12.0] - 2026-02-05
 
 ### Added
