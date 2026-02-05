@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- Line markers for fields that are overwritten (either by `let` or another field).
+- Breadcrumbs in the UI for TableGen elements that open a scope.
+- Identifier resolution for `foreach` statements
+
+### Fixed
+
+- Stale includes paths when `tablegen_compile_commands.yml` is modified, created or deleted. 
+
 ## [0.11.0] - 2025-09-01
 
 ### Added
