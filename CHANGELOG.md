@@ -10,7 +10,7 @@
 
 - Line markers for fields that are overwritten (either by `let` or another field).
 - Breadcrumbs in the UI for TableGen elements that open a scope.
-- Identifier resolution for `foreach` statements
+- Identifier resolution for `foreach` statements.
 
 ### Fixed
 
