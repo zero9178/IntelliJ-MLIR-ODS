@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.lsp
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessNotCreatedException
+import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfoRt
@@ -168,5 +169,5 @@ class TableGenLspServerDescriptor(
 }
 
 fun restartTableGenLSPAsync(project: Project) {
-    LspServerManager.getInstance(project).stopAndRestartIfNeeded(TableGenLspServerSupportProvider::class.java)
+    project.serviceIfCreated<LspServerManager>()?.stopAndRestartIfNeeded(TableGenLspServerSupportProvider::class.java)
 }
