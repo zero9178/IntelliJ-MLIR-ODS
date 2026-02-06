@@ -7,6 +7,7 @@
 ### Fixed
 
 - The plugin is now compatible with all JetBrains IDEs.
+- Auto-completion of directories in `include` will no longer place redundant slashes. 
 
 ## [0.12.0] - 2026-02-05
 

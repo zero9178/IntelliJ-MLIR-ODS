@@ -15,7 +15,7 @@ class CompletionTest : BasePlatformTestCase() {
             defvar values = [1];
             defvar test = !foldl(0, <caret>, acc, i, i);
         """.trimIndent(), "values", doesNotContain = listOf("acc", "i")
-        )
+    )
 
 
     fun `test foreach completion`() = doTest(
@@ -34,9 +34,8 @@ class CompletionTest : BasePlatformTestCase() {
             }
             
             defvar l = B<>.<caret>
-        """.trimIndent(),
-            "j"
-        )
+        """.trimIndent(), "j"
+    )
 
     fun `test let field lookup`() = doTest(
         """
@@ -49,8 +48,7 @@ class CompletionTest : BasePlatformTestCase() {
             class C : B {
                 let <caret>
             }
-        """.trimIndent(),
-        "j"
+        """.trimIndent(), "j"
     )
 
     fun `test field cross file access lookup`() = doCrossFileTestTyping(
@@ -58,13 +56,11 @@ class CompletionTest : BasePlatformTestCase() {
             class B {
                 int j = 0;
             }
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
                 
             defvar l = B<>.<caret>
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
                 
             defvar l = B<>.j<caret>
@@ -80,7 +76,9 @@ class CompletionTest : BasePlatformTestCase() {
         var directory = testTD.parent
         directory = WriteAction.computeAndWait<VirtualFile, Throwable> {
             directory.createDirectory("subdir").apply {
-                createDirectory("to-complete")
+                createDirectory("to-complete").apply {
+                    createDirectory("second-to-complete")
+                }
             }
         }
 
@@ -93,14 +91,25 @@ class CompletionTest : BasePlatformTestCase() {
 
         myFixture.completeBasic()
         assertSameElements(
-            requireNotNull(myFixture.lookupElementStrings),
-            "to-complete"
+            requireNotNull(myFixture.lookupElementStrings), "to-complete"
         )
         myFixture.type('\t')
-
         myFixture.checkResult(
             """
             include "to-complete/<caret>"
+        """.trimIndent()
+        )
+
+        myFixture.type('/')
+        myFixture.editor.caretModel.moveCaretRelatively(-1, 0, false, false, false)
+        myFixture.completeBasic()
+        assertSameElements(
+            requireNotNull(myFixture.lookupElementStrings), "second-to-complete"
+        )
+        myFixture.type('\t')
+        myFixture.checkResult(
+            """
+            include "to-complete/second-to-complete/<caret>"
         """.trimIndent()
         )
     }
@@ -127,8 +136,7 @@ class CompletionTest : BasePlatformTestCase() {
 
         myFixture.completeBasic()
         assertSameElements(
-            requireNotNull(myFixture.lookupElementStrings),
-            "to-complete.td"
+            requireNotNull(myFixture.lookupElementStrings), "to-complete.td"
         )
         myFixture.type('\t')
 
@@ -183,8 +191,7 @@ class CompletionTest : BasePlatformTestCase() {
             class A;
             
             class B : <caret>
-        """.trimIndent(), "A",
-            doesNotContain = listOf("int")
+        """.trimIndent(), "A", doesNotContain = listOf("int")
         )
     }
 
@@ -212,8 +219,7 @@ class CompletionTest : BasePlatformTestCase() {
         class A {
             lis<caret>
         }
-    """.trimIndent(),
-        """
+    """.trimIndent(), """
         class A {
             list<<caret>>
         }
@@ -225,8 +231,7 @@ class CompletionTest : BasePlatformTestCase() {
         class A {
             bits<caret>
         }
-    """.trimIndent(),
-        """
+    """.trimIndent(), """
         class A {
             bits<<caret>>
         }
@@ -238,8 +243,7 @@ class CompletionTest : BasePlatformTestCase() {
         class A {
             int<caret>
         }
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
         class A {
             int <caret>
         }
@@ -249,8 +253,7 @@ class CompletionTest : BasePlatformTestCase() {
     fun `test space after template arg`() = doTestTyping(
         """
         class A<int<caret>
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
         class A<int <caret>
         """.trimIndent()
     )
@@ -258,8 +261,7 @@ class CompletionTest : BasePlatformTestCase() {
     fun `test space after defset`() = doTestTyping(
         """
         defset int<caret>
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
         defset int <caret>
         """.trimIndent()
     )
@@ -270,8 +272,7 @@ class CompletionTest : BasePlatformTestCase() {
             class ALong<int i>;
             
             def : A<caret>;
-        """.trimIndent(),
-            """
+        """.trimIndent(), """
             class ALong<int i>;
             
             def : ALong<<caret>>;
@@ -285,8 +286,7 @@ class CompletionTest : BasePlatformTestCase() {
             def {
                 list<A<caret>> l;
             }
-        """.trimIndent(),
-            """
+        """.trimIndent(), """
             class ALong<int i>;
             
             def {
@@ -299,8 +299,7 @@ class CompletionTest : BasePlatformTestCase() {
             """
             class BLong;
             defvar v = [B<caret>];
-        """.trimIndent(),
-            """
+        """.trimIndent(), """
             class BLong;
             defvar v = [BLong<><caret>];
         """.trimIndent()
@@ -310,8 +309,7 @@ class CompletionTest : BasePlatformTestCase() {
             """
             class BLong;
             defvar v = [B<caret><>];
-        """.trimIndent(),
-            """
+        """.trimIndent(), """
             class BLong;
             defvar v = [BLong<caret><>];
         """.trimIndent()
@@ -322,12 +320,10 @@ class CompletionTest : BasePlatformTestCase() {
     fun `test class cross file access lookup`() = doCrossFileTestTyping(
         """
             class BLong;
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
             defvar l = B<caret>;
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
             defvar l = BLong<><caret>;
         """.trimIndent()
@@ -336,12 +332,10 @@ class CompletionTest : BasePlatformTestCase() {
     fun `test def cross file access lookup`() = doCrossFileTestTyping(
         """
             def BLong;
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
             defvar l = B<caret>;
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
             defvar l = BLong<caret>;
         """.trimIndent()
@@ -350,12 +344,10 @@ class CompletionTest : BasePlatformTestCase() {
     fun `test defvar cross file access lookup`() = doCrossFileTestTyping(
         """
             defvar BLong = 0;
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
             defvar l = B<caret>;
-        """.trimIndent(),
-        """
+        """.trimIndent(), """
             include "other.td"
             defvar l = BLong<caret>;
         """.trimIndent()

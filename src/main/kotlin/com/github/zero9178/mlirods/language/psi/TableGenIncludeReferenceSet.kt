@@ -94,8 +94,11 @@ class TableGenIncludeReferenceSet(
             return when (candidate) {
                 is PsiDirectory -> {
                     LookupElementBuilder.createWithIcon(candidate).withInsertHandler { c, e ->
-                        // Insert a slash afterwards if we are inserting a directory.
-                        c.document.insertString(c.tailOffset, "/")
+                        // Insert a slash afterward if we are inserting a directory and there isn't one already.
+                        val charsSequence = c.document.charsSequence
+                        if (c.tailOffset < charsSequence.length && charsSequence[c.tailOffset] != '/') {
+                            c.document.insertString(c.tailOffset, "/")
+                        }
                         c.editor.caretModel.moveCaretRelatively(1, 0, false, false, false)
                     }
                 }
