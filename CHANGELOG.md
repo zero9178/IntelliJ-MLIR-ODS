@@ -12,6 +12,7 @@
 
 - The plugin is now compatible with all JetBrains IDEs.
 - Auto-completion of directories in `include` will no longer place redundant slashes. 
+- `let`-item syntay in `let`-statements has been to their new syntax with braces rather than angle-brackets.
 
 ## [0.12.0] - 2026-02-05
 
