@@ -63,3 +63,41 @@ defvar t = l[0, ];
 let HWEncoding{4-0} = {0, 0, 0, 0, 1} in {
     def : Register<5>;
 }
+
+let append i = [2] in {
+    def {
+        list<int> i = [1];
+    }
+}
+
+let prepend i = [0] in {
+    def {
+        list<int> i = [1];
+    }
+}
+
+let append = 1 in {
+    def {
+        int append = 0;
+    }
+}
+
+let prepend = 1 in {
+    def {
+        int prepend = 0;
+    }
+}
+
+class WithList {
+    int append = 0;
+    int prepend = 0;
+    list<int> i = [1];
+}
+def : WithList {
+    let append = 1;
+    let append i = [2];
+}
+def : WithList {
+    let prepend = 1;
+    let prepend i = [0];
+}

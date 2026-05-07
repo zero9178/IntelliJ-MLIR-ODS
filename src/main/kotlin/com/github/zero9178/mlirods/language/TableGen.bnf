@@ -340,7 +340,11 @@ field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStubElementType"
     pin=2
 }
-let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value_node ';' {
+
+private let_mode_and_identifier ::= (('append' | 'prepend')? IDENTIFIER)
+                                  | IDENTIFIER
+
+let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_node ';' {
     pin=1
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
@@ -487,7 +491,7 @@ let_statement ::= 'let' let_list 'in' statement_block {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetStatementStubElementType"
 }
 private let_list ::= let_item (',' let_item)*
-let_item ::= IDENTIFIER ('{' range_list '}')? '=' value_node {
+let_item ::= let_mode_and_identifier ('{' range_list '}')? '=' value_node {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
         field_identifier="IDENTIFIER"
