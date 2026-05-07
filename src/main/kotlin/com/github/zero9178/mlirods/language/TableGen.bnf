@@ -479,13 +479,15 @@ let_statement ::= 'let' let_list 'in' statement_block {
     methods = [
         lBrace='LBRACE'
         rBrace='RBRACE'
+
+        toString
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenLetStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetStatementStubElementType"
 }
 private let_list ::= let_item (',' let_item)*
-let_item ::= IDENTIFIER ('<' range_list '>')? '=' value_node {
+let_item ::= IDENTIFIER ('{' range_list '}')? '=' value_node {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
         field_identifier="IDENTIFIER"

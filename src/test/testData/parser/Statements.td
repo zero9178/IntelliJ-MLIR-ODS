@@ -59,3 +59,7 @@ defvar l = !cond(
 );
 
 defvar t = l[0, ];
+
+let HWEncoding{4-0} = {0, 0, 0, 0, 1} in {
+    def : Register<5>;
+}
