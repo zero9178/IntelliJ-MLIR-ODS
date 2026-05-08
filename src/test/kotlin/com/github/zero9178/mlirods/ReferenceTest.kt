@@ -292,13 +292,15 @@ class ReferenceTest : BasePlatformTestCase() {
     }
 
     fun `test in let statement`() {
-        val statement = doTestInline<TableGenDefStatement>("""
+        val statement = doTestInline<TableGenDefStatement>(
+            """
             class AArch64Unsupported { list<Predicate> F; }
 
             let F = [] in def SVE2p1Unsupported : AArch64Unsupported;
 
             defvar v = <caret>SVE2p1Unsupported;
-        """.trimIndent())
+        """.trimIndent()
+        )
         assertEquals(statement.name, "SVE2p1Unsupported")
     }
 
@@ -324,6 +326,19 @@ class ReferenceTest : BasePlatformTestCase() {
             """
             foreach i = [0, 1, 2] in {
                 defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        assertEquals("i", iter.name)
+    }
+
+    fun `test append let`() {
+        val iter = doTestInline<TableGenFieldBodyItem>(
+            """
+            class F {
+                list<int> i = [];
+            
+                let append <caret>i = [10];
             }
         """.trimIndent()
         )
