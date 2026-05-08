@@ -96,15 +96,16 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun getFieldIdentifier(element: TableGenLetBodyItem): PsiElement? {
-            return element.childLeafs().lastOrNull {
-                it.elementType == TableGenTypes.IDENTIFIER
-            }
-        }
-
-        @JvmStatic
-        fun getFieldIdentifier(element: TableGenLetItem): PsiElement? {
-            return element.childLeafs().lastOrNull {
+        fun getFieldIdentifier(element: TableGenAbstractLetItem): PsiElement? {
+            var child = element.lastChild
+            return generateSequence {
+                if (child == null) null
+                else {
+                    val previous = child
+                    child = previous.prevSibling
+                    previous
+                }
+            }.firstOrNull {
                 it.elementType == TableGenTypes.IDENTIFIER
             }
         }
