@@ -348,9 +348,8 @@ let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_
     pin=1
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
-        field_identifier="IDENTIFIER"
-
         toString
+        getFieldIdentifier
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetBodyItemStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenLetBodyItemMixin"
@@ -494,7 +493,7 @@ private let_list ::= let_item (',' let_item)*
 let_item ::= let_mode_and_identifier ('{' range_list '}')? '=' value_node {
     implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
     methods=[
-        field_identifier="IDENTIFIER"
+        getFieldIdentifier
     ]
 }
 multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_class_list multi_class_ref>>? (';' | statement_block) {
