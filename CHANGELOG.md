@@ -7,6 +7,7 @@
 ### Added
 
 - Added a settings page under `Tools` -> `TableGen` that allows disabling the LSP.
+- Added parser support for `append` and `prepend` modifiers in `let` items and statements
 
 ### Fixed
 
