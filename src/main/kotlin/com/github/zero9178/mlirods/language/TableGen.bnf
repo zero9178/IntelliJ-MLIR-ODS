@@ -346,7 +346,9 @@ private let_mode_and_identifier ::= (('append' | 'prepend')? IDENTIFIER)
 
 let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_node ';' {
     pin=1
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
+    ]
     methods=[
         toString
         getFieldIdentifier
@@ -491,7 +493,9 @@ let_statement ::= 'let' let_list 'in' statement_block {
 }
 private let_list ::= let_item (',' let_item)*
 let_item ::= let_mode_and_identifier ('{' range_list '}')? '=' value_node {
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
+    ]
     methods=[
         getFieldIdentifier
     ]

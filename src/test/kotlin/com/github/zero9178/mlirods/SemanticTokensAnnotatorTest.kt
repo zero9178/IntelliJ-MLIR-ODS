@@ -10,13 +10,13 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
         
         myFixture.configureByText(
             "test.td", """
-            let prepend <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = 5 in {
+            let <text_attr textAttributesKey="TABLEGEN_KEYWORD">prepend</text_attr> <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = 5 in {
                 class Foo {
                     string <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = ?;
                 }
             }
             def Foo : Foo {
-                let append <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = "";
+                let <text_attr textAttributesKey="TABLEGEN_KEYWORD">append</text_attr> <text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr> = "";
             }
             defvar test = Foo.<text_attr textAttributesKey="TABLEGEN_FIELD">s</text_attr>;
             #define <text_attr textAttributesKey="TABLEGEN_PREPROCESSOR_MACRO_NAME">FOO</text_attr>
