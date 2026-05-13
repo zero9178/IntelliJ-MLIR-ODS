@@ -96,6 +96,9 @@
                 id="com.github.zero9178.mlirods.settings.TableGenToolsApplicationConfigurable"
                 key="tableGen.tools.displayName"
                 bundle="messages.MyBundle"/>
+        <annotator language="TableGen"
+                   implementationClass="com.github.zero9178.mlirods.language.annotator.TableGenSyntaxAnnotator"
+        />
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">

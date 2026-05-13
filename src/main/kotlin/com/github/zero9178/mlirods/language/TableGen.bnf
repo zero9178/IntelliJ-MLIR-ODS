@@ -341,8 +341,7 @@ field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     pin=2
 }
 
-private let_mode_and_identifier ::= (('append' | 'prepend')? IDENTIFIER)
-                                  | IDENTIFIER
+private let_mode_and_identifier ::= IDENTIFIER IDENTIFIER?
 
 let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_node ';' {
     pin=1

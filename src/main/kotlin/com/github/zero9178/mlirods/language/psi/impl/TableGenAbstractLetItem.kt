@@ -10,6 +10,10 @@ enum class LetMode {
 }
 
 interface TableGenAbstractLetItem : PsiElement, TableGenFieldIdentifierNode {
+    /**
+     * Returns the identifier representing the 'let'-mode if present.
+     * Note that it does not verify whether the identifier is one of "prepend" or "append".
+     */
     val letModeIdentifier: PsiElement?
         get() {
             val identifier = fieldIdentifier
@@ -21,15 +25,16 @@ interface TableGenAbstractLetItem : PsiElement, TableGenFieldIdentifierNode {
                     child = previous.nextSibling
                     previous
                 }
-            }.filter { it.elementType == TableGenTypes.IDENTIFIER }.takeWhile { it != identifier }.singleOrNull()?.let {
-                if (it.textMatches("prepend") || it.textMatches("append")) it
-                else null
-            }
+            }.filter { it.elementType == TableGenTypes.IDENTIFIER }.takeWhile { it != identifier }.singleOrNull()
         }
 
+    /**
+     * Returns the current let-mode or null if present and not unknown.
+     */
     val letMode: LetMode?
         get() = letModeIdentifier?.run {
             if (textMatches("prepend")) LetMode.Prepend
-            else LetMode.Append
+            else if (textMatches("append")) LetMode.Append
+            else null
         }
 }
