@@ -35,10 +35,6 @@ internal class TableGenToolsApplicationConfigurable : SearchableConfigurable {
 
     override fun apply() {
         settings.lspEnabled = myLspEnabled.get()
-
-        serviceIfCreated<ProjectManager>()?.openProjects?.forEach {
-            restartTableGenLSPAsync(it)
-        }
     }
 
     override fun reset() {
