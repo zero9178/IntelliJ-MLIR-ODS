@@ -57,6 +57,8 @@ private class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, DumbA
                 }
                 if (element is TableGenAbstractLetItem) {
                     element.letModeIdentifier?.let {
+                        if (element.letMode == null) return@let
+
                         addInfo(
                             HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
                                 .range(it)
