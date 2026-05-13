@@ -1,6 +1,9 @@
 package com.github.zero9178.mlirods.settings
 
+import com.github.zero9178.mlirods.lsp.restartTableGenLSPAsync
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.*
+import com.intellij.openapi.project.ProjectManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -39,6 +42,20 @@ class TableGenToolsApplicationSettings(private val cs: CoroutineScope) :
     val lspEnabledFlow: Flow<Boolean>
         get() = myLspEnabledFlow.distinctUntilChanged()
 
+    init {
+        cs.launch {
+            lspEnabledFlow.collect {
+                serviceIfCreated<ProjectManager>()?.let {
+                    readAction {
+                        it.openProjects
+                    }
+                }?.forEach {
+                    restartTableGenLSPAsync(it)
+                }
+            }
+        }
+    }
+
     override fun loadState(state: State) {
         super.loadState(state)
         // Update the flow anytime state is reloaded from disk.
@@ -48,6 +65,7 @@ class TableGenToolsApplicationSettings(private val cs: CoroutineScope) :
     }
 
     data class State(
-        @JvmField val lspEnabled: Boolean = true
+        // Note: Marking this as 'val' causes the field not to be serialized.
+        @JvmField var lspEnabled: Boolean = true
     )
 }
