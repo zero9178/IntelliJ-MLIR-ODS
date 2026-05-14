@@ -162,7 +162,7 @@ kover {
     }
 }
 
-val extraSourceDirs = mutableListOf<DirectoryProperty>()
+val extraSourceDirs = mutableListOf("src/main/parser")
 tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
@@ -182,7 +182,6 @@ tasks {
                 }
             }") {
             targetRootOutputDir.set(file("src/main/parser"))
-            extraSourceDirs += targetRootOutputDir
             sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.bnf"))
             config()
         }
@@ -195,15 +194,15 @@ tasks {
 
     generateLexer {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.flex"))
-        targetRootOutputDir.set(file("src/main/lexer"))
-        extraSourceDirs += targetRootOutputDir
+        extraSourceDirs += "src/main/lexer"
+        targetRootOutputDir.set(file(extraSourceDirs.last()))
 
         dependsOn(initial)
     }
     val stringLexer = register<GenerateLexerTask>("generateStringLexer") {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/highlighting/TableGenString.flex"))
-        targetRootOutputDir.set(file("src/main/stringLexer"))
-        extraSourceDirs += targetRootOutputDir
+        extraSourceDirs += "src/main/stringLexer"
+        targetRootOutputDir.set(file(extraSourceDirs.last()))
     }
 
     compileKotlin {
