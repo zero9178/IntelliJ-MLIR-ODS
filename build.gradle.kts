@@ -1,10 +1,10 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.grammarkit.tasks.GenerateLexerTask
-import org.jetbrains.grammarkit.tasks.GenerateParserTask
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.models.ProductRelease.Channel
+import org.jetbrains.intellij.platform.gradle.tasks.GenerateLexerTask
+import org.jetbrains.intellij.platform.gradle.tasks.GenerateParserTask
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import java.util.*
@@ -162,6 +162,7 @@ kover {
     }
 }
 
+val extraSourceDirs = mutableListOf<DirectoryProperty>()
 tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
@@ -180,11 +181,9 @@ tasks {
                     ) else it.toString()
                 }
             }") {
-            purgeOldFiles.set(true)
-            targetRootOutputDir.set(file("src/main/gen"))
+            targetRootOutputDir.set(file("src/main/parser"))
+            extraSourceDirs += targetRootOutputDir
             sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.bnf"))
-            pathToParser.set("com/github/zero9178/mlirods/language/generated/TableGenParser.java")
-            pathToPsiRoot.set("com/github/zero9178/mlirods/language/generated/psi")
             config()
         }
 
@@ -196,13 +195,15 @@ tasks {
 
     generateLexer {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.flex"))
-        targetOutputDir.set(file("src/main/gen/com/github/zero9178/mlirods/language/generated"))
+        targetRootOutputDir.set(file("src/main/lexer"))
+        extraSourceDirs += targetRootOutputDir
 
         dependsOn(initial)
     }
     val stringLexer = register<GenerateLexerTask>("generateStringLexer") {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/highlighting/TableGenString.flex"))
-        targetOutputDir.set(file("src/main/gen/com/github/zero9178/mlirods/highlighting/generated"))
+        targetRootOutputDir.set(file("src/main/stringLexer"))
+        extraSourceDirs += targetRootOutputDir
     }
 
     compileKotlin {
@@ -216,10 +217,10 @@ tasks {
 sourceSets {
     main {
         java {
-            srcDir("src/main/gen")
+            srcDir(extraSourceDirs)
         }
         kotlin {
-            srcDir("src/main/gen")
+            srcDir(extraSourceDirs)
         }
     }
 }
