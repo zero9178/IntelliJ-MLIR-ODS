@@ -30,7 +30,7 @@ private val DESCRIPTORS = arrayOf(
     AttributesDescriptor({ "Preprocessor//Directive" }, PREPROCESSOR_DIRECTIVE),
 )
 
-private class TableGenColorSettingsPage : ColorSettingsPage {
+internal class TableGenColorSettingsPage : ColorSettingsPage {
     override fun getIcon() = MyIcons.TableGenIcon
 
     override fun getHighlighter(): SyntaxHighlighter {

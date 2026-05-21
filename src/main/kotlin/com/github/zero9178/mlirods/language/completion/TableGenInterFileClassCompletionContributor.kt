@@ -16,7 +16,7 @@ import com.intellij.util.ProcessingContext
 /**
  * Completion contributor suggesting class statements of included files as well.
  */
-private class TableGenInterFileCompletionContributor : CompletionContributor() {
+internal class TableGenInterFileCompletionContributor : CompletionContributor() {
     init {
         extend(
             null,

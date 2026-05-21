@@ -11,7 +11,7 @@ import com.intellij.usageView.UsageViewLongNameLocation
 import com.intellij.usageView.UsageViewNodeTextLocation
 import com.intellij.usageView.UsageViewTypeLocation
 
-private class TableGenElementDescriptionProvider : ElementDescriptionProvider {
+internal class TableGenElementDescriptionProvider : ElementDescriptionProvider {
     override fun getElementDescription(
         element: PsiElement, location: ElementDescriptionLocation
     ): @NlsSafe String? {

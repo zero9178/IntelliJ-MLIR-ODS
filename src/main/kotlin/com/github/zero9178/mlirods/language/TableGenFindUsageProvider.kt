@@ -11,7 +11,7 @@ import com.intellij.usageView.UsageViewNodeTextLocation
 import com.intellij.usageView.UsageViewTypeLocation
 import org.jetbrains.annotations.Nls
 
-private class TableGenFindUsageProvider : FindUsagesProvider {
+internal class TableGenFindUsageProvider : FindUsagesProvider {
     override fun canFindUsagesFor(psiElement: PsiElement) = when (psiElement) {
         is TableGenClassStatement, is TableGenIdentifierElement, is TableGenFieldBodyItem -> true
         else -> false

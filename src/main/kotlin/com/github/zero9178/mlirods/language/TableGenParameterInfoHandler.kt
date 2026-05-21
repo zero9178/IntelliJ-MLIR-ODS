@@ -12,7 +12,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.startOffset
 
-private class TableGenParameterInfoHandler :
+internal class TableGenParameterInfoHandler :
     ParameterInfoHandlerWithTabActionSupport<TableGenAbstractClassRef, TableGenClassStatement, TableGenArgValueItem> {
 
     /**

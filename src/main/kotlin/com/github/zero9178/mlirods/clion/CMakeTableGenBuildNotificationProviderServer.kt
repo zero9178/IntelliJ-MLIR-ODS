@@ -98,7 +98,7 @@ class CMakeTableGenBuildNotificationProviderService(private val project: Project
     }
 }
 
-private class CMakeTableGenBuildNotificationProvider : EditorNotificationProvider, DumbAware {
+internal class CMakeTableGenBuildNotificationProvider : EditorNotificationProvider, DumbAware {
 
     @RequiresReadLock
     override fun collectNotificationData(

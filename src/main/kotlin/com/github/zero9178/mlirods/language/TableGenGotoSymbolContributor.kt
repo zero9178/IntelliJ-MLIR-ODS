@@ -10,7 +10,7 @@ import com.intellij.util.Processor
 import com.intellij.util.indexing.FindSymbolParameters
 import com.intellij.util.indexing.IdFilter
 
-private class TableGenGotoSymbolContributor : ChooseByNameContributorEx {
+internal class TableGenGotoSymbolContributor : ChooseByNameContributorEx {
     override fun processNames(
         processor: Processor<in String>,
         scope: GlobalSearchScope,

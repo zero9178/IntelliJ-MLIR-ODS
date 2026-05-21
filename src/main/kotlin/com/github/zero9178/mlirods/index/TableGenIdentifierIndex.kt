@@ -15,14 +15,14 @@ val IDENTIFIER_INDEX = StubIndexKey.createIndexKey<String, TableGenIdentifierEle
  */
 val ALL_IDENTIFIERS_INDEX = StubIndexKey.createIndexKey<Int, TableGenIdentifierElement>("ALL_IDENTIFIERS_INDEX")
 
-private class TableGenIdentifierIndex : StringStubIndexExtension<TableGenIdentifierElement>() {
+internal class TableGenIdentifierIndex : StringStubIndexExtension<TableGenIdentifierElement>() {
 
     override fun getKey(): StubIndexKey<String, TableGenIdentifierElement> {
         return IDENTIFIER_INDEX
     }
 }
 
-private class TableGenAllIdentifiersIndex : IntStubIndexExtension<TableGenIdentifierElement>() {
+internal class TableGenAllIdentifiersIndex : IntStubIndexExtension<TableGenIdentifierElement>() {
 
     override fun getKey(): StubIndexKey<Int, TableGenIdentifierElement> {
         return ALL_IDENTIFIERS_INDEX

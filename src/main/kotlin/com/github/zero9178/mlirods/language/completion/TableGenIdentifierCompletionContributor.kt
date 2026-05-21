@@ -15,7 +15,7 @@ import com.intellij.util.ProcessingContext
 /**
  * Completion contributor suggesting 'def' names of included files as well.
  */
-private class TableGenInterFileIdentifierCompletionContributor : CompletionContributor() {
+internal class TableGenInterFileIdentifierCompletionContributor : CompletionContributor() {
     init {
         extend(
             null, PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(

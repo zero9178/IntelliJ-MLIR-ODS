@@ -11,7 +11,7 @@ import com.intellij.psi.stubs.StubIndexKey
  */
 val MAY_DERIVE_CLASS_INDEX = StubIndexKey.createIndexKey<String, TableGenRecord>("MAY_DERIVE_CLASS_INDEX")
 
-private class TableGenMayDeriveClassIndex : StringStubIndexExtension<TableGenRecord>() {
+internal class TableGenMayDeriveClassIndex : StringStubIndexExtension<TableGenRecord>() {
 
     override fun getKey(): StubIndexKey<String, TableGenRecord> {
         return MAY_DERIVE_CLASS_INDEX

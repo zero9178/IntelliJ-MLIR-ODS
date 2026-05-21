@@ -7,7 +7,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.AbstractElementManipulator
 
-private abstract class TableGenAbstractClassRefManipulator<T : TableGenAbstractClassRef> :
+internal abstract class TableGenAbstractClassRefManipulator<T : TableGenAbstractClassRef> :
     AbstractElementManipulator<T>() {
     override fun handleContentChange(
         element: T,
@@ -25,8 +25,8 @@ private abstract class TableGenAbstractClassRefManipulator<T : TableGenAbstractC
     }
 }
 
-private class TableGenClassRefManipulator : TableGenAbstractClassRefManipulator<TableGenClassRef>()
-private class TableGenClassInstantiationValueNodeManipulator :
+internal class TableGenClassRefManipulator : TableGenAbstractClassRefManipulator<TableGenClassRef>()
+internal class TableGenClassInstantiationValueNodeManipulator :
     TableGenAbstractClassRefManipulator<TableGenClassInstantiationValueNode>()
 
-private class TableGenClassTypeNodeManipulator : TableGenAbstractClassRefManipulator<TableGenClassTypeNode>()
+internal class TableGenClassTypeNodeManipulator : TableGenAbstractClassRefManipulator<TableGenClassTypeNode>()

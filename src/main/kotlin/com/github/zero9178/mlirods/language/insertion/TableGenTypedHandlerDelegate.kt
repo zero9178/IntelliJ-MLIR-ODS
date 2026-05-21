@@ -10,7 +10,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.startOffset
 
-private class TableGenTypedHandlerDelegate : TypedHandlerDelegate() {
+internal class TableGenTypedHandlerDelegate : TypedHandlerDelegate() {
     override fun charTyped(
         c: Char, project: Project, editor: Editor, file: PsiFile
     ): Result {

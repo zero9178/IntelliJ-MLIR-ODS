@@ -15,14 +15,14 @@ val CLASS_INDEX = StubIndexKey.createIndexKey<String, TableGenClassStatement>("C
  */
 val ALL_CLASSES_INDEX = StubIndexKey.createIndexKey<Int, TableGenClassStatement>("ALL_CLASSES_INDEX")
 
-private class TableGenClassIndex : StringStubIndexExtension<TableGenClassStatement>() {
+internal class TableGenClassIndex : StringStubIndexExtension<TableGenClassStatement>() {
 
     override fun getKey(): StubIndexKey<String, TableGenClassStatement> {
         return CLASS_INDEX
     }
 }
 
-private class TableGenAllClassesIndex : IntStubIndexExtension<TableGenClassStatement>() {
+internal class TableGenAllClassesIndex : IntStubIndexExtension<TableGenClassStatement>() {
 
     override fun getKey(): StubIndexKey<Int, TableGenClassStatement> {
         return ALL_CLASSES_INDEX
