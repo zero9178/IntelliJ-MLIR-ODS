@@ -37,12 +37,10 @@ private class TableGenInterFileCompletionContributor : CompletionContributor() {
                     val project = parameters.position.project
                     val scope = TableGenIncludedSearchScope(parameters.position, project)
 
-                    result.startBatch()
                     ALL_CLASSES_INDEX.processElements(0, project, scope) {
                         result.addElement(createLookupElement(it, parameters.position))
                         !result.isStopped
                     }
-                    result.endBatch()
                 }
             }
         )
