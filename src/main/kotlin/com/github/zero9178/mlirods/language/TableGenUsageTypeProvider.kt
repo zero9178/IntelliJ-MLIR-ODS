@@ -13,7 +13,7 @@ private val CLASS_TEMPLATE_ARG_TYPE = UsageType(MyBundle.messagePointer("tableGe
 private val FIELD_DEFINITION_TYPE = UsageType(MyBundle.messagePointer("tableGen.field.definition"))
 private val INCLUDE_DIRECTIVE = UsageType(MyBundle.messagePointer("tableGen.include.directive"))
 
-private class TableGenUsageTypeProvider : UsageTypeProvider {
+internal class TableGenUsageTypeProvider : UsageTypeProvider {
     override fun getUsageType(element: PsiElement): UsageType? {
         return when (element) {
             is TableGenClassRef -> CLASS_REF

@@ -16,7 +16,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 
-private class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, DumbAware {
+internal class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, DumbAware {
 
     private var myHolder: HighlightInfoHolder? = null
 
@@ -101,7 +101,7 @@ private class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, DumbA
     }
 }
 
-private class TableGenSemanticTokensAnnotator : HighlightVisitor {
+internal class TableGenSemanticTokensAnnotator : HighlightVisitor {
 
     private var myHolder: HighlightInfoHolder? = null
 

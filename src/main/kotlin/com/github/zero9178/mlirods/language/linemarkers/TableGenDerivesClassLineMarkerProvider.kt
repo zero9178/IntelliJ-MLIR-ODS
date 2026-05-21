@@ -15,7 +15,7 @@ import javax.swing.Icon
 /**
  * Adds line markers that allow navigation to every records that derives from a class.
  */
-private class TableGenDerivesClassLineMarkerProvider : LineMarkerProviderDescriptor() {
+internal class TableGenDerivesClassLineMarkerProvider : LineMarkerProviderDescriptor() {
     override fun getName(): @GutterName String {
         return "Derives class"
     }

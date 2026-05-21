@@ -23,7 +23,7 @@ import javax.swing.Icon
  * Currently, does not insert the line marker if it directly overrides a field (since users can navigate to the field
  * by using field name). This may change in the future depending on how intuitive it is.
  */
-private class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerProviderDescriptor() {
+internal class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerProviderDescriptor() {
     override fun getName(): @GutterName String {
         return "Overriding"
     }
@@ -71,7 +71,7 @@ private class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerPr
  * Adds line markers to field- and let-body items that allow navigation to values that override the given field- or
  * let-body item.
  */
-private class TableGenOverriddenFieldAssignmentLineMarkerProvider : LineMarkerProviderDescriptor() {
+internal class TableGenOverriddenFieldAssignmentLineMarkerProvider : LineMarkerProviderDescriptor() {
     override fun getName(): @GutterName String {
         return "Overridden"
     }

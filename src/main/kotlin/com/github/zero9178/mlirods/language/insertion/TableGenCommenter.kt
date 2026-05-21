@@ -2,7 +2,7 @@ package com.github.zero9178.mlirods.language.insertion
 
 import com.intellij.lang.Commenter
 
-private class TableGenCommenter : Commenter {
+internal class TableGenCommenter : Commenter {
     override fun getLineCommentPrefix() = "//"
 
     override fun getBlockCommentPrefix() = "/*"

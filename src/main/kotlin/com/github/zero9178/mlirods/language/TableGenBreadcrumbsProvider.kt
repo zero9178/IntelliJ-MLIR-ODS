@@ -16,7 +16,7 @@ import com.intellij.psi.PsiNamedElement
 import com.intellij.ui.breadcrumbs.BreadcrumbsProvider
 import javax.swing.Icon
 
-private class TableGenBreadcrumbsProvider : BreadcrumbsProvider {
+internal class TableGenBreadcrumbsProvider : BreadcrumbsProvider {
     override fun getLanguages() = arrayOf(TableGenLanguage.INSTANCE)
 
     override fun acceptElement(element: PsiElement): Boolean {

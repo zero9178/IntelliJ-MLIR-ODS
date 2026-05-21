@@ -7,7 +7,7 @@ import com.intellij.ide.IconProvider
 import com.intellij.psi.PsiElement
 import javax.swing.Icon
 
-private class TableGenIconProvider : IconProvider() {
+internal class TableGenIconProvider : IconProvider() {
     override fun getIcon(element: PsiElement, flags: Int): Icon? {
         if (element.language != TableGenLanguage.INSTANCE) return null
 

@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirecti
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.AbstractElementManipulator
 
-private class TableGenIncludeManipulator : AbstractElementManipulator<TableGenIncludeDirective>() {
+internal class TableGenIncludeManipulator : AbstractElementManipulator<TableGenIncludeDirective>() {
     /**
      * Implements renaming of the string referring to the file being included.
      * [newContent] should be not-yet string-literal encoded string.

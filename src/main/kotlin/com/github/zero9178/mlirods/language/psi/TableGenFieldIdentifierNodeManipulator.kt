@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.AbstractElementManipulator
 
-private abstract class TableGenFieldIdentifierNodeManipulator<T : TableGenFieldIdentifierNode> :
+internal abstract class TableGenFieldIdentifierNodeManipulator<T : TableGenFieldIdentifierNode> :
     AbstractElementManipulator<T>() {
     override fun handleContentChange(
         element: T, range: TextRange, newContent: String
@@ -22,4 +22,4 @@ private abstract class TableGenFieldIdentifierNodeManipulator<T : TableGenFieldI
     }
 }
 
-private class TableGenLetBodyItemManipulator : TableGenFieldIdentifierNodeManipulator<TableGenLetBodyItem>()
+internal class TableGenLetBodyItemManipulator : TableGenFieldIdentifierNodeManipulator<TableGenLetBodyItem>()
