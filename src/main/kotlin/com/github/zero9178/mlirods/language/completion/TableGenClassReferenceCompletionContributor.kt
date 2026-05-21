@@ -17,7 +17,7 @@ import com.intellij.util.ProcessingContext
  * as an identifier value rather than a class instantiation and never call [TableGenClassReference.getVariants].
  * We detect this case and inject it here manually.
  */
-private class TableGenClassReferenceCompletionContributor : CompletionContributor(), DumbAware {
+internal class TableGenClassReferenceCompletionContributor : CompletionContributor(), DumbAware {
     init {
         extend(
             null,

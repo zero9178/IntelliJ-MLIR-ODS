@@ -73,7 +73,7 @@ private val DEFSET_STATEMENT_TYPE = typeIn<TableGenDefsetStatement>()
 
 private const val INSERT_SPACE_KEY = "NO_SPACE"
 
-private class TableGenKeywordCompletionContributor : CompletionContributor(), DumbAware {
+internal class TableGenKeywordCompletionContributor : CompletionContributor(), DumbAware {
     init {
         // Completion for keywords within the top level of a file.
         extend(

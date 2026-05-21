@@ -5,7 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValu
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.AbstractElementManipulator
 
-private class TableGenIdentifierValueNodeManipulator : AbstractElementManipulator<TableGenIdentifierValueNode>() {
+internal class TableGenIdentifierValueNodeManipulator : AbstractElementManipulator<TableGenIdentifierValueNode>() {
 
     override fun handleContentChange(
         element: TableGenIdentifierValueNode, range: TextRange, newContent: String

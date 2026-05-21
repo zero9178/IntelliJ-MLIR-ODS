@@ -16,7 +16,7 @@ import com.intellij.util.ProcessingContext
 /**
  * Completion contributor suggesting class statements of included files as well.
  */
-private class TableGenInterFileCompletionContributor : CompletionContributor() {
+internal class TableGenInterFileCompletionContributor : CompletionContributor() {
     init {
         extend(
             null,
@@ -37,12 +37,10 @@ private class TableGenInterFileCompletionContributor : CompletionContributor() {
                     val project = parameters.position.project
                     val scope = TableGenIncludedSearchScope(parameters.position, project)
 
-                    result.startBatch()
                     ALL_CLASSES_INDEX.processElements(0, project, scope) {
                         result.addElement(createLookupElement(it, parameters.position))
                         !result.isStopped
                     }
-                    result.endBatch()
                 }
             }
         )

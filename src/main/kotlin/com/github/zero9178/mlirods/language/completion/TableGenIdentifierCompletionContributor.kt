@@ -15,7 +15,7 @@ import com.intellij.util.ProcessingContext
 /**
  * Completion contributor suggesting 'def' names of included files as well.
  */
-private class TableGenInterFileIdentifierCompletionContributor : CompletionContributor() {
+internal class TableGenInterFileIdentifierCompletionContributor : CompletionContributor() {
     init {
         extend(
             null, PlatformPatterns.psiElement(TableGenTypes.IDENTIFIER).withParent(
@@ -27,12 +27,10 @@ private class TableGenInterFileIdentifierCompletionContributor : CompletionContr
                     val project = parameters.position.project
                     val scope = TableGenIncludedSearchScope(parameters.position, project)
 
-                    result.startBatch()
                     ALL_IDENTIFIERS_INDEX.processElements(0, project, scope) {
                         result.addElement(createLookupElement(it, parameters.position))
                         !result.isStopped
                     }
-                    result.endBatch()
                 }
             })
     }

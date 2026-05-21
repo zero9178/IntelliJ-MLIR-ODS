@@ -76,3 +76,7 @@ def {
         StrAttr:$sym_name
     );
 }
+
+def {
+    let appnd i = [5];
+}

@@ -13,7 +13,7 @@ private val PAIRS = arrayOf(
     BracePair(TableGenTypes.LPAREN, TableGenTypes.RPAREN, /*structural=*/true),
 )
 
-private class TableGenBraceMatcher : PairedBraceMatcher {
+internal class TableGenBraceMatcher : PairedBraceMatcher {
 
     override fun getPairs(): Array<BracePair> {
         return PAIRS

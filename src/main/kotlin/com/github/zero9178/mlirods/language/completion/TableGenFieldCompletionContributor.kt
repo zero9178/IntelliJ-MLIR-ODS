@@ -16,7 +16,7 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
 
-private class TableGenFieldCompletionContributor : CompletionContributor() {
+internal class TableGenFieldCompletionContributor : CompletionContributor() {
     init {
 
         extend(
