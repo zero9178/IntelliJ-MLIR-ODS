@@ -340,13 +340,17 @@ field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStubElementType"
     pin=2
 }
-let_body_item ::= 'let' IDENTIFIER ('{' range_list '}')? '=' value_node ';' {
-    pin=1
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
-    methods=[
-        field_identifier="IDENTIFIER"
 
+private let_mode_and_identifier ::= IDENTIFIER IDENTIFIER?
+
+let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_node ';' {
+    pin=1
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
+    ]
+    methods=[
         toString
+        getFieldIdentifier
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetBodyItemStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenLetBodyItemMixin"
@@ -479,16 +483,20 @@ let_statement ::= 'let' let_list 'in' statement_block {
     methods = [
         lBrace='LBRACE'
         rBrace='RBRACE'
+
+        toString
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenLetStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenLetStatementStubElementType"
 }
 private let_list ::= let_item (',' let_item)*
-let_item ::= IDENTIFIER ('<' range_list '>')? '=' value_node {
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+let_item ::= let_mode_and_identifier ('{' range_list '}')? '=' value_node {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
+    ]
     methods=[
-        field_identifier="IDENTIFIER"
+        getFieldIdentifier
     ]
 }
 multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_class_list multi_class_ref>>? (';' | statement_block) {

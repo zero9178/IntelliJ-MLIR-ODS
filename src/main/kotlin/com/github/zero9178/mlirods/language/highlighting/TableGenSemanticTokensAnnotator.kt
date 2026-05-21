@@ -1,11 +1,13 @@
 package com.github.zero9178.mlirods.language.highlighting
 
 import com.github.zero9178.mlirods.color.FIELD
+import com.github.zero9178.mlirods.color.KEYWORD
 import com.github.zero9178.mlirods.color.PREPROCESSOR_MACRO_NAME
 import com.github.zero9178.mlirods.color.SKIPPED_CODE
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode
+import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
@@ -52,6 +54,18 @@ private class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, DumbA
                             .textAttributes(FIELD)
                             .create()
                     )
+                }
+                if (element is TableGenAbstractLetItem) {
+                    element.letModeIdentifier?.let {
+                        if (element.letMode == null) return@let
+
+                        addInfo(
+                            HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
+                                .range(it)
+                                .textAttributes(KEYWORD)
+                                .create()
+                        )
+                    }
                 }
             }
 

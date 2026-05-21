@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.MyIcons
+import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
@@ -23,6 +24,7 @@ import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.util.childLeafs
+import com.intellij.psi.util.elementType
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.startOffset
 import javax.swing.Icon
@@ -91,6 +93,21 @@ class TableGenPsiImplUtil {
         @JvmStatic
         fun getReference(element: TableGenFieldAccessValueNode): PsiReference? {
             return TableGenFieldAccessReference(element)
+        }
+
+        @JvmStatic
+        fun getFieldIdentifier(element: TableGenAbstractLetItem): PsiElement? {
+            var child = element.lastChild
+            return generateSequence {
+                if (child == null) null
+                else {
+                    val previous = child
+                    child = previous.prevSibling
+                    previous
+                }
+            }.firstOrNull {
+                it.elementType == TableGenTypes.IDENTIFIER
+            }
         }
 
         /**

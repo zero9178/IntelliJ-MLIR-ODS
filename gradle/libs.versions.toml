@@ -4,11 +4,10 @@ junit = "4.13.2"
 
 # plugins
 changelog = "2.5.0"
-intelliJPlatform = "2.13.1"
-kotlin = "2.3.20"
-kover = "0.9.7"
-qodana = "2025.2.1"
-grammarKit = "2023.3.0.2"
+intelliJPlatform = "2.16.0"
+kotlin = "2.3.21"
+kover = "0.9.8"
+qodana = "2026.1.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -19,4 +18,4 @@ intelliJPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "inte
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 qodana = { id = "org.jetbrains.qodana", version.ref = "qodana" }
-grammarKit = { id = "org.jetbrains.grammarkit", version.ref = "grammarKit" }
+grammarKit = { id = "org.jetbrains.intellij.platform.grammarkit", version.ref = "intelliJPlatform" }
