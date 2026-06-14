@@ -71,6 +71,7 @@
     BANG_COND="!cond"
     BANG_FOREACH="!foreach"
     BANG_FOLDL="!foldl"
+    BANG_SORT="!sort"
     BANG_CAST="!cast"
     // Used by live preview only.
     WHITE_SPACE="regexp:\s*"
@@ -659,6 +660,7 @@ private simple_value_node ::= integer_value_node
                           | cast_operator_value_node
                           | foreach_operator_value_node
                           | foldl_operator_value_node
+                          | sort_operator_value_node
                           | bang_operator_value_node
 
 private meta value_node_list ::= <<trailing_item_list <<closing>> <<follows>> value_node>>
@@ -774,6 +776,21 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
         body="/value_node[2]"
         accmulator="/bang_operator_definition[0]"
         iterator="/bang_operator_definition[1]"
+
+        getDirectIdMap
+        isWithinNewScope
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
+}
+
+sort_operator_value_node ::= '!sort' '(' bang_operator_definition ',' value_node ',' value_node ')' {
+    pin=1
+    methods=[
+        iterable="/value_node[0]"
+        body="/value_node[1]"
+        iterator="/bang_operator_definition"
 
         getDirectIdMap
         isWithinNewScope

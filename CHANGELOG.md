@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added support for the `!sort` operator
+
 ## [0.13.0] - 2026-05-13
 
 ### Added

@@ -37,3 +37,4 @@ defvar test32 = !foldl(0, [5], acc, i, !add(acc, i));
 defvar test33 = 5{test18-test0};
 defvar test34 = 5{test18...test0};
 defvar test35 = !cast<string>(5);
+defvar test36 = !sort(a, [5], a);

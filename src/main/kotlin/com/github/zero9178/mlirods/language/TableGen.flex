@@ -73,6 +73,7 @@ WHITE_SPACE_OR_CC_COMMENT=({WHITE_SPACE}|{BLOCK_COMMENT})
 ("!cast")                                       { return TableGenTypes.BANG_CAST; }
 ("!foreach")                                    { return TableGenTypes.BANG_FOREACH; }
 ("!foldl")                                      { return TableGenTypes.BANG_FOLDL; }
+("!sort")                                       { return TableGenTypes.BANG_SORT; }
 ("!"[a-zA-Z]+)                                  { return TableGenTypes.BANG_OPERATOR; }
 ^({WHITE_SPACE_OR_CC_COMMENT}*"#ifdef")         { return TableGenTypes.HASHTAG_IFDEF; }
 ^({WHITE_SPACE_OR_CC_COMMENT}*"#ifndef")        { return TableGenTypes.HASHTAG_IFNDEF; }

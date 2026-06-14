@@ -4,3 +4,6 @@
 .qodana
 build
 gen/
+src/main/lexer/
+src/main/parser/
+src/main/stringLexer/
