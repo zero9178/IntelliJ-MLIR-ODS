@@ -74,6 +74,14 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test sort`() {
+        doTest(
+            """
+            defvar <caret>v = !sort(x, [5], x);
+        """.trimIndent(), TableGenListType(TableGenIntType)
+        )
+    }
+
     fun `test cast`() {
         doTest(
             """

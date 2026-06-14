@@ -13,6 +13,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessVal
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFoldlOperatorValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachOperatorValueNode
+import com.github.zero9178.mlirods.language.generated.psi.TableGenSortOperatorValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIntegerValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenListInitValueNode
@@ -66,6 +67,10 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
                             else -> TableGenUnknownType
                         }
 
+                    is TableGenSortOperatorValueNode ->
+                        (parent.iterable?.type as? TableGenListType)?.elementType
+                            ?: TableGenUnknownType
+
                     else -> TableGenUnknownType
                 }
             }
@@ -115,6 +120,9 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
 
     override fun visitFoldlOperatorValueNode(element: TableGenFoldlOperatorValueNode): TableGenType =
         element.start?.type ?: TableGenUnknownType
+
+    override fun visitSortOperatorValueNode(element: TableGenSortOperatorValueNode) =
+        element.iterable?.type ?: TableGenUnknownType
 
     override fun visitCastOperatorValueNode(o: TableGenCastOperatorValueNode) =
         o.typeNode?.toType() ?: TableGenUnknownType
