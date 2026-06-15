@@ -7,6 +7,7 @@
 ### Added
 
 - Added support for the `!sort` operator
+- Added support for the `!switch` operator, including validation of its case clauses and mandatory default value
 
 ## [0.13.0] - 2026-05-13
 

@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.highlighting
 
 import com.github.zero9178.mlirods.color.*
+import com.github.zero9178.mlirods.language.BANG_OPERATORS
 import com.github.zero9178.mlirods.language.KEYWORDS
 import com.github.zero9178.mlirods.language.PUNCTUATION
 import com.github.zero9178.mlirods.language.STRING_LITERALS
@@ -42,13 +43,13 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
         TableGenTypes.COMMA -> arrayOf(COMMA)
         TableGenTypes.SEMICOLON -> arrayOf(SEMICOLON)
         TableGenTypes.DOT -> arrayOf(DOT)
-        TableGenTypes.BANG_OPERATOR, TableGenTypes.BANG_COND, TableGenTypes.BANG_FOREACH, TableGenTypes.BANG_FOLDL -> arrayOf(BANG_OPERATOR)
         StringEscapesTokenTypes.VALID_STRING_ESCAPE_TOKEN -> arrayOf(STRING_ESCAPE)
         else -> when {
             KEYWORDS.contains(tokenType) -> arrayOf(KEYWORD)
             PUNCTUATION.contains(tokenType) -> arrayOf(OPERATION_SIGN)
             STRING_LITERALS.contains(tokenType) -> arrayOf(STRING)
             PREPROCESSOR_TOKENS.contains(tokenType) -> arrayOf(PREPROCESSOR_DIRECTIVE)
+            BANG_OPERATORS.contains(tokenType) -> arrayOf(BANG_OPERATOR)
             else -> emptyArray()
         }
     }

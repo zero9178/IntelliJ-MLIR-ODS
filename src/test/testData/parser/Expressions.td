@@ -38,3 +38,4 @@ defvar test33 = 5{test18-test0};
 defvar test34 = 5{test18...test0};
 defvar test35 = !cast<string>(5);
 defvar test36 = !sort(a, [5], a);
+defvar test37 = !switch(0, 1: "one", 2: "two", "zero");

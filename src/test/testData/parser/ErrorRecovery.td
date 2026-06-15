@@ -80,3 +80,12 @@ def {
 def {
     let appnd i = [5];
 }
+
+defvar e1 = !switch(0, 1:, "d");
+defvar after1 = 0;
+
+defvar e2 = !switch(0, );
+defvar after2 = 0;
+
+defvar e3 = !switch(0, : "v", "d");
+defvar after3 = 0;
