@@ -72,6 +72,7 @@
     BANG_FOREACH="!foreach"
     BANG_FOLDL="!foldl"
     BANG_SORT="!sort"
+    BANG_SWITCH="!switch"
     BANG_CAST="!cast"
     // Used by live preview only.
     WHITE_SPACE="regexp:\s*"
@@ -657,6 +658,7 @@ private simple_value_node ::= integer_value_node
                           | class_instantiation_value_node
                           | identifier_value_node
                           | cond_operator_value_node
+                          | switch_operator_value_node
                           | cast_operator_value_node
                           | foreach_operator_value_node
                           | foldl_operator_value_node
@@ -812,3 +814,23 @@ cond_clause ::= value_node ':' value_node {
         thenValue="value_node[1]"
     ]
 }
+
+switch_operator_value_node ::= '!switch' '(' value_node ',' <<trailing_item_list_no_comma ')' value_node_follows switch_clause>> ')' {
+    pin=1
+    methods=[
+        key="value_node"
+    ]
+}
+switch_clause ::= value_node (':' value_node)? {
+    pin(".*")=1
+    recoverWhile=switch_clause_recover
+    methods=[
+        caseKey="value_node[0]"
+        caseValue="value_node[1]"
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenSwitchClauseEx"
+    ]
+}
+private switch_clause_recover ::= !(switch_clause_follows)
+private switch_clause_follows ::= ',' | ')'
