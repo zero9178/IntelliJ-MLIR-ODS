@@ -310,6 +310,15 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
+        fun evaluateAtomic(element: TableGenBoolValueNode): TableGenIntegerValue {
+            when (element.text) {
+                "false" -> return TableGenIntegerValue(0)
+                "true" -> return TableGenIntegerValue(1)
+            }
+            error("Grammar should not allow any other kind of boolean")
+        }
+
+        @JvmStatic
         fun getDirectIdMap(element: TableGenForeachOperatorValueNode): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
             buildMap {
                 element.iterator?.let {

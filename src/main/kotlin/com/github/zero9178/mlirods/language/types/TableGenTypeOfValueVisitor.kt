@@ -39,7 +39,8 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
 
     override fun visitBlockStringValue(element: TableGenBlockStringValue) = TableGenStringType
 
-    override fun visitBoolValueNode(element: TableGenBoolValueNode) = TableGenBitType
+    // 'true'/'false' are syntactic sugar for the integer values 1 and 0.
+    override fun visitBoolValueNode(element: TableGenBoolValueNode) = TableGenIntType
 
     override fun visitListInitValueNode(element: TableGenListInitValueNode) = TableGenListType(
         element.typeNode?.toType() ?: element.valueNodeList.firstOrNull()?.type ?: TableGenUnknownType

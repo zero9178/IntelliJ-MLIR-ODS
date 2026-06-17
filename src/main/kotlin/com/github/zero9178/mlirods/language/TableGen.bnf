@@ -695,7 +695,15 @@ block_string_value ::= BLOCK_STRING_LITERAL {
         getPlaceHolderText
     ]
 }
-bool_value_node ::= 'true' | 'false'
+bool_value_node ::= 'true' | 'false' {
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAtomicValue"
+    ]
+    methods=[
+        evaluate
+        evaluateAtomic
+    ]
+}
 undef_value_node ::= '?'
 
 bits_init_value_node ::= '{' <<value_node_list '}' value_node_follows>>? '}' {
