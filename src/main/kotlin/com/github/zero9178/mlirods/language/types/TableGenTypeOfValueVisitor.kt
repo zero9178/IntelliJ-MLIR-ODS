@@ -21,6 +21,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenSingleSliceEle
 import com.github.zero9178.mlirods.language.generated.psi.TableGenSliceAccessValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenStringValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.generated.psi.TableGenUndefValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.intellij.psi.PsiElement
 
@@ -41,6 +42,8 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
 
     // 'true'/'false' are syntactic sugar for the integer values 1 and 0.
     override fun visitBoolValueNode(element: TableGenBoolValueNode) = TableGenIntType
+
+    override fun visitUndefValueNode(element: TableGenUndefValueNode) = TableGenUndefType
 
     override fun visitListInitValueNode(element: TableGenListInitValueNode) = TableGenListType(
         element.typeNode?.toType() ?: element.valueNodeList.firstOrNull()?.type ?: TableGenUnknownType

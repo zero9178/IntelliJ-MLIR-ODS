@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.types.TableGenIntType
 import com.github.zero9178.mlirods.language.types.TableGenListType
 import com.github.zero9178.mlirods.language.types.TableGenStringType
 import com.github.zero9178.mlirods.language.types.TableGenType
+import com.github.zero9178.mlirods.language.types.TableGenUndefType
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
@@ -95,6 +96,15 @@ class TypeComputationTest : BasePlatformTestCase() {
             """
             defvar <caret>v = true;
         """.trimIndent(), TableGenIntType
+        )
+    }
+
+
+    fun `test undef`() {
+        doTest(
+            """
+            defvar <caret>v = ?;
+        """.trimIndent(), TableGenUndefType
         )
     }
 
