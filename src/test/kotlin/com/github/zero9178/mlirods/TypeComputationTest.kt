@@ -90,6 +90,14 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test bool`() {
+        doTest(
+            """
+            defvar <caret>v = true;
+        """.trimIndent(), TableGenIntType
+        )
+    }
+
 
     fun doTest(source: String, expectedType: TableGenType) {
         myFixture.configureByText("test.td", source)

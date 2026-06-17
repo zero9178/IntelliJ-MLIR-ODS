@@ -75,6 +75,18 @@ class ValueComputationTest : BasePlatformTestCase() {
         TableGenStringValue("\n\t\\n\"\'")
     )
 
+    fun `test bool true`() = doTest(
+        """
+        defvar v = true;
+    """.trimIndent(), TableGenIntegerValue(1)
+    )
+
+    fun `test bool false`() = doTest(
+        """
+        defvar v = false;
+    """.trimIndent(), TableGenIntegerValue(0)
+    )
+
 
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
