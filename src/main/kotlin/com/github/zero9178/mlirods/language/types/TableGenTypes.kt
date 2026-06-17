@@ -84,6 +84,11 @@ class TableGenRecordType private constructor(
 }
 
 /**
+ * Type of the `?` ("undef") value, which is assignable to any field regardless of its type.
+ */
+object TableGenUndefType : TableGenType()
+
+/**
  * Type representing an unknown type due to a previous error, but not an error worth reporting itself.
  */
 object TableGenUnknownType : TableGenType()

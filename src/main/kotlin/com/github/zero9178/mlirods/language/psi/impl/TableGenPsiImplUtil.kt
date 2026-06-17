@@ -4,13 +4,9 @@ import com.github.zero9178.mlirods.MyIcons
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.*
-import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.toString
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub
 import com.github.zero9178.mlirods.language.types.*
-import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
-import com.github.zero9178.mlirods.language.values.TableGenStringValue
-import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
-import com.github.zero9178.mlirods.language.values.TableGenValue
+import com.github.zero9178.mlirods.language.values.*
 import com.intellij.extapi.psi.ASTDelegatePsiElement
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -316,6 +312,11 @@ class TableGenPsiImplUtil {
                 "true" -> return TableGenIntegerValue(1)
             }
             error("Grammar should not allow any other kind of boolean")
+        }
+
+        @JvmStatic
+        fun evaluateAtomic(element: TableGenUndefValueNode): TableGenUndefValue {
+            return TableGenUndefValue
         }
 
         @JvmStatic

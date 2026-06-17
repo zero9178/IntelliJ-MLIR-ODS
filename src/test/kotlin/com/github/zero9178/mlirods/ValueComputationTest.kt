@@ -88,6 +88,13 @@ class ValueComputationTest : BasePlatformTestCase() {
     )
 
 
+    fun `test undef`() = doTest(
+        """
+        defvar v = ?;
+    """.trimIndent(), TableGenUndefValue
+    )
+
+
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
     }
