@@ -1,6 +1,9 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenTypeOfValueVisitor
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
@@ -43,8 +46,22 @@ interface TableGenAtomicValue : TableGenValueNodeEx {
 
 interface TableGenIntegerValueNodeEx : TableGenAtomicValue {
     override fun evaluateAtomic(): TableGenIntegerValue?
+
+    val stub: TableGenIntegerValueNodeStub?
+}
+
+interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
+    val identifierText: String
+}
+
+interface TableGenBoolValueNodeEx : TableGenAtomicValue {
+    override fun evaluateAtomic(): TableGenIntegerValue
+
+    val stub: TableGenBoolValueNodeStub?
 }
 
 interface TableGenStringValueNodeEx : TableGenAtomicValue {
-    override fun evaluateAtomic(): TableGenStringValue?
+    override fun evaluateAtomic(): TableGenStringValue
+
+    val stub: TableGenStringValueNodeStub?
 }

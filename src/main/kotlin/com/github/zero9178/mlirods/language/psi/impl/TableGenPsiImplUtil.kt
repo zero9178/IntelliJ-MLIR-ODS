@@ -293,12 +293,20 @@ class TableGenPsiImplUtil {
 
         @JvmStatic
         fun evaluateAtomic(element: TableGenIntegerValueNode): TableGenIntegerValue? {
+            element.stub?.let {
+                return it.value?.let { value -> TableGenIntegerValue(value) }
+            }
+
             val value = getIntegerValue(element) ?: return null
             return TableGenIntegerValue(value)
         }
 
         @JvmStatic
         fun evaluateAtomic(element: TableGenStringValueNode): TableGenStringValue {
+            element.stub?.let {
+                return TableGenStringValue(it.value)
+            }
+
             val res = element.childLeafs().fold("") { acc, c ->
                 acc + getStringValue(c)
             }
@@ -307,6 +315,10 @@ class TableGenPsiImplUtil {
 
         @JvmStatic
         fun evaluateAtomic(element: TableGenBoolValueNode): TableGenIntegerValue {
+            element.stub?.let {
+                return TableGenIntegerValue(if (it.value) 1 else 0)
+            }
+
             when (element.text) {
                 "false" -> return TableGenIntegerValue(0)
                 "true" -> return TableGenIntegerValue(1)
