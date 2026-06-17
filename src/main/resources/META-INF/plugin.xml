@@ -99,6 +99,15 @@
         <annotator language="TableGen"
                    implementationClass="com.github.zero9178.mlirods.language.annotator.TableGenSyntaxAnnotator"
         />
+        <localInspection language="TableGen"
+                         shortName="TableGenRedefinedField"
+                         bundle="messages.MyBundle"
+                         key="tableGen.inspection.redefinedField.displayName"
+                         groupKey="tableGen.inspection.group"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.github.zero9178.mlirods.language.inspection.TableGenRedefinedFieldInspection"
+        />
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">

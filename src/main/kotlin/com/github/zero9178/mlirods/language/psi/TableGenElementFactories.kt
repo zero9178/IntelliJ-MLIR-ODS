@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
@@ -47,3 +48,13 @@ fun createIdentifierValueNode(project: Project, name: String): TableGenIdentifie
  */
 fun createIdentifier(project: Project, name: String) =
     (createFile(project, "defvar $name = $name;").firstChild as TableGenDefvarStatement).nameIdentifier!!
+
+/**
+ * Returns a [TableGenLetBodyItem] of the form `let [name] = [value];`.
+ */
+fun createLetBodyItem(project: Project, name: String, value: String): TableGenLetBodyItem {
+    return PsiTreeUtil.findChildOfType(
+        createFile(project, "class __dummy { let $name = $value; }"),
+        TableGenLetBodyItem::class.java
+    )!!
+}

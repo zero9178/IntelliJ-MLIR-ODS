@@ -5,8 +5,6 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.endOffset
-import com.intellij.psi.util.startOffset
 
 /**
  * Map used to lookup fields within a [TableGenFieldScopeNode].
@@ -16,33 +14,33 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode) {
 
     /**
      * Returns the field named [fieldName] within [myRoot] or null if no such field exists.
-     * If [element] is not null, null is returned if the field has not yet been defined at the location of [element].
+     * If there are multiple [TableGenFieldBodyItem] that define [fieldName], then the defining one is returned.
+     * If [beforeElement] is not null, null is returned if the field has not yet been defined at the location of
+     * [beforeElement].
      */
-    operator fun get(fieldName: String, element: PsiElement? = null): TableGenFieldBodyItem? = disallowTreeLoading {
-        val differentFile = myRoot.containingFile != element?.containingFile
+    operator fun get(fieldName: String, beforeElement: PsiElement? = null): TableGenFieldBodyItem? =
+        disallowTreeLoading {
+            // Only consider base classes referenced before 'beforeElement'.
+            myRoot.baseClassRefs.takeWhile {
+                beforeElement?.let { other -> it.isBefore(other) } ?: true
+            }.mapNotNull {
+                it.referencedClass
+            }.firstNotNullOfOrNull {
+                FieldMap(it)[fieldName, beforeElement]
+            }?.let { return@disallowTreeLoading it }
 
-        // Compute lazily as this performs a traversal up to the parent file.
-        val startOffset = lazy(LazyThreadSafetyMode.PUBLICATION) {
-            element?.startOffset ?: Int.MAX_VALUE
+            // Only consider fields defined before 'beforeElement'.
+            val field = myRoot.directFields[fieldName] ?: return@disallowTreeLoading null
+            when {
+                beforeElement == null -> field
+                field.isBefore(beforeElement) != false -> field
+                else -> null
+            }
         }
-
-        // Only consider fields defined before 'fieldName'.
-        myRoot.directFields[fieldName]?.let {
-            if (differentFile || it.endOffset < startOffset.value) return@disallowTreeLoading it
-        }
-
-        // Only consider base classes referenced before 'fieldName'.
-        myRoot.baseClassRefs.takeWhile {
-            differentFile || it.endOffset < startOffset.value
-        }.mapNotNull {
-            it.referencedClass
-        }.firstNotNullOfOrNull {
-            FieldMap(it)[fieldName, element]
-        }
-    }
 
     /**
-     * Returns the field named [fieldName] within [myRoot] or null if no such field exists.
+     * Returns the field named [fieldName] within [myRoot] or null if no such field exists yet at the location of
+     * [fieldName].
      */
     operator fun get(fieldName: PsiElement) = get(fieldName.text, fieldName)
 }
@@ -53,6 +51,7 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode) {
 interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     /**
      * Returns a map of all fields that are defined directly within this.
+     * If there is one or more field with the same name, the map contains the first occurrence.
      */
     val directFields: Map<String, TableGenFieldBodyItem>
 
@@ -64,21 +63,31 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
 
     /**
      * Returns a sequence of all fields of this class, including inherited fields.
+     * The field body items returned by this sequence are guaranteed to be the defining field body items.
      */
     val allFields: Sequence<TableGenFieldBodyItem>
-        get() = directFields.values.asSequence() + baseClassRefs.mapNotNull {
-            it.referencedClass
-        }.flatMap {
-            it.allFields
+        get() = sequence {
+            val seen = mutableSetOf<String?>()
+            baseClassRefs.mapNotNull {
+                it.referencedClass
+            }.flatMap {
+                it.allFields
+            }.forEach {
+                if (seen.add(it.fieldName))
+                    yield(it)
+            }
+
+            yieldAll(directFields.values.asSequence().filter {
+                !seen.contains(it.fieldName)
+            })
         }
 
     /**
      * Returns a map of all field assignments in order of application (earliest to latest), including from all
      * transitive base classes.
-     * The first element in a list is therefore always a field body item (if valid TableGen), followed by let body
-     * items.
+     * The first element in a list is therefore always a field body item if valid TableGen.
      */
-     val allFieldAssignments: Map<String, List<TableGenFieldIdentifierNode>>
+    val allFieldAssignments: Map<String, List<TableGenFieldIdentifierNode>>
         get() = CachedValuesManager.getProjectPsiDependentCache(this) {
             val result = directFieldAssignments.toMutableMap()
             baseClassRefs.toList().asReversed().mapNotNull { it.referencedClass }.map {

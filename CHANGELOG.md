@@ -8,6 +8,7 @@
 
 - Added support for the `!sort` operator
 - Added support for the `!switch` operator, including validation of its case clauses and mandatory default value
+- Added an inspection reporting fields that redefine an existing field, with a quick fix to convert them into a `let` statement
 
 ## [0.13.0] - 2026-05-13
 
