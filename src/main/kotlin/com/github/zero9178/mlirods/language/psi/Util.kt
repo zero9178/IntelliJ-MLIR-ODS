@@ -24,3 +24,11 @@ fun PsiElement.compareTo(other: PsiElement): Int? {
 
     return startOffset.compareTo(other.startOffset)
 }
+
+/**
+ * Returns true if `this` is defined before [other].
+ * Returns null if the elements are in different files.
+ */
+fun PsiElement.isBefore(other: PsiElement): Boolean? = this.compareTo(other)?.let {
+    it == -1
+}

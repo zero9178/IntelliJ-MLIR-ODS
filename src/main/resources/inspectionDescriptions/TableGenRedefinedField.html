@@ -1,0 +1,26 @@
+<html>
+<body>
+Reports fields that redefine a field already declared by the enclosing class, definition or one of its base classes.
+<p>
+    Although legal TableGen, redeclaring an inherited field merely to give it a new value shadows the original
+    declaration and is a code smell. A <code>let</code> statement expresses the intent of overriding an inherited
+    field's value without redeclaring it.
+</p>
+<p><b>Example:</b></p>
+<pre><code>
+class Base {
+  int x = 0;
+}
+
+class Derived : Base {
+  int x = 1; // redefinition of 'x'
+}
+</code></pre>
+<p>After applying the quick fix:</p>
+<pre><code>
+class Derived : Base {
+  let x = 1;
+}
+</code></pre>
+</body>
+</html>

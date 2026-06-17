@@ -330,6 +330,7 @@ field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenFieldBodyItemEx"
     ]
     methods=[
         field_identifier="IDENTIFIER"

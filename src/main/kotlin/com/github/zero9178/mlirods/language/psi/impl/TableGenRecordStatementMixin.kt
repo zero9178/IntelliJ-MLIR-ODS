@@ -47,7 +47,7 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
 
     private var myDirectFields = resettableLazy {
         directFieldAssignments.mapNotNull { (k, v) ->
-            val field = v.asReversed().firstNotNullOfOrNull {
+            val field = v.firstNotNullOfOrNull {
                 it as? TableGenFieldBodyItem
             } ?: return@mapNotNull null
             k to field
