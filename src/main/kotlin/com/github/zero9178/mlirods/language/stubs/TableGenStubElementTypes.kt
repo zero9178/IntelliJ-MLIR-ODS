@@ -132,5 +132,8 @@ interface TableGenStubElementTypes {
 
         @JvmField
         val SWITCH_OPERATOR_VALUE_NODE = TableGenTypes.SWITCH_OPERATOR_VALUE_NODE!!
+
+        @JvmField
+        val ARG_VALUE_ITEM = TableGenTypes.ARG_VALUE_ITEM!!
     }
 }
