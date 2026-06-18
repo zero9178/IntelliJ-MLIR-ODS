@@ -69,5 +69,68 @@ interface TableGenStubElementTypes {
 
         @JvmField
         val CLASS_TYPE_NODE = TableGenTypes.CLASS_TYPE_NODE!!
+
+        @JvmField
+        val CONCAT_VALUE_NODE = TableGenTypes.CONCAT_VALUE_NODE!!
+
+        @JvmField
+        val FIELD_ACCESS_VALUE_NODE = TableGenTypes.FIELD_ACCESS_VALUE_NODE!!
+
+        @JvmField
+        val BIT_ACCESS_VALUE_NODE = TableGenTypes.BIT_ACCESS_VALUE_NODE!!
+
+        @JvmField
+        val SLICE_ACCESS_VALUE_NODE = TableGenTypes.SLICE_ACCESS_VALUE_NODE!!
+
+        @JvmField
+        val INTEGER_VALUE_NODE = TableGenTypes.INTEGER_VALUE_NODE!!
+
+        @JvmField
+        val STRING_VALUE_NODE = TableGenTypes.STRING_VALUE_NODE!!
+
+        @JvmField
+        val BOOL_VALUE_NODE = TableGenTypes.BOOL_VALUE_NODE!!
+
+        @JvmField
+        val UNDEF_VALUE_NODE = TableGenTypes.UNDEF_VALUE_NODE!!
+
+        @JvmField
+        val BITS_INIT_VALUE_NODE = TableGenTypes.BITS_INIT_VALUE_NODE!!
+
+        @JvmField
+        val LIST_INIT_VALUE_NODE = TableGenTypes.LIST_INIT_VALUE_NODE!!
+
+        @JvmField
+        val DAG_INIT_VALUE_NODE = TableGenTypes.DAG_INIT_VALUE_NODE!!
+
+        @JvmField
+        val IDENTIFIER_VALUE_NODE = TableGenTypes.IDENTIFIER_VALUE_NODE!!
+
+        @JvmField
+        val CLASS_INSTANTIATION_VALUE_NODE = TableGenTypes.CLASS_INSTANTIATION_VALUE_NODE!!
+
+        @JvmField
+        val FOREACH_OPERATOR_VALUE_NODE = TableGenTypes.FOREACH_OPERATOR_VALUE_NODE!!
+
+        @JvmField
+        val FOLDL_OPERATOR_VALUE_NODE = TableGenTypes.FOLDL_OPERATOR_VALUE_NODE!!
+
+        @JvmField
+        val BANG_OPERATOR_VALUE_NODE = TableGenTypes.BANG_OPERATOR_VALUE_NODE!!
+
+        @JvmField
+        val COND_OPERATOR_VALUE_NODE = TableGenTypes.COND_OPERATOR_VALUE_NODE!!
+
+        @JvmField
+        val BLOCK_STRING_VALUE = TableGenTypes.BLOCK_STRING_VALUE!!
+
+        @JvmField
+        val CAST_OPERATOR_VALUE_NODE = TableGenTypes.CAST_OPERATOR_VALUE_NODE!!
+
+        @JvmField
+        val SORT_OPERATOR_VALUE_NODE = TableGenTypes.SORT_OPERATOR_VALUE_NODE!!
+
+        @JvmField
+        val SWITCH_OPERATOR_VALUE_NODE = TableGenTypes.SWITCH_OPERATOR_VALUE_NODE!!
     }
 }
