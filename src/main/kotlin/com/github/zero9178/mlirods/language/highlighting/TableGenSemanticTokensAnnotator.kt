@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language.highlighting
 
 import com.github.zero9178.mlirods.color.FIELD
 import com.github.zero9178.mlirods.color.KEYWORD
+import com.github.zero9178.mlirods.color.NAMED_ARGUMENT
 import com.github.zero9178.mlirods.color.PREPROCESSOR_MACRO_NAME
 import com.github.zero9178.mlirods.color.SKIPPED_CODE
 import com.github.zero9178.mlirods.language.psi.TableGenFile
@@ -34,10 +35,7 @@ internal class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, Dumb
     }
 
     override fun analyze(
-        file: PsiFile,
-        updateWholeFile: Boolean,
-        holder: HighlightInfoHolder,
-        action: Runnable
+        file: PsiFile, updateWholeFile: Boolean, holder: HighlightInfoHolder, action: Runnable
     ): Boolean {
         myHolder = holder
         action.run()
@@ -49,10 +47,8 @@ internal class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, Dumb
             is TableGenFieldIdentifierNode -> {
                 element.fieldIdentifier?.let {
                     addInfo(
-                        HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
-                            .range(it)
-                            .textAttributes(FIELD)
-                            .create()
+                        HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(it)
+                            .textAttributes(FIELD).create()
                     )
                 }
                 if (element is TableGenAbstractLetItem) {
@@ -60,10 +56,8 @@ internal class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, Dumb
                         if (element.letMode == null) return@let
 
                         addInfo(
-                            HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
-                                .range(it)
-                                .textAttributes(KEYWORD)
-                                .create()
+                            HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(it)
+                                .textAttributes(KEYWORD).create()
                         )
                     }
                 }
@@ -72,29 +66,34 @@ internal class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, Dumb
             is TableGenDefineDirective -> {
                 val identifier = element.identifier ?: return
                 addInfo(
-                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
-                        .range(identifier)
-                        .textAttributes(PREPROCESSOR_MACRO_NAME)
-                        .create()
+                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(identifier)
+                        .textAttributes(PREPROCESSOR_MACRO_NAME).create()
                 )
             }
 
             is TableGenIfdefIfndefDirective -> {
                 val identifier = element.identifier ?: return
                 addInfo(
-                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
-                        .range(identifier)
-                        .textAttributes(PREPROCESSOR_MACRO_NAME)
-                        .create()
+                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(identifier)
+                        .textAttributes(PREPROCESSOR_MACRO_NAME).create()
                 )
             }
 
             is TableGenSkippedCodeBlock -> {
                 addInfo(
-                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
-                        .range(element)
-                        .textAttributes(SKIPPED_CODE)
-                        .create()
+                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(element)
+                        .textAttributes(SKIPPED_CODE).create()
+                )
+            }
+
+            is TableGenArgValueItem -> {
+                val identifier = element.identifier ?: return
+                val equalSign = element.equalsSign ?: return
+
+                addInfo(
+                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(
+                            element, identifier.textRangeInParent.union(equalSign.textRangeInParent)
+                        ).textAttributes(NAMED_ARGUMENT).create()
                 )
             }
         }
@@ -119,10 +118,7 @@ internal class TableGenSemanticTokensAnnotator : HighlightVisitor {
     }
 
     override fun analyze(
-        file: PsiFile,
-        updateWholeFile: Boolean,
-        holder: HighlightInfoHolder,
-        action: Runnable
+        file: PsiFile, updateWholeFile: Boolean, holder: HighlightInfoHolder, action: Runnable
     ): Boolean {
         myHolder = holder
         action.run()
@@ -132,14 +128,11 @@ internal class TableGenSemanticTokensAnnotator : HighlightVisitor {
     override fun visit(element: PsiElement) {
         when (element) {
             is TableGenIdentifierValueNode -> {
-                if (element.reference?.resolve() !is TableGenFieldBodyItem)
-                    return
+                if (element.reference?.resolve() !is TableGenFieldBodyItem) return
 
                 addInfo(
-                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES)
-                        .range(element)
-                        .textAttributes(FIELD)
-                        .create()
+                    HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(element)
+                        .textAttributes(FIELD).create()
                 )
             }
         }

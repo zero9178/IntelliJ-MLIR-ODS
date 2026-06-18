@@ -24,5 +24,6 @@ val PREPROCESSOR_DIRECTIVE =
     createTextAttributesKey("TABLEGEN_PREPROCESSOR_DIRECTIVE", DefaultLanguageHighlighterColors.METADATA)
 
 val FIELD = createTextAttributesKey("TABLEGEN_FIELD", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
+val NAMED_ARGUMENT = createTextAttributesKey("TABLEGEN_NAMED_ARGUMENT", DefaultLanguageHighlighterColors.LABEL)
 val PREPROCESSOR_MACRO_NAME =
     createTextAttributesKey("TABLEGEN_PREPROCESSOR_MACRO_NAME", PREPROCESSOR_DIRECTIVE)
