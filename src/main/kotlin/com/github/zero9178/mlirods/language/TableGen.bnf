@@ -793,11 +793,15 @@ private arg_value_list ::= arg_value_item (',' arg_value_item)* {
 arg_value_item ::= named_identifier_arg_value_item | value_node equals_value? {
     methods=[
         equals_sign="EQUALS"
+
+        toString
     ]
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenArgValueItemEx"
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenArgValueItemStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenArgValueItemMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenArgValueItemStubElementType"
 }
 // Special variant that 'TableGen's parser supports. In this case the identifier is treated as a string literal.
 private named_identifier_arg_value_item ::= IDENTIFIER '=' value_node {
