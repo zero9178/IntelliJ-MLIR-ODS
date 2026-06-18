@@ -42,4 +42,28 @@ class SemanticTokensAnnotatorTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting(false, true, false, true)
     }
+
+    fun `test named argument in class instantiation`() {
+        IndexingTestUtil.waitUntilIndexesAreReady(project)
+
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a, int b>;
+            defvar v = C<1, <text_attr textAttributesKey="TABLEGEN_NAMED_ARGUMENT">b =</text_attr> 2>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting(false, true, false)
+    }
+
+    fun `test named argument in class ref`() {
+        IndexingTestUtil.waitUntilIndexesAreReady(project)
+
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a>;
+            def D : C<<text_attr textAttributesKey="TABLEGEN_NAMED_ARGUMENT">a =</text_attr> 1>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting(false, true, false)
+    }
 }

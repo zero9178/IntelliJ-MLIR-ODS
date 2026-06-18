@@ -10,4 +10,9 @@
             <option name="FOREGROUND" value="686A4E"/>
         </value>
     </option>
+    <option name="TABLEGEN_NAMED_ARGUMENT">
+        <value>
+            <option name="FOREGROUND" value="467CDA"/>
+        </value>
+    </option>
 </list>
