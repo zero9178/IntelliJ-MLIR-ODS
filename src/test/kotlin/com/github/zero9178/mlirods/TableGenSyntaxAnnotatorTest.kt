@@ -82,4 +82,64 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting()
     }
+
+    fun `test positional only arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a, int b>;
+            defvar v = C<1, 2>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test named only arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a, int b>;
+            defvar v = C<a = 1, b = 2>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test positional before named arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a, int b>;
+            defvar v = C<1, b = 2>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test positional after named argument`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a, int b>;
+            defvar v = C<a = 1, <error descr="Positional argument is not allowed after a named argument">2</error>>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test class ref positional before named arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a, int b>;
+            def D : C<1, b = 2>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test class ref positional after named argument`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C<int a, int b>;
+            def D : C<a = 1, <error descr="Positional argument is not allowed after a named argument">2</error>>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
 }
