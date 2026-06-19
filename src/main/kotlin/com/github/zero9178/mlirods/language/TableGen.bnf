@@ -760,6 +760,7 @@ dag_arg ::= value_node (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
 }
 identifier_value_node ::= IDENTIFIER {
     methods=[
+        evaluate
         getReference
         toString
     ]

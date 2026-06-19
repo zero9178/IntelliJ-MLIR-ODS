@@ -1,6 +1,13 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
+import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
@@ -11,12 +18,40 @@ import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValuesManager
 
 /**
  * Class passed around as context during a constant evaluation.
  * This is used to keep track of things such as template parameter to argument mapping or field mappings.
  */
-class TableGenEvaluationContext
+class TableGenEvaluationContext private constructor(
+    val evaluateTemplateArgDeclInContext: TableGenEvaluationContext.(TableGenTemplateArgDecl) -> TableGenValue,
+    val evaluateFieldInContext: TableGenEvaluationContext.(String) -> TableGenValue,
+) {
+
+    constructor() : this(
+        {
+            TableGenUnknownValue
+        },
+        {
+            TableGenUnknownValue
+        },
+    )
+
+    constructor(defStatement: TableGenDefStatement) : this({
+        defStatement.allArgToTemplateArgMapping[it]?.evaluate(this) ?: TableGenUnknownValue
+    }, { fieldName ->
+        defStatement.allFieldAssignments[fieldName]?.lastOrNull()?.let {
+            when (it) {
+                is TableGenFieldBodyItem -> it.valueNode
+                // TODO: Implement append and prepend semantics.
+                is TableGenLetBodyItem -> it.valueNode
+                is TableGenLetItem -> it.valueNode
+                else -> null
+            }
+        }?.evaluate(this) ?: TableGenUnknownValue
+    })
+}
 
 interface TableGenValueNodeEx : PsiElement {
     /**

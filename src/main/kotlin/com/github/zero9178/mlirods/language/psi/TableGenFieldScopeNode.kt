@@ -2,6 +2,8 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValuesManager
@@ -73,8 +75,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
             }.flatMap {
                 it.allFields
             }.forEach {
-                if (seen.add(it.fieldName))
-                    yield(it)
+                if (seen.add(it.fieldName)) yield(it)
             }
 
             yieldAll(directFields.values.asSequence().filter {
@@ -106,6 +107,28 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Returns a sequence of all references to base classes that should be used for field lookup.
      */
     val baseClassRefs: Sequence<TableGenClassRef>
+
+    val directArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
+        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+            baseClassRefs.flatMap { ref ->
+                ref.argValueItemList.flatMap {
+                    val referencedTemplateArgDecl = it.referencedTemplateArgDecl ?: return@flatMap emptyList()
+                    val valueNode = it.valueNode ?: return@flatMap emptyList()
+                    listOf(referencedTemplateArgDecl to valueNode)
+                }
+            }.toMap()
+        }
+
+    val allArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
+        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+            val result = directArgToTemplateArgMapping.toMutableMap()
+            baseClassRefs.mapNotNull { it.referencedClass?.allArgToTemplateArgMapping }.forEach {
+                it.forEach { (decl, node) ->
+                    result[decl] = node
+                }
+            }
+            result
+        }
 
     /**
      * Returns a map for field lookup.
