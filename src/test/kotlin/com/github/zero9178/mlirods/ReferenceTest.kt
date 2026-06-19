@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.utils.vfs.deleteRecursively
@@ -344,7 +345,7 @@ class ReferenceTest : BasePlatformTestCase() {
             """
             class F {
                 list<int> i = [];
-            
+
                 let append <caret>i = [10];
             }
         """.trimIndent()
@@ -352,8 +353,99 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals("i", iter.name)
     }
 
+    fun `test named arg identifier resolution`() {
+        val element = doTestInline<TableGenTemplateArgDecl>(
+            """
+            class F<int i, int j>;
+
+            def : F<<caret>i = 0, j = 1>;
+        """.trimIndent()
+        )
+        assertEquals("i", element.name)
+        assertEquals("F", element.parentOfType<TableGenClassStatement>()?.name)
+    }
+
+    fun `test named arg identifier resolution out of order`() {
+        // Named arguments resolve by name, not position.
+        val element = doTestInline<TableGenTemplateArgDecl>(
+            """
+            class F<int i, int j>;
+
+            def : F<j = 1, <caret>i = 0>;
+        """.trimIndent()
+        )
+        assertEquals("i", element.name)
+    }
+
+    fun `test positional arg resolution`() {
+        // Positional arguments resolve by index and do not expose a UI reference.
+        val item = argValueItem(
+            """
+            class F<int i, int j>;
+
+            def : F<10, 20>;
+        """.trimIndent(),
+            1
+        )
+        assertNull(item.reference)
+        assertEquals("j", item.referencedTemplateArgDecl?.name)
+    }
+
+    fun `test named string arg resolution`() {
+        // A named argument may use a string literal instead of an identifier as the name.
+        val item = argValueItem(
+            """
+            class F<int i, int j>;
+
+            def : F<"j" = 20>;
+        """.trimIndent(),
+            0
+        )
+        assertEquals("j", item.referencedTemplateArgDecl?.name)
+    }
+
+    fun `test named arg has reference`() {
+        val item = argValueItem(
+            """
+            class F<int i>;
+
+            def : F<i = 0>;
+        """.trimIndent(),
+            0
+        )
+        assertNotNull(item.reference)
+        assertEquals("i", (item.reference?.resolve() as? TableGenTemplateArgDecl)?.name)
+    }
+
+    fun `test unresolved named arg`() {
+        val item = argValueItem(
+            """
+            class F<int i>;
+
+            def : F<unknown = 0>;
+        """.trimIndent(),
+            0
+        )
+        assertNull(item.referencedTemplateArgDecl)
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
+    }
+
+    /**
+     * Returns the [index]-th [TableGenArgValueItem] of the last class reference in [source].
+     */
+    private fun argValueItem(source: String, index: Int): TableGenArgValueItem {
+        val file = myFixture.configureByText("test.td", source)
+        installCompileCommands(
+            project, mapOf(
+                file.virtualFile to IncludePaths(emptyList())
+            )
+        )
+        myFixture.configureFromExistingVirtualFile(file.virtualFile)
+        val items = PsiTreeUtil.findChildrenOfType(myFixture.file, TableGenArgValueItem::class.java).toList()
+        return items[index]
     }
 
     private inline fun <reified T> doTest(vararg additionalFiles: String): T {

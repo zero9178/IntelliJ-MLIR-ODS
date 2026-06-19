@@ -55,6 +55,9 @@
         <lang.elementManipulator
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenFieldAccessValueNodeManipulator"/>
+        <lang.elementManipulator
+                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem"
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenArgValueItemManipulator"/>
         <stubElementTypeHolder class="com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes"
                                externalIdPrefix="tablegen."/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenIdentifierIndex"/>
