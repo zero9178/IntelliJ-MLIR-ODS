@@ -55,6 +55,36 @@ class RenameTest : BasePlatformTestCase() {
         doTest("j")
     }
 
+    fun `test rename named arg`() {
+        // Renaming a template argument must update the named argument identifier via the manipulator.
+        doTestInline(
+            "j",
+            """
+            class F<int <caret>i>;
+
+            def : F<i = 0>;
+        """.trimIndent(),
+            """
+            class F<int j>;
+
+            def : F<j = 0>;
+        """.trimIndent()
+        )
+    }
+
+    private fun doTestInline(newName: String, source: String, expected: String) {
+        val mainVF = myFixture.createFile("test.td", source)
+        installCompileCommands(
+            project, mapOf(
+                mainVF to IncludePaths(emptyList())
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(mainVF)
+        myFixture.renameElementAtCaret(newName)
+        myFixture.checkResult(expected)
+    }
+
     private fun doTest(newName: String) {
         val name = getTestName(false).trim()
 

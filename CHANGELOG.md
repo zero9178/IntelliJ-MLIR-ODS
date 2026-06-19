@@ -11,6 +11,7 @@
 - Added an inspection reporting fields that redefine an existing field, with a quick fix to convert them into a `let` statement
 - Added an error for positional arguments that follow a named argument in a class argument list
 - Added distinct syntax highlighting for named arguments in a class argument list
+- Added reference resolution and renaming for named arguments in a class argument list
 
 ## [0.13.0] - 2026-05-13
 
