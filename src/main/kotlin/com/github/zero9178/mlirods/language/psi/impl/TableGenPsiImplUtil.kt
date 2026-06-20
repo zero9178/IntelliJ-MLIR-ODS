@@ -313,6 +313,13 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
+        fun evaluate(element: TableGenFieldAccessValueNode, context: TableGenEvaluationContext): TableGenValue {
+            val record = element.valueNode.evaluate(context) as? TableGenRecordValue ?: return TableGenUnknownValue
+            val fieldName = element.fieldName ?: return TableGenUnknownValue
+            return record.fields[fieldName]
+        }
+
+        @JvmStatic
         fun evaluateAtomic(element: TableGenStringValueNode): TableGenStringValue {
             element.stub?.let {
                 return TableGenStringValue(it.value)
