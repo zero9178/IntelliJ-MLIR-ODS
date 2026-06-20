@@ -1,13 +1,7 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
-import com.github.zero9178.mlirods.language.generated.psi.TableGenLetItem
-import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
-import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
-import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
+import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
@@ -18,7 +12,6 @@ import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.CachedValuesManager
 
 /**
  * Class passed around as context during a constant evaluation.
@@ -94,6 +87,12 @@ interface TableGenBangOperatorValueNodeEx : TableGenValueNodeEx {
      * The bang operator token text, e.g. '!div'.
      */
     val operatorName: String
+
+    /**
+     * The known bang operator this node uses, or null if [operatorName] is not a recognized bang operator.
+     */
+    val operator: TableGenBangOperator?
+        get() = TableGenBangOperator.fromOperatorName(operatorName)
 }
 
 interface TableGenBoolValueNodeEx : TableGenAtomicValue {

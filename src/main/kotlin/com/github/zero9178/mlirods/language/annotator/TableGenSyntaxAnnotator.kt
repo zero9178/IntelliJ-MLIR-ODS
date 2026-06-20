@@ -2,12 +2,43 @@ package com.github.zero9178.mlirods.language.annotator
 
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenSwitchOperatorValueNode
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.project.DumbAware
 
 private val ANNOTATIONS = arrayOf(
+    addAnnotationFor { element: TableGenBangOperatorValueNode, holder ->
+        val operator = element.operator
+        if (operator == null) {
+            // Flag bang operators that are not one of the operators known to TableGen.
+            holder.newAnnotation(
+                HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.unknownBangOperator", element.operatorName)
+            ).range(element.bangOperator).create()
+            return@addAnnotationFor
+        }
+
+        // Flag a known operator that is given the wrong number of operands.
+        val arity = operator.arity
+        val count = element.valueNodeList.size
+        if (count in arity) return@addAnnotationFor
+
+        val message = when {
+            arity.first == arity.last -> MyBundle.message(
+                "tableGen.syntax.bangOperator.argCount.exactly", element.operatorName, arity.first, count
+            )
+
+            arity.last == Int.MAX_VALUE -> MyBundle.message(
+                "tableGen.syntax.bangOperator.argCount.atLeast", element.operatorName, arity.first, count
+            )
+
+            else -> MyBundle.message(
+                "tableGen.syntax.bangOperator.argCount.range", element.operatorName, arity.first, arity.last, count
+            )
+        }
+        holder.newAnnotation(HighlightSeverity.ERROR, message).range(element).create()
+    },
     addAnnotationFor { element: TableGenAbstractLetItem, holder ->
         val letModeIdentifier = element.letModeIdentifier
         if (letModeIdentifier != null && element.letMode == null)
