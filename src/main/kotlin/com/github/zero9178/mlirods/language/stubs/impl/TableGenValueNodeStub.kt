@@ -292,10 +292,47 @@ class TableGenFoldlOperatorValueNodeStubElementType(debugName: String) :
         debugName, ::TableGenFoldlOperatorValueNodeImpl
     )
 
-class TableGenBangOperatorValueNodeStubElementType(debugName: String) :
-    TableGenAbstractValueNodeStubElementType<TableGenBangOperatorValueNode>(
-        debugName, ::TableGenBangOperatorValueNodeImpl
-    )
+/**
+ * Stub interface for [TableGenBangOperatorValueNode].
+ */
+interface TableGenBangOperatorValueNodeStub : TableGenValueNodeStub {
+    /**
+     * The bang operator token text, e.g. '!div'.
+     */
+    val operator: String
+}
+
+class TableGenBangOperatorValueNodeStubElementType(
+    debugName: String
+) : TableGenStubElementType<TableGenBangOperatorValueNodeStub, TableGenBangOperatorValueNode>(
+    debugName, ::TableGenBangOperatorValueNodeImpl,
+) {
+    override fun createStub(
+        psi: TableGenBangOperatorValueNode, parentStub: StubElement<out PsiElement?>?
+    ): TableGenBangOperatorValueNodeStub {
+        return TableGenBangOperatorValueNodeStubImpl(psi.bangOperator.text, parentStub, this)
+    }
+
+    override fun serialize(
+        stub: TableGenBangOperatorValueNodeStub, dataStream: StubOutputStream
+    ) {
+        dataStream.writeName(stub.operator)
+    }
+
+    override fun deserialize(
+        dataStream: StubInputStream, parentStub: StubElement<*>?
+    ): TableGenBangOperatorValueNodeStub {
+        return TableGenBangOperatorValueNodeStubImpl(dataStream.readNameString()!!, parentStub, this)
+    }
+}
+
+private class TableGenBangOperatorValueNodeStubImpl(
+    override val operator: String,
+    parent: StubElement<out PsiElement>?,
+    elementType: IStubElementType<*, *>,
+) : StubBase<TableGenValueNode>(
+    parent, elementType
+), TableGenBangOperatorValueNodeStub
 
 class TableGenCondOperatorValueNodeStubElementType(debugName: String) :
     TableGenAbstractValueNodeStubElementType<TableGenCondOperatorValueNode>(
