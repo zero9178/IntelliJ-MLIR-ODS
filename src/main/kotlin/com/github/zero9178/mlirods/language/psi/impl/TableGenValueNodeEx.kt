@@ -89,6 +89,13 @@ interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
     val identifierText: String
 }
 
+interface TableGenBangOperatorValueNodeEx : TableGenValueNodeEx {
+    /**
+     * The bang operator token text, e.g. '!div'.
+     */
+    val operatorName: String
+}
+
 interface TableGenBoolValueNodeEx : TableGenAtomicValue {
     override fun evaluateAtomic(): TableGenIntegerValue
 

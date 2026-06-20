@@ -881,6 +881,13 @@ cast_operator_value_node ::= '!cast' '<' type_node '>' '(' value_node ')' {
 
 bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_node_list ')' value_node_follows>>? ')' {
     pin=1
+    methods=[
+        toString
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorValueNodeEx"
+    ]
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorValueNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBangOperatorValueNodeStubElementType"
 }
 cond_operator_value_node ::= '!cond' '(' <<trailing_item_list ')' value_node_follows cond_clause>> ')' {
