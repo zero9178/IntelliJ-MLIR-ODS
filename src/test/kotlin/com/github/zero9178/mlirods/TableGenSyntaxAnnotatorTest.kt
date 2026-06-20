@@ -84,6 +84,96 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
+    fun `test known bang operator`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !add(1, 2);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test unknown bang operator`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Unknown bang operator '!bogus'">!bogus</error>(1, 2);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test fixed arity operator with correct count`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !div(6, 2);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test fixed arity operator with too few arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Bang operator '!div' expects exactly 2 arguments, but got 1">!div(6)</error>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test fixed arity operator with too many arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Bang operator '!div' expects exactly 2 arguments, but got 3">!div(6, 2, 1)</error>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test unary operator reports singular argument`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Bang operator '!not' expects exactly 1 argument, but got 0">!not()</error>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test variadic operator with many arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !add(1, 2, 3, 4);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test variadic operator with too few arguments`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Bang operator '!add' expects at least 2 arguments, but got 1">!add(1)</error>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test optional arity operator within range`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !substr("hello", 1, 3);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test optional arity operator out of range`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Bang operator '!substr' expects 2 to 3 arguments, but got 1">!substr("hello")</error>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
     fun `test positional only arguments`() {
         myFixture.configureByText(
             "test.td", """
