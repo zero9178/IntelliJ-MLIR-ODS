@@ -633,6 +633,7 @@ field_access_value_node ::= value_node field_access_value_node_suffix {
         field_identifier="IDENTIFIER"
 
         getReference
+        evaluate
     ]
     pin=2
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldAccessValueNodeStubElementType"

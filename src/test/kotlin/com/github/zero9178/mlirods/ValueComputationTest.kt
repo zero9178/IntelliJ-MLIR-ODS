@@ -116,13 +116,9 @@ class ValueComputationTest : BasePlatformTestCase() {
             int y = x;
         }
         def D : C<5>;
-        defvar v = D;
-    """.trimIndent()
-    ) {
-        // Resolving 'D' yields a record value whose field 'y' evaluates to the template argument '5'.
-        val record = assertInstanceOf<TableGenRecordValue>(it)
-        assertEquals(TableGenIntegerValue(5), record.fields["y"])
-    }
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(5)
+    )
 
     fun `test record field evaluated with named template argument`() = doTest(
         """
@@ -130,13 +126,9 @@ class ValueComputationTest : BasePlatformTestCase() {
             int z = y;
         }
         def D : C<x = 1, y = 2>;
-        defvar v = D;
-    """.trimIndent()
-    ) {
-        // Named arguments bind to their declaration regardless of position.
-        val record = assertInstanceOf<TableGenRecordValue>(it)
-        assertEquals(TableGenIntegerValue(2), record.fields["z"])
-    }
+        defvar v = D.z;
+    """.trimIndent(), TableGenIntegerValue(2)
+    )
 
     fun `test record field referencing another field`() = doTest(
         """
@@ -145,13 +137,9 @@ class ValueComputationTest : BasePlatformTestCase() {
             int b = a;
         }
         def D : C;
-        defvar v = D;
-    """.trimIndent()
-    ) {
-        // A field initializer may reference another field of the same record.
-        val record = assertInstanceOf<TableGenRecordValue>(it)
-        assertEquals(TableGenIntegerValue(5), record.fields["b"])
-    }
+        defvar v = D.b;
+    """.trimIndent(), TableGenIntegerValue(5)
+    )
 
     fun `test record field inherited from base class`() = doTest(
         """
@@ -162,14 +150,9 @@ class ValueComputationTest : BasePlatformTestCase() {
             int b = a;
         }
         def D : Derived;
-        defvar v = D;
-    """.trimIndent()
-    ) {
-        // Fields and their references are looked up across the whole class hierarchy.
-        val record = assertInstanceOf<TableGenRecordValue>(it)
-        assertEquals(TableGenIntegerValue(7), record.fields["a"])
-        assertEquals(TableGenIntegerValue(7), record.fields["b"])
-    }
+        defvar v = D.b;
+    """.trimIndent(), TableGenIntegerValue(7)
+    )
 
     fun `test record field overridden by let in def`() = doTest(
         """
@@ -179,13 +162,9 @@ class ValueComputationTest : BasePlatformTestCase() {
         def D : C {
             let y = 2;
         }
-        defvar v = D;
-    """.trimIndent()
-    ) {
-        // The latest assignment wins, so the 'let' override in the def takes precedence over the base value.
-        val record = assertInstanceOf<TableGenRecordValue>(it)
-        assertEquals(TableGenIntegerValue(2), record.fields["y"])
-    }
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(2)
+    )
 
     fun `test record template arg extra indirection`() = doTest(
         """
@@ -194,12 +173,33 @@ class ValueComputationTest : BasePlatformTestCase() {
         }
         class D<int x> : C<x>;
         def E : D<3>;
-        defvar v = E;
-    """.trimIndent()
-    ) {
-        val record = assertInstanceOf<TableGenRecordValue>(it)
-        assertEquals(TableGenIntegerValue(3), record.fields["y"])
-    }
+        defvar v = E.y;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    fun `test field access on record`() = doTest(
+        """
+        class C {
+            int a = 5;
+        }
+        def D : C;
+        defvar v = D.a;
+    """.trimIndent(), TableGenIntegerValue(5)
+    )
+
+    fun `test chained field access`() = doTest(
+        """
+        class Inner {
+            int a = 9;
+        }
+        def I : Inner;
+        class Outer {
+            Inner inner = I;
+        }
+        def O : Outer;
+        defvar v = O.inner.a;
+    """.trimIndent(), TableGenIntegerValue(9)
+    )
 
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
