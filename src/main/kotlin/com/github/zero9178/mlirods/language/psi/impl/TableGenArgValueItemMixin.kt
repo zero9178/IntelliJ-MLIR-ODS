@@ -26,7 +26,7 @@ abstract class TableGenArgValueItemMixin : StubBasedPsiElementBase<TableGenArgVa
         get() = if (isNamedArgument) valueNodeList.firstOrNull() else null
 
     override val valueNode: TableGenValueNode?
-        get() = if (isNamedArgument) valueNodeList.getOrNull(1) else valueNodeList.firstOrNull()
+        get() = if (isNamedArgument && identifierName == null) valueNodeList.getOrNull(1) else valueNodeList.firstOrNull()
 
     override val referencedTemplateArgDecl: TableGenTemplateArgDecl?
         get() = TableGenArgValueItemReference(this).resolve() as? TableGenTemplateArgDecl

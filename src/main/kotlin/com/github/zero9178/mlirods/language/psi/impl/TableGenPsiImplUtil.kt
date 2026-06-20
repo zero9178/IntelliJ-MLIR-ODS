@@ -302,6 +302,17 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
+        fun evaluate(element: TableGenIdentifierValueNode, context: TableGenEvaluationContext): TableGenValue {
+            return when (val ref = element.reference?.resolve()) {
+                is TableGenDefvarStatement -> ref.valueNode?.evaluate(context)
+                is TableGenDefStatement -> TableGenRecordValue(ref)
+                is TableGenTemplateArgDecl -> context.evaluateTemplateArgDeclInContext(context, ref)
+                is TableGenFieldBodyItem -> ref.fieldName?.let { context.evaluateFieldInContext(context, it) }
+                else -> null
+            } ?: TableGenUnknownValue
+        }
+
+        @JvmStatic
         fun evaluateAtomic(element: TableGenStringValueNode): TableGenStringValue {
             element.stub?.let {
                 return TableGenStringValue(it.value)
