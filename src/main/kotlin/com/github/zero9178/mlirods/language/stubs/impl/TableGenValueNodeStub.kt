@@ -344,6 +344,11 @@ class TableGenCastOperatorValueNodeStubElementType(debugName: String) :
         debugName, ::TableGenCastOperatorValueNodeImpl
     )
 
+class TableGenFilterOperatorValueNodeStubElementType(debugName: String) :
+    TableGenAbstractValueNodeStubElementType<TableGenFilterOperatorValueNode>(
+        debugName, ::TableGenFilterOperatorValueNodeImpl
+    )
+
 class TableGenSortOperatorValueNodeStubElementType(debugName: String) :
     TableGenAbstractValueNodeStubElementType<TableGenSortOperatorValueNode>(
         debugName, ::TableGenSortOperatorValueNodeImpl

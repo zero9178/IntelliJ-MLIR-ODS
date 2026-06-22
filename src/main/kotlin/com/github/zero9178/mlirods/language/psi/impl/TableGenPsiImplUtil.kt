@@ -376,6 +376,19 @@ class TableGenPsiImplUtil {
         fun isWithinNewScope(self: TableGenFoldlOperatorValueNode, element: PsiElement) = element == self.body
 
         @JvmStatic
+        fun getDirectIdMap(element: TableGenFilterOperatorValueNode): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
+            buildMap {
+                element.iterator?.let {
+                    it.name?.let { name ->
+                        put(name, listOf(TableGenIdentifierScopeNode.IdMapEntry(it)))
+                    }
+                }
+            }
+
+        @JvmStatic
+        fun isWithinNewScope(self: TableGenFilterOperatorValueNode, element: PsiElement) = element == self.body
+
+        @JvmStatic
         fun getDirectIdMap(element: TableGenSortOperatorValueNode): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
             buildMap {
                 element.iterator?.let {
