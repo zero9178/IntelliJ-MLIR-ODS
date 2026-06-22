@@ -26,7 +26,7 @@ class TableGenClassStatementStubElementType(debugName: String) :
         ::TableGenClassStatementImpl
     ) {
 
-    override fun shouldCreateStub(node: ASTNode?): Boolean {
+    override fun shouldCreateStub(node: ASTNode): Boolean {
         return TableGenClassStatementImpl(node).identifier != null
     }
 
@@ -42,7 +42,7 @@ class TableGenClassStatementStubElementType(debugName: String) :
         stub: TableGenClassStatementStub, dataStream: StubOutputStream
     ) {
         dataStream.writeUTFFast(stub.name)
-        dataStream.writeBoolean(true)
+        dataStream.writeBoolean(stub.hasBody)
         dataStream.writeVarInt(stub.baseClassNames.size)
         stub.baseClassNames.forEach {
             dataStream.writeName(it)
