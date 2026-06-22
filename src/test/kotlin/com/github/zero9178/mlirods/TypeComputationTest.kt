@@ -83,6 +83,14 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test filter`() {
+        doTest(
+            """
+            defvar <caret>v = !filter(x, [5], x);
+        """.trimIndent(), TableGenListType(TableGenIntType)
+        )
+    }
+
     fun `test cast`() {
         doTest(
             """
