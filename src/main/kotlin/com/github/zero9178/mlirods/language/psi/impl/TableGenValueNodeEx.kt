@@ -12,17 +12,28 @@ import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.util.containers.ConcurrentFactoryMap
 
 /**
  * Class passed around as context during a constant evaluation.
  * This is used to keep track of things such as template parameter to argument mapping or field mappings.
+ *
+ * Two contexts are considered equal if they originate from the same [source]. This allows evaluation results
+ * to be cached per context (see [TableGenValueNodeEx.evaluate]).
  */
 class TableGenEvaluationContext private constructor(
+    private val source: Any?,
     val evaluateTemplateArgDeclInContext: TableGenEvaluationContext.(TableGenTemplateArgDecl) -> TableGenValue,
     val evaluateFieldInContext: TableGenEvaluationContext.(String) -> TableGenValue,
 ) {
 
+    /**
+     * Null-context. Template arguments and implicit field definitions yield unknown values.
+     * This is the context that should be used for top-level evaluation and class-statements.
+     */
     constructor() : this(
+        null,
         {
             TableGenUnknownValue
         },
@@ -31,7 +42,7 @@ class TableGenEvaluationContext private constructor(
         },
     )
 
-    constructor(defStatement: TableGenDefStatement) : this({
+    constructor(defStatement: TableGenDefStatement) : this(defStatement, {
         defStatement.allArgToTemplateArgMapping[it]?.evaluate(this) ?: TableGenUnknownValue
     }, { fieldName ->
         defStatement.allFieldAssignments[fieldName]?.lastOrNull()?.let {
@@ -44,6 +55,11 @@ class TableGenEvaluationContext private constructor(
             }
         }?.evaluate(this) ?: TableGenUnknownValue
     })
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is TableGenEvaluationContext && source == other.source)
+
+    override fun hashCode(): Int = source.hashCode()
 }
 
 interface TableGenValueNodeEx : PsiElement {
@@ -60,8 +76,22 @@ interface TableGenValueNodeEx : PsiElement {
 
     /**
      * Performs constant evaluation of this value within the given context.
+     *
+     * Results are cached per [context] and invalidated on any PSI modification. Implementations should not override
+     * this method but [evaluateInner] instead.
      */
-    fun evaluate(context: TableGenEvaluationContext): TableGenValue = TableGenUnknownValue
+    fun evaluate(context: TableGenEvaluationContext): TableGenValue =
+        CachedValuesManager.getProjectPsiDependentCache(this) { element ->
+            ConcurrentFactoryMap.createMap<TableGenEvaluationContext, TableGenValue> {
+                element.evaluateInner(it)
+            }
+        }[context] ?: TableGenUnknownValue
+
+    /**
+     * Performs the actual constant evaluation of this value within the given context. Implemented per value node kind;
+     * callers should use [evaluate] which adds caching on top.
+     */
+    fun evaluateInner(context: TableGenEvaluationContext): TableGenValue = TableGenUnknownValue
 }
 
 /**
@@ -70,6 +100,15 @@ interface TableGenValueNodeEx : PsiElement {
  */
 interface TableGenAtomicValue : TableGenValueNodeEx {
     fun evaluateAtomic(): TableGenValue?
+
+    /**
+     * Atomic values do not depend on the [context] and are cheap to compute from their PSI subtree, so [evaluate]
+     * bypasses caching and resolves directly to [evaluateAtomic].
+     */
+    override fun evaluate(context: TableGenEvaluationContext): TableGenValue =
+        evaluateAtomic() ?: TableGenUnknownValue
+
+    override fun evaluateInner(context: TableGenEvaluationContext) = evaluate(context)
 }
 
 interface TableGenIntegerValueNodeEx : TableGenAtomicValue {
