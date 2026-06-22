@@ -71,6 +71,7 @@
     BANG_COND="!cond"
     BANG_FOREACH="!foreach"
     BANG_FOLDL="!foldl"
+    BANG_FILTER="!filter"
     BANG_SORT="!sort"
     BANG_SWITCH="!switch"
     BANG_CAST="!cast"
@@ -676,6 +677,7 @@ private simple_value_node ::= integer_value_node
                           | cast_operator_value_node
                           | foreach_operator_value_node
                           | foldl_operator_value_node
+                          | filter_operator_value_node
                           | sort_operator_value_node
                           | bang_operator_value_node
 
@@ -852,6 +854,22 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
     ]
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFoldlOperatorValueNodeStubElementType"
+}
+
+filter_operator_value_node ::= '!filter' '(' bang_operator_definition ',' value_node ',' value_node ')' {
+    pin=1
+    methods=[
+        iterable="/value_node[0]"
+        body="/value_node[1]"
+        iterator="/bang_operator_definition"
+
+        getDirectIdMap
+        isWithinNewScope
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFilterOperatorValueNodeStubElementType"
 }
 
 sort_operator_value_node ::= '!sort' '(' bang_operator_definition ',' value_node ',' value_node ')' {

@@ -131,6 +131,9 @@ interface TableGenStubElementTypes {
         val SORT_OPERATOR_VALUE_NODE = TableGenTypes.SORT_OPERATOR_VALUE_NODE!!
 
         @JvmField
+        val FILTER_OPERATOR_VALUE_NODE = TableGenTypes.FILTER_OPERATOR_VALUE_NODE!!
+
+        @JvmField
         val SWITCH_OPERATOR_VALUE_NODE = TableGenTypes.SWITCH_OPERATOR_VALUE_NODE!!
 
         @JvmField

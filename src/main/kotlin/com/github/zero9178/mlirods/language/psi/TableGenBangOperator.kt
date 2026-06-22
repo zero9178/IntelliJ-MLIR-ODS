@@ -49,7 +49,6 @@ enum class TableGenBangOperator(val operatorName: String, val arity: IntRange) {
     SIZE("!size", 1..1),
     EMPTY("!empty", 1..1),
     RANGE("!range", 1..3),
-    FILTER("!filter", 3..3),
     LISTCONCAT("!listconcat", 2..Int.MAX_VALUE),
     LISTFLATTEN("!listflatten", 1..1),
     LISTSPLAT("!listsplat", 2..2),
