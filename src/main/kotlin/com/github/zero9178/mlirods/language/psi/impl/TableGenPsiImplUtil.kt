@@ -288,10 +288,6 @@ class TableGenPsiImplUtil {
         fun toType(element: TableGenClassTypeNode) = TableGenRecordType.create(element)
 
         @JvmStatic
-        fun evaluate(element: TableGenAtomicValue, context: TableGenEvaluationContext): TableGenValue =
-            element.evaluateAtomic() ?: TableGenUnknownValue
-
-        @JvmStatic
         fun evaluateAtomic(element: TableGenIntegerValueNode): TableGenIntegerValue? {
             element.stub?.let {
                 return it.value?.let { value -> TableGenIntegerValue(value) }
@@ -302,7 +298,7 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun evaluate(element: TableGenIdentifierValueNode, context: TableGenEvaluationContext): TableGenValue {
+        fun evaluateInner(element: TableGenIdentifierValueNode, context: TableGenEvaluationContext): TableGenValue {
             return when (val ref = element.reference?.resolve()) {
                 is TableGenDefvarStatement -> ref.valueNode?.evaluate(context)
                 is TableGenDefStatement -> TableGenRecordValue(ref)
@@ -313,7 +309,7 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun evaluate(element: TableGenFieldAccessValueNode, context: TableGenEvaluationContext): TableGenValue {
+        fun evaluateInner(element: TableGenFieldAccessValueNode, context: TableGenEvaluationContext): TableGenValue {
             val record = element.valueNode.evaluate(context) as? TableGenRecordValue ?: return TableGenUnknownValue
             val fieldName = element.fieldName ?: return TableGenUnknownValue
             return record.fields[fieldName]

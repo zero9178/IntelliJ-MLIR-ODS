@@ -634,7 +634,7 @@ field_access_value_node ::= value_node field_access_value_node_suffix {
         field_identifier="IDENTIFIER"
 
         getReference
-        evaluate
+        evaluateInner
     ]
     pin=2
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldAccessValueNodeStubElementType"
@@ -688,7 +688,6 @@ integer_value_node ::= '-'? INTEGER {
         "com.github.zero9178.mlirods.language.psi.impl.TableGenIntegerValueNodeEx"
     ]
     methods=[
-        evaluate
         evaluateAtomic
         toString
     ]
@@ -702,7 +701,6 @@ string_value_node ::= block_string_value
         "com.github.zero9178.mlirods.language.psi.impl.TableGenStringValueNodeEx"
     ]
     methods=[
-        evaluate
         evaluateAtomic
         toString
     ]
@@ -723,7 +721,6 @@ bool_value_node ::= 'true' | 'false' {
         "com.github.zero9178.mlirods.language.psi.impl.TableGenBoolValueNodeEx"
     ]
     methods=[
-        evaluate
         evaluateAtomic
         toString
     ]
@@ -735,7 +732,6 @@ undef_value_node ::= '?' {
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAtomicValue"
     ]
     methods=[
-        evaluate
         evaluateAtomic
     ]
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenUndefValueNodeStubElementType"
@@ -763,7 +759,7 @@ dag_arg ::= value_node (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
 }
 identifier_value_node ::= IDENTIFIER {
     methods=[
-        evaluate
+        evaluateInner
         getReference
         toString
     ]
