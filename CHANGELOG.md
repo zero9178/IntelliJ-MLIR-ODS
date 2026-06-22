@@ -8,6 +8,7 @@
 
 - Added errors for unknown bang operators and for bang operators given the wrong number of arguments
 - Added support for the `!sort` operator
+- Added support for the `!filter` operator, including reference resolution and type inference of its iteration variable
 - Added support for the `!switch` operator, including validation of its case clauses and mandatory default value
 - Added an inspection reporting fields that redefine an existing field, with a quick fix to convert them into a `let` statement
 - Added an error for positional arguments that follow a named argument in a class argument list

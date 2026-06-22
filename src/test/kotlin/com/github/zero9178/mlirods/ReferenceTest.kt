@@ -289,6 +289,13 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.name, "i")
     }
 
+    fun `test FilterDefvarResolution`() {
+        val element = doTestInline<TableGenBangOperatorDefinition>(
+            "defvar a = !filter(i, [5], <caret>i);"
+        )
+        assertEquals(element.name, "i")
+    }
+
     fun `test ParentMultiClassListResolution`() {
         val name = getTestName(false).trim()
         val mainVF = myFixture.copyFileToProject("${name}.td")

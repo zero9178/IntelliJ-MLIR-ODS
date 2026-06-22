@@ -73,6 +73,7 @@ WHITE_SPACE_OR_CC_COMMENT=({WHITE_SPACE}|{BLOCK_COMMENT})
 ("!cast")                                       { return TableGenTypes.BANG_CAST; }
 ("!foreach")                                    { return TableGenTypes.BANG_FOREACH; }
 ("!foldl")                                      { return TableGenTypes.BANG_FOLDL; }
+("!filter")                                     { return TableGenTypes.BANG_FILTER; }
 ("!sort")                                       { return TableGenTypes.BANG_SORT; }
 ("!switch")                                     { return TableGenTypes.BANG_SWITCH; }
 ("!"[a-zA-Z]+)                                  { return TableGenTypes.BANG_OPERATOR; }
