@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
-import com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode
+import com.github.zero9178.mlirods.language.psi.TableGenFieldAssignmentNode
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
@@ -57,7 +57,7 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
     override val directFields by myDirectFields
 
     private var myDirectFieldAssignments = resettableLazy {
-        stubbedChildren<TableGenFieldIdentifierNode>(
+        stubbedChildren<TableGenFieldAssignmentNode>(
             TableGenFieldBodyItem::class.java,
             TableGenLetBodyItem::class.java
         ).mapNotNull {

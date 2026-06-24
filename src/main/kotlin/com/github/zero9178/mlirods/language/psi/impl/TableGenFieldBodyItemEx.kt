@@ -1,8 +1,9 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.psi.TableGenFieldAssignmentNode
 
-interface TableGenFieldBodyItemEx {
+interface TableGenFieldBodyItemEx : TableGenFieldAssignmentNode {
 
     /**
      * Returns the defining [TableGenFieldBodyItem] of this field.

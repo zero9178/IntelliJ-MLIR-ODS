@@ -111,6 +111,122 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
+    fun `test division by zero`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !div(6, <error descr="Division by zero">0</error>);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test division by non-integer divisor is not flagged`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !div(6, "x");
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test division by zero through a defvar`() {
+        doResolvingTest(
+            """
+            defvar z = 0;
+            defvar v = !div(6, <error descr="Division by zero">z</error>);
+        """.trimIndent()
+        )
+    }
+
+    fun `test division by an unknown template argument is not flagged`() {
+        doResolvingTest(
+            """
+            class C<int x> { int v = !div(6, x); }
+        """.trimIndent()
+        )
+    }
+
+    fun `test division by zero revealed through a def instantiation`() {
+        doResolvingTest(
+            """
+            class C<int x> { int v = !div(6, x); }
+            def <error descr="Division by zero">D</error> : C<0>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test division by a non-zero template argument is not flagged`() {
+        doResolvingTest(
+            """
+            class C<int x> { int v = !div(6, x); }
+            def D : C<2>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test division by zero through an overridden field is revealed on instantiation`() {
+        doResolvingTest(
+            """
+            class C { int x = 1; int v = !div(6, x); }
+            def <error descr="Division by zero">D</error> : C { let x = 0; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test division by zero literal inside a def is reported once`() {
+        doResolvingTest(
+            """
+            def D { int v = !div(6, <error descr="Division by zero">0</error>); }
+        """.trimIndent()
+        )
+    }
+
+    fun `test constant division by zero is flagged even in a dead if branch`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !if(1, 0, !div(6, <error descr="Division by zero">0</error>));
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test division by zero in a live if branch is flagged`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !if(1, !div(6, <error descr="Division by zero">0</error>), 0);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test division by zero in a live if branch is revealed on instantiation`() {
+        doResolvingTest(
+            """
+            class C<int x> { int v = !if(1, !div(6, x), 99); }
+            def <error descr="Division by zero">D</error> : C<0>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test division by zero in a dead if branch is not flagged on instantiation`() {
+        doResolvingTest(
+            """
+            class C<int x> { int v = !if(0, !div(6, x), 99); }
+            def D : C<0>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test division by zero nested in a class instantiation argument is revealed on instantiation`() {
+        doResolvingTest(
+            """
+            class Inner<int y>;
+            class C<int x> { Inner v = Inner<!div(6, x)>; }
+            def <error descr="Division by zero">D</error> : C<0>;
+        """.trimIndent()
+        )
+    }
+
     fun `test fixed arity operator with too few arguments`() {
         myFixture.configureByText(
             "test.td", """

@@ -45,15 +45,9 @@ class TableGenEvaluationContext private constructor(
     constructor(defStatement: TableGenDefStatement) : this(defStatement, {
         defStatement.allArgToTemplateArgMapping[it]?.evaluate(this) ?: TableGenUnknownValue
     }, { fieldName ->
-        defStatement.allFieldAssignments[fieldName]?.lastOrNull()?.let {
-            when (it) {
-                is TableGenFieldBodyItem -> it.valueNode
-                // TODO: Implement append and prepend semantics.
-                is TableGenLetBodyItem -> it.valueNode
-                is TableGenLetItem -> it.valueNode
-                else -> null
-            }
-        }?.evaluate(this) ?: TableGenUnknownValue
+        // TODO: Implement append and prepend semantics.
+        defStatement.allFieldAssignments[fieldName]?.lastOrNull()?.assignedValueNode
+            ?.evaluate(this) ?: TableGenUnknownValue
     })
 
     override fun equals(other: Any?): Boolean =
