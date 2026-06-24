@@ -1,4 +1,6 @@
 package com.github.zero9178.mlirods.model
+
+import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.TableGenFileType
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.intellij.openapi.Disposable
@@ -8,8 +10,12 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.checkCanceled
+import com.intellij.openapi.progress.runBlockingCancellable
+import com.intellij.openapi.project.DumbModeTask
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.util.SimpleModificationTracker
@@ -29,9 +35,16 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.updateAndGet
+import kotlinx.coroutines.launch
+import java.io.Closeable
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -62,7 +75,6 @@ data class TableGenContext(
 /**
  * Service used to create and update [TableGenContext] instances within [TableGenFile]s.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @Service(Service.Level.PROJECT)
 class TableGenContextService(val project: Project, private val cs: CoroutineScope) : Disposable {
 
@@ -74,138 +86,79 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
     }
 
-    private val myIncludeResultsModificationTracker = SimpleModificationTracker()
-
     /**
      * Modification tracker which gets incremented each time an 'include' directive may resolve to a new file.
      */
     val includeResultModificationTracker: ModificationTracker
-        get() = myIncludeResultsModificationTracker
+        get() = contextChangedModificationTracker
 
     /**
      * Modification tracker which gets incremented each time a context changes.
      */
     val contextChangedModificationTracker: ModificationTracker
-        get() = myIncludeResultsModificationTracker
+        field = SimpleModificationTracker()
 
-    private data class Value(
-        val stateFlow: MutableStateFlow<PersistentMap<VirtualFile, TableGenContext>>,
-        val reactiveJob: Job,
-        val refreshFlow: MutableSharedFlow<TableGenContext?>
-    )
-
-    private val myFileToContexts: MutableMap<VirtualFile, Value> = mutableMapOf()
-    private val myLock = ReentrantReadWriteLock()
-    private val fileManager = cs.async {
-        (project.service<PsiManager>() as PsiManagerEx).fileManager
-    }
-
-    // Extra flow purely used for profiling purposes. A replay of 1 makes sure that new subscribers immediately receive
-    // at least one value. The extra buffer capacity reduces the chances of the emitting coroutine needing to suspend
-    // greatly.
-    private val myProfilingRefreshFlow = MutableSharedFlow<Pair<Long, Boolean>>(replay = 1, extraBufferCapacity = 63)
-
-    init {
-        // Coroutine for pure logging and profiling.
-        cs.launch {
-            // We consider a context up-date event to range from when a start even is triggered until no more refreshes
-            // occur for a whole second.
-            myProfilingRefreshFlow.filter { (time, start) ->
-                start
-            }
-                // Ignore other start requests while the collector is still running.
-                .conflate().collect { (startTime, start) ->
-                    // Collect until the refresh flow does not receive a value for 1s.
-                    // This works by delaying the collector by 1s and cancelling and restarting it immediately when a
-                    // new value comes in.
-                    // Using [take] we immediately complete collection once a single Unit value has been received.
-                    myProfilingRefreshFlow.mapLatest { (endTime, start) ->
-                        delay(timeMillis = 1000)
-                        checkCanceled()
-
-                        LOGGER.info(
-                            "Updating contexts took ${(endTime - startTime) / 1.0e9} seconds"
-                        )
-                    }.take(1).collect()
+    private inner class Contexts(val file: VirtualFile) : Closeable {
+        /**
+         * Updates the contained contexts using [function] and performs a [refresh] iff the context changed.
+         * Suspends until the fresh is complete.
+         */
+        suspend fun updateAndRefresh(
+            function: (PersistentMap<VirtualFile, TableGenContext>) -> PersistentMap<VirtualFile, TableGenContext>
+        ) {
+            var refresh = true
+            synchronized(this) {
+                val newContexts = function(myContexts)
+                if (newContexts == myContexts) {
+                    return
                 }
+                if (newContexts.firstOrNull() == myContexts.firstOrNull()) refresh = false
+
+                myContexts = newContexts
+            }
+            if (!refresh) return
+
+            val epoch = myWriteActionRequestedFlow.updateAndGet { it + 1 }
+            myWriteActionCompletedFlow.first { it >= epoch }
         }
 
-        // Refresh the world if any TableGen file is added or removed as any include resolution might now change.
-        project.messageBus.connect(cs).subscribe(
-            FileTypeIndex.INDEX_CHANGE_TOPIC, object : FileTypeIndex.IndexChangeListener {
-                override fun onChangedForFileType(fileType: FileType) {
-                    if (fileType != TableGenFileType.INSTANCE) return
+        /**
+         * Refreshes all effects this file has on included files and propagates a new context to them if needed.
+         * Suspends until all context changes that this refresh caused have finished.
+         */
+        suspend fun refresh() {
+            val epoch = myRefreshRequestedFlow.updateAndGet { it + 1 }
+            myRefreshCompletedFlow.first { it >= epoch }
+        }
 
-                    myIncludeResultsModificationTracker.incModificationCount()
-                    myLock.read {
-                        myFileToContexts.values.forEach {
-                            it.refreshFlow.tryEmit(null)
+        override fun close() = myJob.cancel()
+
+        val contextToUse: TableGenContext?
+            get() = synchronized(this) {
+                myContexts.firstOrNull()?.value
+            }
+
+        private val myRefreshCompletedFlow = MutableStateFlow(0L)
+        private val myRefreshRequestedFlow = MutableStateFlow(0L)
+        private val myWriteActionCompletedFlow = MutableStateFlow(0L)
+        private val myWriteActionRequestedFlow = MutableStateFlow(0L)
+
+        private val myJob = cs.launch {
+            try {
+                coroutineScope {
+                    launch {
+                        myRefreshRequestedFlow.collectLatest { epoch ->
+                            if (epoch <= 0) return@collectLatest
+
+                            pushUpdatesToIncludesAfterNewContext(file)
+                            myRefreshCompletedFlow.emit(epoch)
                         }
                     }
-                }
-            })
-        // Refresh the context propagated from a file if its Psi changes.
-        PsiManager.getInstance(project).addPsiTreeChangeListener(object : PsiTreeAnyChangeAbstractAdapter() {
-            override fun onChange(file: PsiFile?) {
-                if (file !is TableGenFile) return
-
-                val vf = file.virtualFile ?: return
-                myLock.read {
-                    myFileToContexts[vf]?.refreshFlow?.tryEmit(null)
-                }
-            }
-        }, this)
-
-        cs.launch {
-            // Apply value changes to all files mentioned in the compile commands.
-            project.service<CompilationCommands>().stateFlow.collectLatest { state ->
-                myProfilingRefreshFlow.emit(System.nanoTime() to true)
-
-                val updated = mutableSetOf<VirtualFile>()
-                state.map.forEach { (key, value) ->
-                    stateFlowForFile(key).value = persistentMapOf(
-                        key to TableGenContext(includePaths = value.paths)
-                    )
-                    updated.add(key)
-                }
-
-                // Erase all entries from previous compile commands.
-                myLock.read {
-                    myFileToContexts.toList()
-                }.forEach { (key, value) ->
-                    if (updated.contains(key)) return@forEach
-
-                    // Roots use themselves as keys.
-                    value.stateFlow.update {
-                        it.remove(key)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun stateFlowForFile(file: VirtualFile) = myLock.read {
-        myFileToContexts[file]?.let { return@read it.stateFlow }
-        // Upgrade to a write lock otherwise. Note that multiple threads with the same key may be queuing for the write
-        // lock here.
-        // Using [computeIfAbsent] is therefore a requirement to make sure all but the first thread will immediately
-        // return from the write lock without insertion in such a scenario.
-        myLock.write {
-            myFileToContexts.computeIfAbsent(file) {
-                // State flow containing all contexts.
-                val flow = MutableStateFlow(persistentMapOf<VirtualFile, TableGenContext>())
-                // Channel used to request refreshing all contexts produced by this file.
-                // Multiple requests can then be coalesced to a single active computation.
-                val refreshFlow = MutableSharedFlow<TableGenContext?>(
-                    onBufferOverflow = BufferOverflow.DROP_OLDEST, extraBufferCapacity = 1
-                )
-                val job = cs.launch {
-                    val fileManager = fileManager.await()
                     launch {
-                        flow.map {
-                            // Arbitrary choice of picking the first context for now.
-                            it.firstOrNull()?.value ?: TableGenContext()
-                        }.distinctUntilChanged().collectLatest { context ->
+                        myWriteActionRequestedFlow.collectLatest { epoch ->
+                            if (epoch <= 0) return@collectLatest
+
+                            val fileManager = fileManager.await()
                             // Invalidate the Psi such that the 'TableGenFile' instance gets reallocated.
                             writeAction {
                                 // Write actions before may have made the file invalid.
@@ -225,25 +178,144 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                                 // changes.
                                 FileBasedIndex.getInstance().requestReindex(file)
                             }
+
                             // Propagate the new context further.
-                            myIncludeResultsModificationTracker.incModificationCount()
-                            refreshFlow.emit(context)
-                        }
-                    }
-                    launch {
-                        // Cancel currently running action when a new request comes in.
-                        refreshFlow.collectLatest {
-                            myProfilingRefreshFlow.emit(System.nanoTime() to false)
-                            pushUpdatesToIncludesAfterNewContext(file)
+                            contextChangedModificationTracker.incModificationCount()
+                            refresh()
+                            myWriteActionCompletedFlow.emit(epoch)
                         }
                     }
                 }
-                Value(flow, job, refreshFlow)
-            }.stateFlow
+            } finally {
+                // Unblock any coroutines waiting by now considering all requests completed from now on.
+                myRefreshCompletedFlow.value = Long.MAX_VALUE
+                myWriteActionCompletedFlow.value = Long.MAX_VALUE
+            }
+        }
+        private var myContexts = persistentMapOf<VirtualFile, TableGenContext>()
+    }
+
+    private val myFileToContexts: MutableMap<VirtualFile, Contexts> = mutableMapOf()
+    private val myLock = ReentrantReadWriteLock()
+    private val fileManager = cs.async {
+        (project.service<PsiManager>() as PsiManagerEx).fileManager
+    }
+
+    private suspend fun refreshAllFiles() = coroutineScope {
+        myLock.read {
+            myFileToContexts.values.toList()
+        }.forEach {
+            launch {
+                it.refresh()
+            }
         }
     }
 
-    private suspend fun pushUpdatesToIncludesAfterNewContext(updatedFile: VirtualFile) {
+    private suspend fun refreshFile(file: VirtualFile) {
+        myLock.read {
+            myFileToContexts[file]
+        }?.refresh()
+    }
+
+    init {
+        // Refresh the world if any TableGen file is added or removed as any include resolution might now change.
+        project.messageBus.connect(cs).subscribe(
+            FileTypeIndex.INDEX_CHANGE_TOPIC, object : FileTypeIndex.IndexChangeListener {
+                override fun onChangedForFileType(fileType: FileType) {
+                    if (fileType != TableGenFileType.INSTANCE) return
+                    contextChangedModificationTracker.incModificationCount()
+                    cs.launch {
+                        val startTime = System.nanoTime()
+                        refreshAllFiles()
+                        val endTime = System.nanoTime()
+                        LOGGER.info(
+                            "Updating contexts after file type change took ${(endTime - startTime) / 1.0e9} seconds"
+                        )
+                    }
+                }
+            })
+        // Refresh the context propagated from a file if its Psi changes.
+        PsiManager.getInstance(project).addPsiTreeChangeListener(object : PsiTreeAnyChangeAbstractAdapter() {
+            override fun onChange(file: PsiFile?) {
+                if (file !is TableGenFile) return
+
+                val vf = file.virtualFile ?: return
+                cs.launch {
+                    refreshFile(vf)
+                }
+            }
+        }, this)
+
+        cs.launch {
+            // Apply value changes to all files mentioned in the compile commands.
+            project.service<CompilationCommands>().stateFlow.collectLatest { state ->
+                if (state == CompilationCommandsState()) return@collectLatest
+
+                DumbService.getInstance(project).queueTask(object : DumbModeTask() {
+                    override fun performInDumbMode(indicator: ProgressIndicator) {
+                        indicator.isIndeterminate = false
+                        indicator.text = MyBundle.message("tableGen.progress.updatingContexts")
+                        runBlockingCancellable {
+                            val startTime = System.nanoTime()
+                            // Drive the fraction off the compile-command entries, the bulk of the work. Modern
+                            // 'reportProgress' is not visible through 'runBlockingCancellable' under an indicator, so we
+                            // update the indicator directly.
+                            val total = state.map.size
+                            val completed = AtomicInteger()
+                            coroutineScope {
+                                val updated = mutableSetOf<VirtualFile>()
+                                state.map.forEach { (key, value) ->
+                                    launch {
+                                        getContextsForFile(key).updateAndRefresh {
+                                            persistentMapOf(
+                                                key to TableGenContext(includePaths = value.paths)
+                                            )
+                                        }
+                                        if (total > 0) indicator.fraction =
+                                            completed.incrementAndGet().toDouble() / total
+                                    }
+                                    updated.add(key)
+                                }
+
+                                // Erase all entries from previous compile commands.
+                                myLock.read {
+                                    myFileToContexts.toList()
+                                }.forEach { (key, value) ->
+                                    if (updated.contains(key)) return@forEach
+
+                                    launch {
+                                        // Roots use themselves as keys.
+                                        value.updateAndRefresh {
+                                            it.remove(key)
+                                        }
+                                    }
+                                }
+                            }
+                            val endTime = System.nanoTime()
+                            LOGGER.info(
+                                "Updating contexts after compile commands change took ${(endTime - startTime) / 1.0e9} seconds"
+                            )
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    private fun getContextsForFile(file: VirtualFile) = myLock.read {
+        myFileToContexts[file]?.let { return@read it }
+        // Upgrade to a write lock otherwise. Note that multiple threads with the same key may be queuing for the write
+        // lock here.
+        // Using [computeIfAbsent] is therefore a requirement to make sure all but the first thread will immediately
+        // return from the write lock without insertion in such a scenario.
+        myLock.write {
+            myFileToContexts.computeIfAbsent(file) {
+                Contexts(it)
+            }
+        }
+    }
+
+    private suspend fun pushUpdatesToIncludesAfterNewContext(updatedFile: VirtualFile): Unit = coroutineScope {
         val instance = project.service<PsiManager>()
 
         // Limit the read action from the Psi read to let write actions run as soon as possible.
@@ -261,9 +333,9 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         if (newContext == null) {
             myLock.write {
                 // Garbage collect deleted files.
-                myFileToContexts.remove(updatedFile)?.reactiveJob?.cancel()
+                myFileToContexts.remove(updatedFile)?.close()
             }
-            return
+            return@coroutineScope
         }
 
         val currentDefines = mutableSetOf<String>()
@@ -275,11 +347,12 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
             if (file == updatedFile) return@forEach
 
             val context = TableGenContext(
-                newContext.includedFrom.add(updatedFile),
-                newContext.includePaths, currentDefines, includedSoFar.toSet()
+                newContext.includedFrom.add(updatedFile), newContext.includePaths, currentDefines, includedSoFar.toSet()
             )
-            stateFlowForFile(file).update { existing ->
-                existing.put(updatedFile, context)
+            launch {
+                getContextsForFile(file).updateAndRefresh { existing ->
+                    existing.put(updatedFile, context)
+                }
             }
             includedSoFar.add(file)
         }
@@ -291,15 +364,17 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 if (includedSoFar.contains(key)) return@forEach
                 if (key == updatedFile) return@forEach
 
-                value.stateFlow.update {
-                    it.remove(updatedFile)
+                launch {
+                    value.updateAndRefresh {
+                        it.remove(updatedFile)
+                    }
                 }
             }
         }
     }
 
     fun getActiveContext(virtualFile: VirtualFile) = myLock.read {
-        myFileToContexts[virtualFile.originalFileOrSelf()]?.stateFlow?.value?.firstOrNull()?.value ?: TableGenContext()
+        myFileToContexts[virtualFile.originalFileOrSelf()]?.contextToUse ?: TableGenContext()
     }
 
     @RequiresReadLock
