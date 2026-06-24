@@ -30,6 +30,13 @@ abstract class TableGenLetBodyItemMixin : StubBasedPsiElementBase<TableGenLetBod
     override val fieldName: String?
         get() = name
 
+    override val letMode: LetMode?
+        get() {
+            greenStub?.let { return it.letMode }
+
+            return super.letMode
+        }
+
     override fun getTextOffset(): Int {
         return fieldIdentifier?.textOffset ?: super.getTextOffset()
     }
