@@ -7,6 +7,7 @@
 ### Added
 
 - Added errors for unknown bang operators and for bang operators given the wrong number of arguments
+- Added an error for a `!div` whose divisor evaluates to a constant zero, including when the zero only becomes apparent through a `def`'s instantiation of a class
 - Added support for the `!sort` operator
 - Added support for the `!filter` operator, including reference resolution and type inference of its iteration variable
 - Added support for the `!switch` operator, including validation of its case clauses and mandatory default value

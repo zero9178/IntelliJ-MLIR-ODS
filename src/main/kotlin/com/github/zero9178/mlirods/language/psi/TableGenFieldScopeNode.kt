@@ -61,7 +61,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Returns a map of all field assignments in order of application (earliest to latest) that directly occur within
      * 'this'.
      */
-    val directFieldAssignments: Map<String, List<TableGenFieldIdentifierNode>>
+    val directFieldAssignments: Map<String, List<TableGenFieldAssignmentNode>>
 
     /**
      * Returns a sequence of all fields of this class, including inherited fields.
@@ -88,7 +88,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * transitive base classes.
      * The first element in a list is therefore always a field body item if valid TableGen.
      */
-    val allFieldAssignments: Map<String, List<TableGenFieldIdentifierNode>>
+    val allFieldAssignments: Map<String, List<TableGenFieldAssignmentNode>>
         get() = CachedValuesManager.getProjectPsiDependentCache(this) {
             val result = directFieldAssignments.toMutableMap()
             baseClassRefs.toList().asReversed().mapNotNull { it.referencedClass }.map {
