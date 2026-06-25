@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-06-25
+
 ### Added
 
 - Added errors for unknown bang operators and for bang operators given the wrong number of arguments
@@ -207,19 +209,20 @@ items in the `Find usage` functionality confusing for users.
 
 - Support for using `tblgen-lsp-server` built as part of the opened CMake project
 
-[Unreleased]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.13.0...HEAD
-[0.13.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.12.0...v0.13.0
-[0.12.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.11.0...v0.12.0
-[0.11.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.10.0...v0.11.0
-[0.10.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.9.0...v0.10.0
-[0.9.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.8.0...v0.9.0
-[0.8.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.7.0...v0.8.0
-[0.7.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.0.2...v0.1.0
-[0.0.2]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.0.1...v0.0.2
-[0.0.1]: https://github.com/zero9178/IntelliJ-MLIR-ODS/commits/v0.0.1
+[Unreleased]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.13.0...0.14.0
+[0.13.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.12.0...0.13.0
+[0.12.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.11.0...0.12.0
+[0.11.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.10.0...0.11.0
+[0.10.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.9.0...0.10.0
+[0.9.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.8.0...0.9.0
+[0.8.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.7.0...0.8.0
+[0.7.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.6.0...0.7.0
+[0.6.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.5.0...0.6.0
+[0.5.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.4.0...0.5.0
+[0.4.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.3.0...0.4.0
+[0.3.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.1.0...0.2.0
+[0.1.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.0.2...0.1.0
+[0.0.2]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/0.0.1...0.0.2
+[0.0.1]: https://github.com/zero9178/IntelliJ-MLIR-ODS/commits/0.0.1
