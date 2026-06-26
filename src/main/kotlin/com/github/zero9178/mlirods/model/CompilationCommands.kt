@@ -5,6 +5,7 @@ import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,7 +55,7 @@ class CompilationCommands(private val project: Project, private val cs: Coroutin
         val newFlow = EP_NAME.computeSafeIfAny {
             it.getCompilationCommandsFlow(project)
         } ?: return
-        myBackingFlowEmission = cs.launch {
+        myBackingFlowEmission = cs.launch(start = CoroutineStart.UNDISPATCHED) {
             newFlow.collect {
                 myStateFlow.value = it
             }

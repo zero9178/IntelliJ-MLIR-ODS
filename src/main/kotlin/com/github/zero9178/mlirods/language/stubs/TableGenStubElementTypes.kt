@@ -11,6 +11,12 @@ interface TableGenStubElementTypes {
         val INCLUDE_DIRECTIVE = TableGenTypes.INCLUDE_DIRECTIVE!!
 
         @JvmField
+        val DEFINE_DIRECTIVE = TableGenTypes.DEFINE_DIRECTIVE!!
+
+        @JvmField
+        val IFDEF_IFNDEF_DIRECTIVE = TableGenTypes.IFDEF_IFNDEF_DIRECTIVE!!
+
+        @JvmField
         val DEFVAR_STATEMENT = TableGenTypes.DEFVAR_STATEMENT!!
 
         @JvmField

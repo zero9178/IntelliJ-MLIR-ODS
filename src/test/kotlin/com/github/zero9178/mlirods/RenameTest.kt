@@ -12,9 +12,6 @@ class RenameTest : BasePlatformTestCase() {
             project,
             mapOf(
                 virtualFile to IncludePaths(listOf(testFile.parent))
-            ),
-            listOf(
-                inputFile to IncludePaths(listOf(testFile.parent))
             )
         )
 

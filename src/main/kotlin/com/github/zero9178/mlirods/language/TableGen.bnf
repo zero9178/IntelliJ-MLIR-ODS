@@ -189,13 +189,21 @@ preprocessor_directive ::= define_directive
 skipped_code_block ::=
 
 define_directive ::= '#define' IDENTIFIER {
-    extends=preprocessor_directive
     pin=1
+    methods=[toString]
+    implements=["com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx"]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMacroDirectiveStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefineDirectiveStubElementType"
 }
 
 ifdef_ifndef_directive ::= ('#ifdef' | '#ifndef') IDENTIFIER {
-    extends=preprocessor_directive
     pin=1
+    methods=[toString]
+    implements=["com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx"]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMacroDirectiveStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIfdefIfndefDirectiveStubElementType"
 }
 
 else_directive ::= '#else' {
