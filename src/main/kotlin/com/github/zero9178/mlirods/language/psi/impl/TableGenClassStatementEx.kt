@@ -4,11 +4,11 @@ import com.github.zero9178.mlirods.index.MAY_DERIVE_CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
+import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.navigation.NavigationItem
 import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.util.CachedValuesManager
 
 interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, TableGenRecord {
     /**
@@ -29,9 +29,9 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
      * Note that this currently doesn't include inline class instantiation values.
      */
     val directivelyDerivedRecords: Sequence<TableGenRecord>
-        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+        get() = getProjectContextDependentCache(this) {
             MAY_DERIVE_CLASS_INDEX.getElements(
-                name ?: return@getProjectPsiDependentCache emptyList(),
+                name ?: return@getProjectContextDependentCache emptyList(),
                 project,
                 GlobalSearchScope.allScope(project)
             ).asSequence().filter {
@@ -47,7 +47,7 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
      * Note that this currently doesn't include inline class instantiation values.
      */
     val allDerivedRecords: Sequence<TableGenRecord>
-        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+        get() = getProjectContextDependentCache(this) {
             RecursionManager.doPreventingRecursion(this, true) {
                 directivelyDerivedRecords + directivelyDerivedRecords.flatMap {
                     if (it is TableGenClassStatement) it.allDerivedRecords else emptySequence()
@@ -56,7 +56,7 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
         }.asSequence()
 
     override val mostDerivedRecords: Sequence<TableGenRecord>
-        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+        get() = getProjectContextDependentCache(this) {
             (allDerivedRecords + sequenceOf(this)).filter {
                 when (it) {
                     is TableGenClassStatement -> it.directivelyDerivedRecords.firstOrNull() == null

@@ -8,13 +8,13 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
-import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
@@ -63,7 +63,7 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
 
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
-        CachedValuesManager.getProjectPsiDependentCache(element) {
+        getProjectContextDependentCache(element) {
             disallowTreeLoading {
                 val name = element.className
                 val file = element.containingFile as? TableGenFile ?: return@disallowTreeLoading emptyArray()

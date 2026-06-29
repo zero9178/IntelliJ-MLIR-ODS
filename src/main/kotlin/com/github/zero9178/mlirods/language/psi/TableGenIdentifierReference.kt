@@ -5,13 +5,13 @@ import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.isAncestor
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
@@ -63,7 +63,7 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
 
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
-        CachedValuesManager.getProjectPsiDependentCache(element) { element ->
+        getProjectContextDependentCache(element) { element ->
             val name = element.identifier.text
 
             val def = TableGenIdentifierScopeNode.getParentScope(element)?.let {
@@ -71,7 +71,7 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
             }
 
             // Lookup in the same file succeeded.
-            if (def != null) return@getProjectPsiDependentCache arrayOf(PsiElementResolveResult(def))
+            if (def != null) return@getProjectContextDependentCache arrayOf(PsiElementResolveResult(def))
             val project = element.project
             if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
 

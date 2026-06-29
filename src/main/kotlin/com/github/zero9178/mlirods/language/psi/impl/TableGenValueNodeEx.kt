@@ -11,8 +11,8 @@ import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
+import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.CachedValuesManager
 import com.intellij.util.containers.ConcurrentFactoryMap
 
 /**
@@ -71,11 +71,11 @@ interface TableGenValueNodeEx : PsiElement {
     /**
      * Performs constant evaluation of this value within the given context.
      *
-     * Results are cached per [context] and invalidated on any PSI modification. Implementations should not override
-     * this method but [evaluateInner] instead.
+     * Results are cached per [context] and invalidated on any PSI or include-context change. Implementations should not
+     * override this method but [evaluateInner] instead.
      */
     fun evaluate(context: TableGenEvaluationContext): TableGenValue =
-        CachedValuesManager.getProjectPsiDependentCache(this) { element ->
+        getProjectContextDependentCache(this) { element ->
             ConcurrentFactoryMap.createMap<TableGenEvaluationContext, TableGenValue> {
                 element.evaluateInner(it)
             }

@@ -5,10 +5,10 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
+import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
-import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
@@ -26,7 +26,7 @@ class TableGenArgValueItemReference(element: TableGenArgValueItem) :
 
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
-        CachedValuesManager.getProjectPsiDependentCache(element) {
+        getProjectContextDependentCache(element) {
             disallowTreeLoading {
                 val classRef = element.parentOfType<TableGenAbstractClassRef>()
                     ?: return@disallowTreeLoading emptyArray<ResolveResult>()

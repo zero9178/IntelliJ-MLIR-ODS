@@ -5,8 +5,8 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
+import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.CachedValuesManager
 
 /**
  * Map used to lookup fields within a [TableGenFieldScopeNode].
@@ -89,7 +89,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * The first element in a list is therefore always a field body item if valid TableGen.
      */
     val allFieldAssignments: Map<String, List<TableGenFieldAssignmentNode>>
-        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+        get() = getProjectContextDependentCache(this) {
             val result = directFieldAssignments.toMutableMap()
             baseClassRefs.toList().asReversed().mapNotNull { it.referencedClass }.map {
                 it.allFieldAssignments
@@ -109,7 +109,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     val baseClassRefs: Sequence<TableGenClassRef>
 
     val directArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
-        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+        get() = getProjectContextDependentCache(this) {
             baseClassRefs.flatMap { ref ->
                 ref.argValueItemList.flatMap {
                     val referencedTemplateArgDecl = it.referencedTemplateArgDecl ?: return@flatMap emptyList()
@@ -120,7 +120,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         }
 
     val allArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
-        get() = CachedValuesManager.getProjectPsiDependentCache(this) {
+        get() = getProjectContextDependentCache(this) {
             val result = directArgToTemplateArgMapping.toMutableMap()
             baseClassRefs.mapNotNull { it.referencedClass?.allArgToTemplateArgMapping }.forEach {
                 it.forEach { (decl, node) ->
