@@ -17,9 +17,6 @@ class ReferenceTest : BasePlatformTestCase() {
         installCompileCommands(
             project, mapOf(
                 virtualFile to IncludePaths(listOf(testFile.parent))
-            ),
-            listOf(
-                targetFile to IncludePaths(listOf(testFile.parent))
             )
         )
 
@@ -44,9 +41,6 @@ class ReferenceTest : BasePlatformTestCase() {
         installCompileCommands(
             project, mapOf(
                 root to IncludePaths(listOf(testFile.parent))
-            ),
-            listOf(
-                testFile to IncludePaths(listOf(testFile.parent))
             )
         )
 
@@ -99,9 +93,6 @@ class ReferenceTest : BasePlatformTestCase() {
         installCompileCommands(
             project, mapOf(
                 root to IncludePaths(listOf(testFile.parent))
-            ),
-            listOf(
-                testFile to IncludePaths(listOf(testFile.parent))
             )
         )
 

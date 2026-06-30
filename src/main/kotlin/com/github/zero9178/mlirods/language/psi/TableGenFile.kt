@@ -7,7 +7,9 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.model.TableGenContext
+import com.github.zero9178.mlirods.model.TableGenContextService
 import com.intellij.extapi.psi.PsiFileBase
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
@@ -16,8 +18,14 @@ import com.intellij.psi.tree.TokenSet
 import com.intellij.util.ArrayFactory
 import com.intellij.util.resettableLazy
 
-class TableGenFile(viewProvider: FileViewProvider, val context: TableGenContext) :
-    PsiFileBase(viewProvider, TableGenLanguage.INSTANCE), TableGenIdentifierScopeNode {
+class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, TableGenLanguage.INSTANCE),
+    TableGenIdentifierScopeNode {
+
+    val context: TableGenContext
+        get() = originalFile.virtualFile?.let {
+            // Note: [serviceOrNull] is needed for parser tests which do not have any services.
+            project.serviceOrNull<TableGenContextService>()?.getActiveContext(it)
+        } ?: TableGenContext()
 
     override fun getFileType(): FileType = TableGenFileType.INSTANCE
 
@@ -33,11 +41,15 @@ class TableGenFile(viewProvider: FileViewProvider, val context: TableGenContext)
         }.filterIsInstance<T>()
     }
 
+    private val myIncludeDirectives = resettableLazy {
+        stubStream(TableGenStubElementTypes.INCLUDE_DIRECTIVE).toList()
+    }
+
     /**
-     * Returns a sequence of all include directives in the file.
+     * Returns all include directives in the file.
      */
     val includeDirectives: Sequence<TableGenIncludeDirective>
-        get() = stubStream(TableGenStubElementTypes.INCLUDE_DIRECTIVE)
+        get() = myIncludeDirectives.value.asSequence()
 
     private val myClassMap = resettableLazy {
         val result = mutableMapOf<String, MutableList<TableGenClassStatement>>()
@@ -66,22 +78,33 @@ class TableGenFile(viewProvider: FileViewProvider, val context: TableGenContext)
             it::getChildrenAsPsiElements
         }(TokenSet.create(TableGenTypes.DEF_STATEMENT, TableGenTypes.DEFVAR_STATEMENT)) {
             arrayOfNulls<TableGenIdentifierElement>(it)
+        }.mapNotNull {
+            val name = it.name ?: return@mapNotNull null
+            name to it
+        }.groupBy({
+            it.first
+        }) {
+            TableGenIdentifierScopeNode.IdMapEntry(it.second)
         }
-            .mapNotNull {
-                val name = it.name ?: return@mapNotNull null
-                name to it
-            }.groupBy({
-                it.first
-            }) {
-                TableGenIdentifierScopeNode.IdMapEntry(it.second)
-            }
     }
 
     override val directIdMap by myDirectIdMap
 
-    override fun subtreeChanged() {
-        super.subtreeChanged()
+    private val myUsedMacros = resettableLazy {
+        stubStream(TableGenStubElementTypes.IFDEF_IFNDEF_DIRECTIVE).mapNotNullTo(mutableSetOf()) { it.macroName }
+    }
+
+    /**
+     * Returns the set of macro names tested by '#ifdef'/'#ifndef' directives in the file, i.e. the macros whose
+     * defined-state this file's parse result depends on.
+     */
+    val usedMacros: Set<String> by myUsedMacros
+
+    override fun clearCaches() {
+        super.clearCaches()
+        myIncludeDirectives.reset()
         myClassMap.reset()
         myDirectIdMap.reset()
+        myUsedMacros.reset()
     }
 }
