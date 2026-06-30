@@ -248,17 +248,17 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 val instance = PsiManager.getInstance(project)
                 val fileManager = fileManager.await()
                 readAndBackgroundWriteAction {
-                    if (!file.isValid) return@readAndBackgroundWriteAction ReadResult.value(Unit)
+                    if (!file.isValid) return@readAndBackgroundWriteAction value(Unit)
 
                     val tableGenFile = (instance.findFile(file) as? TableGenFile)
-                        ?: return@readAndBackgroundWriteAction ReadResult.value(
+                        ?: return@readAndBackgroundWriteAction value(
                             Unit
                         )
                     val needsReparse = tableGenFile.usedMacros.any {
                         oldDefines.contains(it) != newDefines.contains(it)
                     }
-                    if (!needsReparse) ReadResult.value(Unit)
-                    else ReadResult.writeAction {
+                    if (!needsReparse) value(Unit)
+                    else writeAction {
                         fileManager.setViewProvider(file, null)
                         FileBasedIndex.getInstance().requestReindex(file)
                     }
