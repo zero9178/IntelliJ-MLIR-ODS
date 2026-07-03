@@ -4,7 +4,6 @@ import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.TableGenFileType
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ReadResult
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.readAndBackgroundWriteAction
 import com.intellij.openapi.components.Service
@@ -33,6 +32,7 @@ import com.jetbrains.rd.util.firstOrNull
 import kotlinx.collections.immutable.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.update
 import org.jetbrains.annotations.TestOnly
 import java.io.Closeable
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -85,10 +85,25 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
     /**
      * Modification tracker which gets incremented each time a context changes.
-     * Note that it is a super-set of [includeResultModificationTracker].
      */
-    val contextChangedModificationTracker: ModificationTracker
-        field = SimpleModificationTracker()
+    val contextChangedModificationTracker: ModificationTracker = ModificationTracker { contextGeneration.value }
+
+    /**
+     * Generation counter bumped in lockstep with [contextChangedModificationTracker].
+     * Consumers can collect this [StateFlow] to react to context changes.
+     */
+    val contextGeneration: StateFlow<Long>
+        field = MutableStateFlow(0L)
+
+    /**
+     * Returns the set of files that currently have an active context, i.e. the compile-command roots and every file
+     * transitively included from one of them.
+     */
+    fun getFilesWithContext(): Set<VirtualFile> = myLock.read {
+        myFileToContexts.mapNotNullTo(mutableSetOf()) { (file, contexts) ->
+            file.takeIf { contexts.contextToUse != null }
+        }
+    }
 
     /**
      * [SharedFlow] that receives the compilation commands state any time that state has been finished applying.
@@ -96,6 +111,12 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     @TestOnly
     val finishedCompileCommands: SharedFlow<CompilationCommandsState>
         field = MutableStateFlow(CompilationCommandsState())
+
+    private val myFileToContexts: MutableMap<VirtualFile, Contexts> = mutableMapOf()
+    private val myLock = ReentrantReadWriteLock()
+    private val fileManager = cs.async {
+        (project.service<PsiManager>() as PsiManagerEx).fileManager
+    }
 
     init {
         // Refresh the world if any TableGen file is added or removed as any include resolution might now change.
@@ -129,8 +150,6 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         cs.launch(start = CoroutineStart.UNDISPATCHED) {
             // Apply value changes to all files mentioned in the compile commands.
             project.service<CompilationCommands>().stateFlow.collectLatest { state ->
-                if (state == CompilationCommandsState()) return@collectLatest
-
                 withBackgroundProgress(project, MyBundle.message("tableGen.progress.updatingContexts")) {
                     val startTime = System.nanoTime()
                     // Drive the fraction off the compile-command entries, the bulk of the work.
@@ -226,8 +245,8 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 if (newContexts.firstOrNull() == myContexts.firstOrNull()) {
                     // TODO: Refresh currently only takes the active context into account meaning no refresh is needed
                     //       if the active context doesn't change.
-                    contextChangedModificationTracker.incModificationCount()
                     myContexts = newContexts
+                    contextGeneration.update { it + 1 }
                     return null
                 }
 
@@ -237,7 +256,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
             } finally {
                 myLock.unlock(stamp)
             }
-            contextChangedModificationTracker.incModificationCount()
+            contextGeneration.update { it + 1 }
             if (newContext.firstOrNull()?.value?.includePaths != oldContext.firstOrNull()?.value?.includePaths) {
                 includeResultModificationTracker.incModificationCount()
             }
@@ -248,10 +267,10 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 val instance = PsiManager.getInstance(project)
                 val fileManager = fileManager.await()
                 readAndBackgroundWriteAction {
-                    if (!file.isValid) return@readAndBackgroundWriteAction value(Unit)
+                    if (!file.isValid || project.isDisposed) return@readAndBackgroundWriteAction value(Unit)
 
-                    val tableGenFile = (instance.findFile(file) as? TableGenFile)
-                        ?: return@readAndBackgroundWriteAction value(
+                    val tableGenFile =
+                        (instance.findFile(file) as? TableGenFile) ?: return@readAndBackgroundWriteAction value(
                             Unit
                         )
                     val needsReparse = tableGenFile.usedMacros.any {
@@ -318,12 +337,6 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         private var myContexts = persistentMapOf<VirtualFile, TableGenContext>()
     }
 
-    private val myFileToContexts: MutableMap<VirtualFile, Contexts> = mutableMapOf()
-    private val myLock = ReentrantReadWriteLock()
-    private val fileManager = cs.async {
-        (project.service<PsiManager>() as PsiManagerEx).fileManager
-    }
-
     private fun getContextsForFile(file: VirtualFile) = myLock.read {
         myFileToContexts[file]?.let { return@read it }
         // Upgrade to a write lock otherwise. Note that multiple threads with the same key may be queuing for the write
@@ -342,7 +355,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
 
         // Limit the read action from the Psi read to let write actions run as soon as possible.
         val (included, newContext) = readAction {
-            if (!updatedFile.isValid) return@readAction emptyList<VirtualFile>() to null
+            if (!updatedFile.isValid || project.isDisposed) return@readAction emptyList<VirtualFile>() to null
 
             val tableGenFile =
                 instance.findFile(updatedFile) as? TableGenFile ?: return@readAction emptyList<VirtualFile>() to null
@@ -352,6 +365,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
                 it.includedFile
             }.toList() to tableGenFile.context
         }
+        checkCanceled()
         if (newContext == null) {
             myLock.write {
                 // Garbage collect deleted files.

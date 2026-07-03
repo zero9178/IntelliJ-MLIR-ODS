@@ -117,6 +117,8 @@
                          level="WARNING"
                          implementationClass="com.github.zero9178.mlirods.language.inspection.TableGenRedefinedFieldInspection"
         />
+        <postStartupActivity
+                implementation="com.github.zero9178.mlirods.model.TableGenWorkspaceModelStartup"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
