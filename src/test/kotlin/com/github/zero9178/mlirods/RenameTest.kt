@@ -4,6 +4,40 @@ import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class RenameTest : BasePlatformTestCase() {
+    fun `test rename macro from ifdef`() {
+        // Renaming from an '#ifdef' renames the '#define' declaration and updates its identifier via the manipulator.
+        doTestInline(
+            "BAR",
+            """
+            #define FOO
+            #ifdef <caret>FOO
+            #endif
+        """.trimIndent(),
+            """
+            #define BAR
+            #ifdef BAR
+            #endif
+        """.trimIndent()
+        )
+    }
+
+    fun `test rename macro from define`() {
+        // Renaming the '#define' declaration updates the '#ifdef' reference via the manipulator.
+        doTestInline(
+            "BAR",
+            """
+            #define <caret>FOO
+            #ifndef FOO
+            #endif
+        """.trimIndent(),
+            """
+            #define BAR
+            #ifndef BAR
+            #endif
+        """.trimIndent()
+        )
+    }
+
     fun `test rename include`() {
         val testFile = myFixture.copyFileToProject("test.td")
         val virtualFile = myFixture.copyFileToProject("HasCompileCommands.td")

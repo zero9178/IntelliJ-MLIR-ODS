@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
+import com.github.zero9178.mlirods.index.DEFINE_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefineDirectiveImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIfdefIfndefDirectiveImpl
 import com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx
@@ -47,7 +48,11 @@ private class TableGenMacroDirectiveStubImpl(
 
 class TableGenDefineDirectiveStubElementType(debugName: String) : TableGenAbstractMacroDirectiveStubElementType(
     debugName, ::TableGenDefineDirectiveImpl
-)
+) {
+    override fun indexStub(stub: TableGenMacroDirectiveStub, sink: IndexSink) {
+        stub.macroName?.let { sink.occurrence(DEFINE_INDEX, it) }
+    }
+}
 
 class TableGenIfdefIfndefDirectiveStubElementType(debugName: String) : TableGenAbstractMacroDirectiveStubElementType(
     debugName, ::TableGenIfdefIfndefDirectiveImpl

@@ -190,19 +190,29 @@ skipped_code_block ::=
 
 define_directive ::= '#define' IDENTIFIER {
     pin=1
-    methods=[toString]
-    implements=["com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx"]
+    methods=[
+        toString
+        getPresentation
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx"
+        "com.intellij.psi.PsiNameIdentifierOwner"
+        "com.intellij.psi.NavigatablePsiElement"
+    ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMacroDirectiveStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveMixin"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefineDirectiveMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefineDirectiveStubElementType"
 }
 
 ifdef_ifndef_directive ::= ('#ifdef' | '#ifndef') IDENTIFIER {
     pin=1
     methods=[toString]
-    implements=["com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx"]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx"
+        "com.intellij.psi.NavigatablePsiElement"
+    ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMacroDirectiveStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveMixin"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIfdefIfndefDirectiveMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIfdefIfndefDirectiveStubElementType"
 }
 
