@@ -44,8 +44,8 @@ class TableGenReferenceAnnotatorTest : BasePlatformTestCase() {
     }
 
     fun `test unresolved include without a context is suppressed`() {
-        // A file without an active context cannot resolve any include, so TableGenHighlightInfoFilter drops the
-        // diagnostic instead of drowning the file in false positives.
+        // A file without an active context cannot resolve any include, so the annotator does not run there instead of
+        // drowning the file in false positives.
         myFixture.configureByText(
             "test.td", """
             include "missing/target.td"
