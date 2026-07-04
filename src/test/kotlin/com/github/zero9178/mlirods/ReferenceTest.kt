@@ -427,6 +427,87 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNull(item.referencedTemplateArgDecl)
     }
 
+    fun `test ifdef resolves to define`() {
+        val element = doTestInline<TableGenDefineDirective>(
+            """
+            #define FOO
+            #ifdef <caret>FOO
+            #endif
+        """.trimIndent()
+        )
+        assertEquals("FOO", element.macroName)
+    }
+
+    fun `test ifdef resolves to define after it`() {
+        // Resolution is not order-sensitive within a file: a '#define' following the '#ifdef' still resolves.
+        val element = doTestInline<TableGenDefineDirective>(
+            """
+            #ifdef <caret>FOO
+            #endif
+            #define FOO
+        """.trimIndent()
+        )
+        assertEquals("FOO", element.macroName)
+    }
+
+    fun `test ifndef resolves to define`() {
+        val element = doTestInline<TableGenDefineDirective>(
+            """
+            #ifndef <caret>FOO
+            #define FOO
+            #endif
+        """.trimIndent()
+        )
+        assertEquals("FOO", element.macroName)
+    }
+
+    fun `test ifdef resolves to define in include`() {
+        val testFile = myFixture.createFile(
+            "test.td", """
+            #ifdef <caret>FOO
+            #endif
+        """.trimIndent()
+        )
+        myFixture.createFile(
+            "define.td", """
+            #define FOO
+        """.trimIndent()
+        )
+        val root = myFixture.createFile(
+            "HasCompileCommands.td", """
+            include "define.td"
+            include "test.td"
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                root to IncludePaths(listOf(testFile.parent))
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(testFile)
+        val element = assertInstanceOf(myFixture.elementAtCaret, TableGenDefineDirective::class.java)
+        assertEquals("FOO", element.macroName)
+        assertEquals("define.td", element.containingFile.name)
+    }
+
+    fun `test ifndef unresolved`() {
+        // A macro that is never '#define'd resolves to nothing (soft reference).
+        val mainVF = myFixture.createFile(
+            "test.td", """
+            #ifndef <caret>FOO
+            #endif
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                mainVF to IncludePaths(emptyList())
+            )
+        )
+        myFixture.configureFromExistingVirtualFile(mainVF)
+        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
+    }
+
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
     }

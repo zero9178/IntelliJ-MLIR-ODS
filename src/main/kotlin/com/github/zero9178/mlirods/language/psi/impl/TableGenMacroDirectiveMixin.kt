@@ -7,7 +7,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 
 /**
- * Mixin shared by the preprocessor directives carrying a macro name ('#define', '#ifdef' and '#ifndef').
+ * Base mixin shared by the preprocessor directives carrying a macro name ('#define', '#ifdef' and '#ifndef').
  * The macro name is stored on the stub so that it can be queried without reparsing the file.
  */
 abstract class TableGenMacroDirectiveMixin : StubBasedPsiElementBase<TableGenMacroDirectiveStub>,

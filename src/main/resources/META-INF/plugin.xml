@@ -39,6 +39,9 @@
         <lang.elementManipulator forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective"
                                  implementationClass="com.github.zero9178.mlirods.language.psi.TableGenIncludeManipulator"/>
         <lang.elementManipulator
+                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenIfdefIfndefDirective"
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenIfdefIfndefDirectiveManipulator"/>
+        <lang.elementManipulator
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenIdentifierValueNodeManipulator"/>
         <lang.elementManipulator forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef"
@@ -65,6 +68,7 @@
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllClassesIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenMayDeriveClassIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefineIndex"/>
         <elementDescriptionProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenElementDescriptionProvider"/>
         <usageTypeProvider

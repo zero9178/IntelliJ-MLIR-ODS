@@ -36,6 +36,17 @@ class FindUsageTest : BasePlatformTestCase() {
             })
     }
 
+    fun `test define`() {
+        val actual = myFixture.testFindUsagesUsingAction("Define.td").filterIsInstance<PsiElementUsage>()
+        assertUnorderedCollection(
+            actual, {
+                assertInstanceOf<TableGenIfdefIfndefDirective>(it.element)
+            },
+            {
+                assertInstanceOf<TableGenIfdefIfndefDirective>(it.element)
+            })
+    }
+
     fun `test include`() {
         val includeFile = myFixture.copyFileToProject("Include.td")
         val defFile = myFixture.copyFileToProject("Def.td")
