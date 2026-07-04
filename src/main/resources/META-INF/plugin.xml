@@ -117,6 +117,8 @@
                          level="WARNING"
                          implementationClass="com.github.zero9178.mlirods.language.inspection.TableGenRedefinedFieldInspection"
         />
+        <editorNotificationProvider
+                implementation="com.github.zero9178.mlirods.language.TableGenNoContextNotificationProvider"/>
         <postStartupActivity
                 implementation="com.github.zero9178.mlirods.model.TableGenWorkspaceModelStartup"/>
     </extensions>
