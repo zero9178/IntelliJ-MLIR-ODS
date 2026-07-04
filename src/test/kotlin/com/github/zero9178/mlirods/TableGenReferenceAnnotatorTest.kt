@@ -53,4 +53,39 @@ class TableGenReferenceAnnotatorTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting()
     }
+
+    fun `test unresolved class is flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            def D : <error descr="Cannot resolve class 'Missing'">Missing</error>;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test resolved class is not flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            class Base;
+            def D : Base;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test unresolved class without a context is suppressed`() {
+        // Without a context, references cannot be resolved, so the annotator does not run there.
+        myFixture.configureByText(
+            "test.td", """
+            def D : Missing;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
 }
