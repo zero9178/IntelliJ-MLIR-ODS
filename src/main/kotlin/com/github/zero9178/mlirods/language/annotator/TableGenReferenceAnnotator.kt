@@ -23,6 +23,9 @@ private val ANNOTATIONS = arrayOf(
 )
 
 /**
- * Annotator reporting problems with references, currently limited to include paths that do not resolve.
+ * Annotator reporting problems with references, currently limited to include paths that do not resolve. Its diagnostics
+ * are tagged with [REFERENCE_PROBLEM_GROUP] so that [TableGenHighlightInfoFilter] can suppress them in a file without
+ * an active context, where references cannot be resolved anyway.
  */
-internal class TableGenReferenceAnnotator : TableGenAnnotator(ANNOTATIONS.asIterable())
+internal class TableGenReferenceAnnotator :
+    TableGenAnnotator(ANNOTATIONS.asIterable(), problemGroup = REFERENCE_PROBLEM_GROUP)

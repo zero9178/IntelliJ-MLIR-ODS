@@ -6,7 +6,7 @@
 
 ### Added
 
-- Added an error for `include` directives whose path cannot be resolved to a file.
+- Added an error for `include` directives whose path cannot be resolved to a file. The error is suppressed in files not reachable from any compile commands, where includes cannot be resolved anyway.
 
 ### Changed
 
