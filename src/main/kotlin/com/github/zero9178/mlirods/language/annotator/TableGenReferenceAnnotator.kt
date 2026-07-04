@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.annotator
 
 import com.github.zero9178.mlirods.MyBundle
+import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.model.TableGenContextService
@@ -22,12 +23,25 @@ private fun checkInclude(element: TableGenIncludeDirective, holder: AnnotationHo
     ).range(string).create()
 }
 
+/**
+ * Flags a class reference (in an inheritance list, a `def`'s parent class, a value's type or a class instantiation)
+ * that does not resolve to any class.
+ */
+private fun checkClassReference(element: TableGenAbstractClassRef, holder: AnnotationHolder) {
+    if (element.referencedClass != null) return
+
+    holder.newAnnotation(
+        HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unresolvedClass", element.className)
+    ).range(element.classIdentifier).create()
+}
+
 private val ANNOTATIONS = arrayOf(
     addAnnotationFor { element: TableGenIncludeDirective, holder -> checkInclude(element, holder) },
+    addAnnotationFor { element: TableGenAbstractClassRef, holder -> checkClassReference(element, holder) },
 )
 
 /**
- * Annotator reporting problems with references, currently limited to include paths that do not resolve.
+ * Annotator reporting problems with references.
  */
 internal class TableGenReferenceAnnotator : TableGenAnnotator(ANNOTATIONS.asIterable()) {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
