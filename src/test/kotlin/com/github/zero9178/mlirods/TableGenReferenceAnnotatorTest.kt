@@ -43,11 +43,12 @@ class TableGenReferenceAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
-    fun `test unresolved include without a context is still flagged`() {
-        // Resolution is context-independent here: with no include paths the file cannot be found, so it is flagged.
+    fun `test unresolved include without a context is suppressed`() {
+        // A file without an active context cannot resolve any include, so the annotator does not run there instead of
+        // drowning the file in false positives.
         myFixture.configureByText(
             "test.td", """
-            include <error descr="Cannot resolve file 'missing/target.td'">"missing/target.td"</error>
+            include "missing/target.td"
         """.trimIndent()
         )
         myFixture.checkHighlighting()
