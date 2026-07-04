@@ -21,38 +21,26 @@ inline fun <reified T : PsiElement> addAnnotationFor(crossinline annotation: (T,
     }
 
 /**
- * [ProblemGroup] stamped onto every annotation produced by a reference [TableGenAnnotator]. It lets
- * [TableGenHighlightInfoFilter] recognize diagnostics that originate from a reference annotator so that they can be
- * suppressed centrally without the annotators knowing about it.
+ * [ProblemGroup] stamped onto every diagnostic produced by a reference annotator. It lets
+ * [TableGenHighlightInfoFilter] recognize such diagnostics so that they can be suppressed centrally in a file without a
+ * context. Reference annotators tag their annotations via [referenceAnnotation].
  */
 internal val REFERENCE_PROBLEM_GROUP = ProblemGroup { "TableGenReference" }
 
 /**
- * [AnnotationHolder] that stamps [problemGroup] onto every annotation created through it; all other behavior is
- * delegated unchanged.
+ * Starts a new reference-annotator error annotation tagged with [REFERENCE_PROBLEM_GROUP], so that
+ * [TableGenHighlightInfoFilter] can suppress it in a file without a context.
  */
-private class ProblemGroupAnnotationHolder(
-    private val delegate: AnnotationHolder, private val problemGroup: ProblemGroup
-) : AnnotationHolder by delegate {
-    override fun newAnnotation(severity: HighlightSeverity, message: String): AnnotationBuilder =
-        delegate.newAnnotation(severity, message).problemGroup(problemGroup)
-}
+internal fun AnnotationHolder.referenceAnnotation(message: String): AnnotationBuilder =
+    newAnnotation(HighlightSeverity.ERROR, message).problemGroup(REFERENCE_PROBLEM_GROUP)
 
 /**
  * Base class for creating [Annotator]s that go through a list of annotation callbacks.
  */
-abstract class TableGenAnnotator(
-    private val annotations: Iterable<AnnotationCallback>,
-    /**
-     * When non-null, every annotation created by this annotator is tagged with this [ProblemGroup]. This is how a
-     * reference annotator marks its diagnostics for [TableGenHighlightInfoFilter].
-     */
-    private val problemGroup: ProblemGroup? = null
-) : Annotator {
+abstract class TableGenAnnotator(private val annotations: Iterable<AnnotationCallback>) : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        val effectiveHolder = if (problemGroup != null) ProblemGroupAnnotationHolder(holder, problemGroup) else holder
         annotations.forEach {
-            it(element, effectiveHolder)
+            it(element, holder)
         }
     }
 }

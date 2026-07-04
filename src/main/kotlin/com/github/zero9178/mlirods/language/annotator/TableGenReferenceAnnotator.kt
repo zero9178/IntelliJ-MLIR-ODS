@@ -3,7 +3,6 @@ package com.github.zero9178.mlirods.language.annotator
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.intellij.lang.annotation.AnnotationHolder
-import com.intellij.lang.annotation.HighlightSeverity
 
 /**
  * Flags an [element] whose include path does not resolve to a file, be it because a directory along the path or the
@@ -13,9 +12,8 @@ private fun checkInclude(element: TableGenIncludeDirective, holder: AnnotationHo
     if (element.includedFile != null) return
 
     val string = element.string ?: return
-    holder.newAnnotation(
-        HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unresolvedInclude", element.includeSuffix)
-    ).range(string).create()
+    holder.referenceAnnotation(MyBundle.message("tableGen.reference.unresolvedInclude", element.includeSuffix))
+        .range(string).create()
 }
 
 private val ANNOTATIONS = arrayOf(
@@ -24,8 +22,7 @@ private val ANNOTATIONS = arrayOf(
 
 /**
  * Annotator reporting problems with references, currently limited to include paths that do not resolve. Its diagnostics
- * are tagged with [REFERENCE_PROBLEM_GROUP] so that [TableGenHighlightInfoFilter] can suppress them in a file without
- * an active context, where references cannot be resolved anyway.
+ * are tagged with [REFERENCE_PROBLEM_GROUP] via [referenceAnnotation] so that [TableGenHighlightInfoFilter] can suppress
+ * them in a file without an active context, where references cannot be resolved anyway.
  */
-internal class TableGenReferenceAnnotator :
-    TableGenAnnotator(ANNOTATIONS.asIterable(), problemGroup = REFERENCE_PROBLEM_GROUP)
+internal class TableGenReferenceAnnotator : TableGenAnnotator(ANNOTATIONS.asIterable())
