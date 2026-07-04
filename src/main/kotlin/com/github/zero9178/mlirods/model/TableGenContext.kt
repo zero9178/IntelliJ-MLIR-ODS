@@ -406,10 +406,11 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
     }
 
     /**
-     * Returns the context that is used to parse [virtualFile] or an empty context if none exists.
+     * Returns the context that is used to parse [virtualFile], or `null` if the file has no active context (i.e. it is
+     * not reachable from any file with compile commands).
      */
-    fun getActiveContext(virtualFile: VirtualFile): TableGenContext = myLock.read {
-        myFileToContexts[virtualFile.originalFileOrSelf()]?.contextToUse ?: TableGenContext()
+    fun getActiveContext(virtualFile: VirtualFile): TableGenContext? = myLock.read {
+        myFileToContexts[virtualFile.originalFileOrSelf()]?.contextToUse
     }
 
     @RequiresReadLock
@@ -440,7 +441,7 @@ class TableGenContextService(val project: Project, private val cs: CoroutineScop
         val instance = PsiManager.getInstance(project)
         file.virtualFile?.let { vf ->
             // Add from context.
-            val context = getActiveContext(vf)
+            val context = getActiveContext(vf) ?: return@let
             // Include all files in which we are included from. We do not need to recurse into them as all included
             // files prior to [file] are already part of [includedBeforeThis].
             // However, if we wanted to be very accurate, we should only allow definitions to be found in these files
