@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added an error for `include` directives whose path cannot be resolved to a file.
+
 ### Changed
 
 - Improved performance when compile commands or include paths change: a file is now only reparsed and reindexed when a macro it actually tests via `#ifdef`/`#ifndef` changes its defined state, rather than on every context update.
