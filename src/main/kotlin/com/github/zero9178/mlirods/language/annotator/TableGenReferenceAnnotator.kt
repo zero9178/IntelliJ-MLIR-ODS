@@ -2,8 +2,10 @@ package com.github.zero9178.mlirods.language.annotator
 
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.psi.TableGenFile
+import com.github.zero9178.mlirods.language.types.TableGenRecordType
 import com.github.zero9178.mlirods.model.TableGenContextService
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
@@ -35,9 +37,28 @@ private fun checkClassReference(element: TableGenAbstractClassRef, holder: Annot
     ).range(element.classIdentifier).create()
 }
 
+/**
+ * Flags a field access `x.field` whose left-hand side is a record that does not contain (nor inherit) a field named
+ * `field`. Field accesses on a non-record value, or on a record whose class reference is itself unresolved, are left
+ * alone: the former is not a reference problem and the latter is already reported as an unresolved class.
+ */
+private fun checkFieldAccess(element: TableGenFieldAccessValueNode, holder: AnnotationHolder) {
+    val fieldIdentifier = element.fieldIdentifier ?: return
+    val fieldName = element.fieldName ?: return
+
+    val type = element.valueNode.type as? TableGenRecordType ?: return
+    val record = type.record ?: return
+    if (record.fields[fieldName] != null) return
+
+    holder.newAnnotation(
+        HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unknownField", type.recordName, fieldName)
+    ).range(fieldIdentifier).create()
+}
+
 private val ANNOTATIONS = arrayOf(
     addAnnotationFor { element: TableGenIncludeDirective, holder -> checkInclude(element, holder) },
     addAnnotationFor { element: TableGenAbstractClassRef, holder -> checkClassReference(element, holder) },
+    addAnnotationFor { element: TableGenFieldAccessValueNode, holder -> checkFieldAccess(element, holder) },
 )
 
 /**

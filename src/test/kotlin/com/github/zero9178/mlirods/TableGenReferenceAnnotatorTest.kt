@@ -88,4 +88,76 @@ class TableGenReferenceAnnotatorTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting()
     }
+
+    fun `test access to a non-existent field is flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            class Base {
+                int x = 0;
+            }
+            defvar v = Base<>.<error descr="Record 'Base' has no field named 'nope'">nope</error>;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test access to an existing field is not flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            class Base {
+                int x = 0;
+            }
+            defvar v = Base<>.x;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test access to an inherited field is not flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            class Base {
+                int x = 0;
+            }
+            class Derived : Base;
+            defvar v = Derived<>.x;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test field access on an unresolved class is not double-flagged`() {
+        // The unresolved class is already reported; the field access on it should stay quiet.
+        val main = myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Cannot resolve class 'Missing'">Missing</error><>.nope;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test unknown field without a context is suppressed`() {
+        // Without a context, field resolution cannot run, so the annotator does not fire.
+        myFixture.configureByText(
+            "test.td", """
+            class Base {
+                int x = 0;
+            }
+            defvar v = Base<>.nope;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
 }
