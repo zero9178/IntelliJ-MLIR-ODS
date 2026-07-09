@@ -71,7 +71,9 @@ val PREPROCESSOR_TOKENS = TokenSet.create(
 )
 val BANG_OPERATORS = TokenSet.create(
     TableGenTypes.BANG_OPERATOR,
+    TableGenTypes.BANG_CAST,
     TableGenTypes.BANG_COND,
+    TableGenTypes.BANG_FILTER,
     TableGenTypes.BANG_FOREACH,
     TableGenTypes.BANG_FOLDL,
     TableGenTypes.BANG_SWITCH,

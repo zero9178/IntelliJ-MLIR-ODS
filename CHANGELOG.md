@@ -10,6 +10,7 @@
 - Added an error for class references that do not resolve to any class.
 - Reference-resolution errors are suppressed in files not reachable from any compile commands, where references cannot be resolved anyway.
 - Added reference resolution for `#ifdef`/`#ifndef` directives to their corresponding `#define`, including navigation, renaming from either side, and find usages.
+- The `!cast` and `!filter` operators are now highlighted as bang operators.
 
 ### Changed
 
