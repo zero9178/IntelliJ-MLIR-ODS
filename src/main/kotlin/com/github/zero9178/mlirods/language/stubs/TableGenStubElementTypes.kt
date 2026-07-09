@@ -44,6 +44,9 @@ interface TableGenStubElementTypes {
         val IF_BODY = TableGenTypes.IF_BODY!!
 
         @JvmField
+        val MULTICLASS_STATEMENT = TableGenTypes.MULTICLASS_STATEMENT!!
+
+        @JvmField
         val FIELD_BODY_ITEM = TableGenTypes.FIELD_BODY_ITEM!!
 
         @JvmField

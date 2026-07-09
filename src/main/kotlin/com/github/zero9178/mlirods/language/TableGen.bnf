@@ -533,6 +533,9 @@ multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_cla
     ]
     implements=abstract_class_statement
     pin=1
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenMulticlassStatementMixin"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMulticlassStatementStubElementType"
 }
 
 type_node ::= bit_type_node

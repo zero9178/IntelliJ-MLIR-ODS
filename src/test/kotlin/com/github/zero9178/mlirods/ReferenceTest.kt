@@ -338,6 +338,31 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals("i", iter.name)
     }
 
+    fun `test multiclass template arg resolution`() {
+        val element = doTestInline<TableGenTemplateArgDecl>(
+            """
+            multiclass M<int i> {
+                defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        assertEquals("i", element.name)
+        assertNotNull(element.parentOfType<TableGenMulticlassStatement>())
+    }
+
+    fun `test multiclass defvar scope resolution`() {
+        val element = doTestInline<TableGenDefvarStatement>(
+            """
+            multiclass M {
+                defvar i = 0;
+                defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        assertEquals("i", element.name)
+        assertNotNull(element.parentOfType<TableGenMulticlassStatement>())
+    }
+
     fun `test append let`() {
         val iter = doTestInline<TableGenFieldBodyItem>(
             """
