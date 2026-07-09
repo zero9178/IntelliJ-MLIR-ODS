@@ -11,6 +11,8 @@
 - Reference-resolution errors are suppressed in files not reachable from any compile commands, where references cannot be resolved anyway.
 - Added reference resolution for `#ifdef`/`#ifndef` directives to their corresponding `#define`, including navigation, renaming from either side, and find usages.
 - The `!cast` and `!filter` operators are now highlighted as bang operators.
+- Added an error for accesses to a field that the surrounding record neither defines nor inherits.
+- Added an editor banner warning that a file's includes and references cannot be resolved when the file is not reachable from any file with compile commands.
 
 ### Changed
 
