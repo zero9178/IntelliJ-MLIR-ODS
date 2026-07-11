@@ -13,6 +13,7 @@
 - The `!cast` and `!filter` operators are now highlighted as bang operators.
 - Added an error for accesses to a field that the surrounding record neither defines nor inherits.
 - Added an editor banner warning that a file's includes and references cannot be resolved when the file is not reachable from any file with compile commands.
+- `multiclass` statements now introduce a scope, so that references within them resolve to the multiclass' template arguments and to statements declared inside it.
 
 ### Changed
 
