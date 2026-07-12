@@ -14,6 +14,7 @@ import com.intellij.lang.annotation.HighlightSeverity
  * 1. No template argument is assigned more than once.
  * 2. Every argument resolves to a template argument declaration.
  * 3. Every template argument declaration without a default value is assigned a value.
+ * 4. Every argument's value is of a type assignable to its template argument declaration.
  */
 private fun checkArguments(element: TableGenAbstractClassRef, holder: AnnotationHolder) {
     val targetClass = element.referencedClass ?: return
@@ -24,6 +25,7 @@ private fun checkArguments(element: TableGenAbstractClassRef, holder: Annotation
         val decl = item.referencedTemplateArgDecl
         if (decl != null) {
             itemsByDecl.getOrPut(decl) { mutableListOf() }.add(item)
+            checkArgumentType(item, decl, holder)
             continue
         }
 
@@ -57,6 +59,29 @@ private fun checkArguments(element: TableGenAbstractClassRef, holder: Annotation
             HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.missingArgument", decl.name ?: "")
         ).range(element.classIdentifier).create()
     }
+}
+
+/**
+ * Flags an argument [item] whose value is of a type that cannot be assigned to its resolved template argument
+ * declaration [decl]. Mirroring TableGen, the check uses type convertibility; if either type is unknown (or otherwise
+ * indeterminate) no error is reported.
+ */
+private fun checkArgumentType(
+    item: TableGenArgValueItem, decl: TableGenTemplateArgDecl, holder: AnnotationHolder
+) {
+    val valueNode = item.valueNode ?: return
+    val declaredType = decl.typeNode.toType()
+    val valueType = valueNode.type
+
+    // Only report a definite mismatch; an indeterminate result (null) leaves the argument alone.
+    if (valueType.isConvertibleTo(declaredType) != false) return
+
+    holder.newAnnotation(
+        HighlightSeverity.ERROR, MyBundle.message(
+            "tableGen.syntax.argumentTypeMismatch",
+            valueType.toString(), decl.name ?: "", declaredType.toString()
+        )
+    ).range(valueNode).create()
 }
 
 private val ANNOTATIONS = arrayOf(

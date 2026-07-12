@@ -435,6 +435,94 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test argument of matching type is not flagged`() {
+        doResolvingTest(
+            """
+            class C<string a>;
+            def D : C<"hello">;
+        """.trimIndent()
+        )
+    }
+
+    fun `test argument of a convertible type is not flagged`() {
+        // A 'bit' is convertible to an 'int'.
+        doResolvingTest(
+            """
+            class B { bit x = 1; }
+            class C<int a>;
+            def D : C<B<>.x>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test argument of a mismatching type is flagged`() {
+        doResolvingTest(
+            """
+            class C<string a>;
+            def D : C<<error descr="Value of type 'int' cannot be assigned to template argument 'a' of type 'string'">1</error>>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test named argument of a mismatching type is flagged`() {
+        doResolvingTest(
+            """
+            class C<int a = 0>;
+            def D : C<a = <error descr="Value of type 'string' cannot be assigned to template argument 'a' of type 'int'">"oops"</error>>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test undef argument is not flagged`() {
+        doResolvingTest(
+            """
+            class C<int a>;
+            def D : C<?>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test argument of a subclass record type is not flagged`() {
+        doResolvingTest(
+            """
+            class Base;
+            class Derived : Base;
+            class C<Base b>;
+            def D : C<Derived<>>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test argument of an unrelated record type is flagged`() {
+        doResolvingTest(
+            """
+            class Base;
+            class Other;
+            class C<Base b>;
+            def D : C<<error descr="Value of type 'Other' cannot be assigned to template argument 'b' of type 'Base'">Other<></error>>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test list argument with a mismatching element type is flagged`() {
+        doResolvingTest(
+            """
+            class C<list<int> a>;
+            def D : C<<error descr="Value of type 'list<string>' cannot be assigned to template argument 'a' of type 'list<int>'">["a"]</error>>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test empty list argument is not flagged`() {
+        // An empty list has an unknown element type, so its convertibility is indeterminate.
+        doResolvingTest(
+            """
+            class C<list<int> a>;
+            def D : C<[]>;
+        """.trimIndent()
+        )
+    }
+
     /**
      * Highlighting test that additionally installs compile commands so that class references resolve.
      */
