@@ -22,7 +22,7 @@ private val keyForProviderClass = ConcurrentHashMap<Class<*>, Key<ParameterizedC
  * Like the platform helper, the value computed by [provider] is cached per [element] and recomputed on PSI change.
  * Unlike the platform helper it only tracks changes to TableGen PSI ([PsiModificationTracker.forLanguage]) rather than
  * any language, as nothing cached here depends on the PSI of other languages. In addition, it is invalidated whenever
- * the propagated [TableGenContext] of any file changes (see [TableGenContextService.contextChangedModificationTracker]).
+ * the include graph changes (see [TableGenIncludeGraphService.graphChangedModificationTracker]).
  *
  * Almost every cross-file lookup in this project depends on these: resolution happens relative to the active context of
  * a file (which files it includes, which defines are active, ...), and that context may change without any PSI edit —
@@ -39,13 +39,13 @@ fun <T, P : PsiElement> getProjectContextDependentCache(element: P, provider: (P
         element,
         key,
         { param: P ->
-            val service = param.project.service<TableGenContextService>()
+            val service = param.project.service<TableGenIncludeGraphService>()
             val tableGenPsiTracker =
                 PsiModificationTracker.getInstance(param.project).forLanguage(TableGenLanguage.INSTANCE)
             CachedValueProvider.Result.create(
                 provider(param),
                 tableGenPsiTracker,
-                service.contextChangedModificationTracker,
+                service.graphChangedModificationTracker,
             )
         },
         false,

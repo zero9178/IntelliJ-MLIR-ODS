@@ -7,8 +7,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.TestOnly
 
@@ -29,13 +30,12 @@ data class CompilationCommandsState(val map: Map<VirtualFile, IncludePaths> = em
 class CompilationCommands(private val project: Project, private val cs: CoroutineScope) {
 
     private var myBackingFlowEmission: Job? = null
-    private val myStateFlow = MutableStateFlow(CompilationCommandsState())
 
     /**
      * Flow containing yielding the currently active compilation commands when changed.
      */
-    val stateFlow: StateFlow<CompilationCommandsState>
-        get() = myStateFlow
+    val flow: Flow<CompilationCommandsState>
+        field = MutableSharedFlow(1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     init {
         EP_NAME.addChangeListener(cs) {
@@ -45,7 +45,7 @@ class CompilationCommands(private val project: Project, private val cs: Coroutin
     }
 
     /**
-     * Reroutes the publicly exposed state flow such that it collects the state from the first non-throwing extension
+     * Reroutes the publicly exposed flow such that it collects the state from the first non-throwing extension
      * point.
      */
     private fun updateBackingFlow() {
@@ -57,7 +57,7 @@ class CompilationCommands(private val project: Project, private val cs: Coroutin
         } ?: return
         myBackingFlowEmission = cs.launch(start = CoroutineStart.UNDISPATCHED) {
             newFlow.collect {
-                myStateFlow.value = it
+                flow.emit(it)
             }
         }
     }

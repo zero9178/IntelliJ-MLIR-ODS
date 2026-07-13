@@ -16,7 +16,7 @@ class TableGenIncludedSearchScope(element: PsiElement, project: Project) : Globa
     private val mySet: Set<VirtualFile>? = (element.containingFile as? TableGenFile)?.let {
         // TODO: The set of files returned here is an overapproximation as it also considers includes after [element].
         //       Ideally it should ignore those.
-        project.service<TableGenContextService>().getIncludedFiles(it)
+        project.service<TableGenIncludeGraphService>().getIncludedFiles(it)
     }
 
     override fun isSearchInModuleContent(module: Module): Boolean {
