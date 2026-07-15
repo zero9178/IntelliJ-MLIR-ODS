@@ -1,11 +1,13 @@
 package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiElement
 
 /**
@@ -107,6 +109,42 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Returns a sequence of all references to base classes that should be used for field lookup.
      */
     val baseClassRefs: Sequence<TableGenClassRef>
+
+    /**
+     * Returns a set of all base classes (direct and transitive) of this node excluding 'this'.
+     * The set contains a null value if there is at least one base-class that could not be resolved.
+     */
+    val allBaseClasses: Set<TableGenClassStatement?>
+        get() = getProjectContextDependentCache(this) {
+            RecursionManager.doPreventingRecursion(this, true) {
+                baseClassRefs.map {
+                    it.referencedClass
+                }.flatMap {
+                    sequenceOf(it) + it?.allBaseClasses?.asSequence().orEmpty()
+                }.toSet()
+            } ?: emptySet()
+        }
+
+    /**
+     * Returns whether this record is [target] or transitively derives from it. Returns null if the class hierarchy
+     * could not be fully resolved without finding [target]; in that case a derivation through the unresolved class
+     * cannot be ruled out.
+     */
+    fun derivesFrom(target: TableGenFieldScopeNode): Boolean? {
+        // Trivial self case.
+        if (target === this) return true
+
+        // Cannot derive from a non-class.
+        if (target !is TableGenClassStatement) return false
+
+        if (allBaseClasses.contains(target)) return true
+
+        // If null is contained in the set then not all base classes are known.
+        // Depending on the caller we should handle this explicitly.
+        // Return a null sentinel in this case.
+        if (allBaseClasses.contains(null)) return null
+        return false
+    }
 
     val directArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
         get() = getProjectContextDependentCache(this) {
