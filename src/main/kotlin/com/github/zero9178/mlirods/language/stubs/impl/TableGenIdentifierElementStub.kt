@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.index.ALL_IDENTIFIERS_INDEX
 import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.index.MAY_DERIVE_CLASS_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
+import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenBangOperatorDefinitionImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefvarStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenForeachIteratorImpl
@@ -80,6 +81,12 @@ class TableGenForeachIteratorStubElementType(debugName: String) : TableGenAbstra
     debugName,
     ::TableGenForeachIteratorImpl
 )
+
+class TableGenBangOperatorDefinitionStubElementType(debugName: String) :
+    TableGenAbstractIdentifierElementStubElementType(
+        debugName,
+        ::TableGenBangOperatorDefinitionImpl
+    )
 
 sealed interface TableGenDefStatementStub : TableGenIdentifierElementStub {
     val baseClassNames: List<String>

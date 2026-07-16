@@ -147,5 +147,26 @@ interface TableGenStubElementTypes {
 
         @JvmField
         val ARG_VALUE_ITEM = TableGenTypes.ARG_VALUE_ITEM!!
+
+        @JvmField
+        val SINGLE_BIT = TableGenTypes.SINGLE_BIT!!
+
+        @JvmField
+        val BIT_RANGE = TableGenTypes.BIT_RANGE!!
+
+        @JvmField
+        val COND_CLAUSE = TableGenTypes.COND_CLAUSE!!
+
+        @JvmField
+        val SWITCH_CLAUSE = TableGenTypes.SWITCH_CLAUSE!!
+
+        @JvmField
+        val SINGLE_SLICE_ELEMENT = TableGenTypes.SINGLE_SLICE_ELEMENT!!
+
+        @JvmField
+        val SLICE_ELEMENT_RANGE = TableGenTypes.SLICE_ELEMENT_RANGE!!
+
+        @JvmField
+        val BANG_OPERATOR_DEFINITION = TableGenTypes.BANG_OPERATOR_DEFINITION!!
     }
 }

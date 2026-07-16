@@ -66,7 +66,9 @@ interface TableGenValueNodeEx : PsiElement {
      * Returns the type of this TableGen expression.
      */
     val type: TableGenType
-        get() = accept(TableGenTypeOfValueVisitor)
+        get() = getProjectContextDependentCache(this) {
+            it.accept(TableGenTypeOfValueVisitor)
+        }
 
     /**
      * Performs constant evaluation of this value within the given context.
@@ -94,6 +96,10 @@ interface TableGenValueNodeEx : PsiElement {
  */
 interface TableGenAtomicValue : TableGenValueNodeEx {
     fun evaluateAtomic(): TableGenValue?
+
+    override val type: TableGenType
+        // No need to cache for atomics.
+        get() = accept(TableGenTypeOfValueVisitor)
 
     /**
      * Atomic values do not depend on the [context] and are cheap to compute from their PSI subtree, so [evaluate]

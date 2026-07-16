@@ -29,7 +29,7 @@ class TableGenStubFileElementType :
     }
 
     override fun getStubVersion(): Int {
-        return 24
+        return 27
     }
 
     override fun deserialize(
