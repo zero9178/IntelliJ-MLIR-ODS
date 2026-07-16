@@ -177,3 +177,37 @@ object TableGenUnknownType : TableGenType() {
 
     override fun toString() = "?"
 }
+
+/**
+ * Returns the type that values of both [t1] and [t2] can be used as, as is required by operators yielding one of
+ * multiple values (e.g. '!if' or '!cond').
+ *
+ * [TableGenUndefType] adopts the type of the other side, as a '?' operand is compatible with any type.
+ * [TableGenUnknownType] is returned if the two types are inconsistent, mirroring that TableGen rejects such programs;
+ * reporting them is up to the caller.
+ */
+fun commonType(t1: TableGenType, t2: TableGenType): TableGenType {
+    // Both '?' and an unknown type carry no information, making the other side the best guess available.
+    if (t1 is TableGenUndefType || t1 is TableGenUnknownType) return t2
+    if (t2 is TableGenUndefType || t2 is TableGenUnknownType) return t1
+
+    if (t1 == t2) return t1
+    if (t1.isConvertibleTo(t2) == true) return t2
+    if (t2.isConvertibleTo(t1) == true) return t1
+
+    // Two lists have a common list type if their element types do.
+    if (t1 is TableGenListType && t2 is TableGenListType) {
+        return TableGenListType(commonType(t1.elementType, t2.elementType))
+    }
+
+    // TODO: Two record types where neither derives from the other still have the set of classes that both derive from
+    //  as their common type. Representing this requires a record type constrained by a set of classes rather than one
+    //  naming a single record, so an unknown type is returned for now.
+    return TableGenUnknownType
+}
+
+/**
+ * Returns the type that values of all types in this collection can be used as. See [commonType].
+ */
+fun Iterable<TableGenType>.commonType(): TableGenType =
+    reduceOrNull(::commonType) ?: TableGenUnknownType

@@ -667,10 +667,23 @@ bit_access_value_node ::= value_node '{' range_list '}' {
 }
 private range_list ::= range_piece (',' range_piece)*
 range_piece ::= bit_range
-              | single_bit
-single_bit ::= value_node {extends=range_piece}
+              | single_bit {
+    methods=[
+        toString
+    ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenRangePieceStub"
+}
+single_bit ::= value_node {
+    extends=range_piece
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSingleBitStubElementType"
+}
 bit_range ::= value_node ('...' | '-') value_node {
     extends=range_piece
+    methods=[
+        start="value_node[0]"
+        end="value_node[1]"
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitRangeStubElementType"
 }
 
 private slice_access_value_node_suffix ::= '[' <<trailing_item_list ']' value_node_follows slice_element>> ']' {
@@ -680,9 +693,24 @@ slice_access_value_node ::= value_node slice_access_value_node_suffix {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSliceAccessValueNodeStubElementType"
 }
 slice_element ::= slice_element_range
-                | single_slice_element
-single_slice_element ::= value_node {extends=slice_element}
-slice_element_range ::= value_node ('...' | '-') value_node {extends=slice_element}
+                | single_slice_element {
+    methods=[
+        toString
+    ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSliceElementStub"
+}
+single_slice_element ::= value_node {
+    extends=slice_element
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSingleSliceElementStubElementType"
+}
+slice_element_range ::= value_node ('...' | '-') value_node {
+    extends=slice_element
+    methods=[
+        start="value_node[0]"
+        end="value_node[1]"
+    ]
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSliceElementRangeStubElementType"
+}
 
 private simple_value_node ::= integer_value_node
                           | string_value_node
@@ -832,15 +860,19 @@ private named_identifier_arg_value_item ::= IDENTIFIER '=' value_node {
 // Special Psi node for variable definitions within bang operators.
 bang_operator_definition ::= IDENTIFIER {
     implements=[
+        "com.intellij.psi.PsiElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
     ]
     methods=[
         name_identifier="IDENTIFIER"
 
+        toString
         getName
         setName
         getTextOffset
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBangOperatorDefinitionStubElementType"
 }
 
 foreach_operator_value_node ::= '!foreach' '(' bang_operator_definition ',' value_node ',' value_node ')' {
@@ -933,7 +965,11 @@ cond_clause ::= value_node ':' value_node {
     methods=[
         condition="value_node[0]"
         thenValue="value_node[1]"
+
+        toString
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCondClauseStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCondClauseStubElementType"
 }
 
 switch_operator_value_node ::= '!switch' '(' value_node ',' <<trailing_item_list_no_comma ')' value_node_follows switch_clause>> ')' {
@@ -949,10 +985,14 @@ switch_clause ::= value_node (':' value_node)? {
     methods=[
         caseKey="value_node[0]"
         caseValue="value_node[1]"
+
+        toString
     ]
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenSwitchClauseEx"
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSwitchClauseStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSwitchClauseStubElementType"
 }
 private switch_clause_recover ::= !(switch_clause_follows)
 private switch_clause_follows ::= ',' | ')'
