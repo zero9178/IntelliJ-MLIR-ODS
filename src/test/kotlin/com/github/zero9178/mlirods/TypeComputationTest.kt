@@ -63,6 +63,57 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test decimal literal`() {
+        doTest(
+            """
+            defvar <caret>v = 10;
+        """.trimIndent(), TableGenIntType
+        )
+    }
+
+    fun `test hex literal`() {
+        doTest(
+            """
+            defvar <caret>v = 0xA;
+        """.trimIndent(), TableGenIntType
+        )
+    }
+
+    fun `test binary literal has one bit per digit`() {
+        doTest(
+            """
+            defvar <caret>v = 0b1010;
+        """.trimIndent(), TableGenBitsType(4)
+        )
+    }
+
+    fun `test binary literal counts leading zeroes`() {
+        // The width follows the digits written, not the value they denote.
+        doTest(
+            """
+            defvar <caret>v = 0b0001;
+        """.trimIndent(), TableGenBitsType(4)
+        )
+    }
+
+    fun `test bits init of binary literals`() {
+        // Each binary literal contributes all of its bits, making this a 'bits<8>'.
+        doTest(
+            """
+            defvar <caret>v = { 0b1010, 0b0101 };
+        """.trimIndent(), TableGenBitsType(8)
+        )
+    }
+
+    fun `test bits init of integers`() {
+        // An integer contributes a single bit, unlike a binary literal.
+        doTest(
+            """
+            defvar <caret>v = { 1, 0, 1 };
+        """.trimIndent(), TableGenBitsType(3)
+        )
+    }
+
     fun `test foreach over dag`() {
         doTest(
             """

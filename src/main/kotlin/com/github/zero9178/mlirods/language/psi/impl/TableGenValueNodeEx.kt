@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenBinaryIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
@@ -116,6 +117,25 @@ interface TableGenIntegerValueNodeEx : TableGenAtomicValue {
 
     val stub: TableGenIntegerValueNodeStub?
 }
+
+/**
+ * A binary literal denotes a 'bits<n>' value rather than an integer.
+ */
+interface TableGenBinaryIntegerValueNodeEx : TableGenValueNodeEx {
+    val stub: TableGenBinaryIntegerValueNodeStub?
+
+    /**
+     * The number of bits this literal denotes, which is the number of digits written: '0b0001' is four bits wide while
+     * '0b1' is one.
+     */
+    val numberOfBits: Int
+        get() = stub?.numberOfBits ?: (textLength - BINARY_PREFIX.length)
+}
+
+/**
+ * Prefix every binary literal starts with.
+ */
+internal const val BINARY_PREFIX = "0b"
 
 interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
     val identifierText: String

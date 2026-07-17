@@ -85,7 +85,7 @@ WHITE_SPACE_OR_CC_COMMENT=({WHITE_SPACE}|{BLOCK_COMMENT})
 
 ((\+)?[0-9]+)                                   { return TableGenTypes.INTEGER; }
 (0x[0-9a-fA-F]+)                                { return TableGenTypes.INTEGER; }
-(0b[01]+)                                       { return TableGenTypes.INTEGER; }
+(0b[01]+)                                       { return TableGenTypes.BINARY_INTEGER; }
 
 ([0-9]*[a-zA-Z_][a-zA-Z_0-9]*)                  { return TableGenTypes.IDENTIFIER; }
 (\$[a-zA-Z_][a-zA-Z_0-9]*)                      { return TableGenTypes.VAR_IDENTIFIER; }

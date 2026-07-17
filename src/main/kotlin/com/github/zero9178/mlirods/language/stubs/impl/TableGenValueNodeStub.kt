@@ -103,6 +103,50 @@ private class TableGenIntegerValueNodeStubImpl(
 ), TableGenIntegerValueNodeStub
 
 /**
+ * Stub interface for [TableGenBinaryIntegerValueNode].
+ */
+interface TableGenBinaryIntegerValueNodeStub : TableGenValueNodeStub {
+    /**
+     * See [com.github.zero9178.mlirods.language.psi.impl.TableGenBinaryIntegerValueNodeEx.numberOfBits].
+     */
+    val numberOfBits: Int
+}
+
+class TableGenBinaryIntegerValueNodeStubElementType(
+    debugName: String
+) : TableGenStubElementType<TableGenBinaryIntegerValueNodeStub, TableGenBinaryIntegerValueNode>(
+    debugName, ::TableGenBinaryIntegerValueNodeImpl,
+) {
+    override fun createStub(
+        psi: TableGenBinaryIntegerValueNode, parentStub: StubElement<out PsiElement?>?
+    ): TableGenBinaryIntegerValueNodeStub {
+        return TableGenBinaryIntegerValueNodeStubImpl(psi.numberOfBits, parentStub, this)
+    }
+
+    override fun serialize(
+        stub: TableGenBinaryIntegerValueNodeStub, dataStream: StubOutputStream
+    ) {
+        dataStream.writeVarInt(stub.numberOfBits)
+    }
+
+    override fun deserialize(
+        dataStream: StubInputStream, parentStub: StubElement<*>?
+    ): TableGenBinaryIntegerValueNodeStub {
+        return TableGenBinaryIntegerValueNodeStubImpl(dataStream.readVarInt(), parentStub, this)
+    }
+
+    override fun isAlwaysLeaf(root: StubBase<*>) = true
+}
+
+private class TableGenBinaryIntegerValueNodeStubImpl(
+    override val numberOfBits: Int,
+    parent: StubElement<out PsiElement>?,
+    elementType: IStubElementType<*, *>,
+) : StubBase<TableGenValueNode>(
+    parent, elementType
+), TableGenBinaryIntegerValueNodeStub
+
+/**
  * Stub interface for [TableGenStringValueNode].
  */
 interface TableGenStringValueNodeStub : TableGenValueNodeStub {

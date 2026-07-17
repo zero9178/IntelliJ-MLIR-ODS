@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.types
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorDefinition
+import com.github.zero9178.mlirods.language.generated.psi.TableGenBinaryIntegerValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBoolValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenCastOperatorValueNode
@@ -48,6 +49,10 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
     }
 
     override fun visitIntegerValueNode(element: TableGenIntegerValueNode) = TableGenIntType
+
+    // A binary literal denotes one bit per digit written rather than an integer.
+    override fun visitBinaryIntegerValueNode(element: TableGenBinaryIntegerValueNode) =
+        TableGenBitsType(element.numberOfBits.toLong())
 
     override fun visitStringValueNode(element: TableGenStringValueNode) = TableGenStringType
 

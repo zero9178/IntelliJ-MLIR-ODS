@@ -20,6 +20,11 @@
 
 - Improved performance when compile commands or include paths change: a file is now only reparsed and reindexed when a macro it actually tests via `#ifdef`/`#ifndef` changes its defined state, rather than on every context update.
 
+### Fixed
+
+- Binary literals such as `0b1010` are now `bits<n>` values with one bit per digit written rather than integers, making e.g. `{ 0b1010, 0b0101 }` a `bits<8>` rather than a `bits<2>`.
+- Binary literals are no longer accepted where TableGen requires an integer, such as the width of a `bits<n>` type.
+
 ## [0.14.0] - 2026-06-25
 
 ### Added

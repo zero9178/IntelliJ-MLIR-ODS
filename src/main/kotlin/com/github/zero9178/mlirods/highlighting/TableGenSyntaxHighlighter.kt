@@ -33,7 +33,7 @@ internal class TableGenSyntaxHighlighter : SyntaxHighlighterBase() {
      * @return The array of text attribute keys.
      */
     override fun getTokenHighlights(tokenType: IElementType?): Array<TextAttributesKey> = when (tokenType) {
-        TableGenTypes.INTEGER -> arrayOf(NUMBER)
+        TableGenTypes.INTEGER, TableGenTypes.BINARY_INTEGER -> arrayOf(NUMBER)
         TableGenTypes.BLOCK_COMMENT -> arrayOf(BLOCK_COMMENT)
         TableGenTypes.LINE_COMMENT -> arrayOf(LINE_COMMENT)
         TableGenTypes.LBRACE, TableGenTypes.RBRACE -> arrayOf(BRACES)
