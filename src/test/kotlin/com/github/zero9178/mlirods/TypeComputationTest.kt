@@ -63,6 +63,23 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test foreach over dag`() {
+        doTest(
+            """
+            defvar <caret>v = !foreach(a, (ins 5), "");
+        """.trimIndent(), TableGenDagType
+        )
+    }
+
+    fun `test foreach over dag ignores the body type`() {
+        doTest(
+            """
+            defvar d = (ins 5);
+            defvar <caret>v = !foreach(a, d, [a]);
+        """.trimIndent(), TableGenDagType
+        )
+    }
+
     fun `test foldl`() {
         doTest(
             """
