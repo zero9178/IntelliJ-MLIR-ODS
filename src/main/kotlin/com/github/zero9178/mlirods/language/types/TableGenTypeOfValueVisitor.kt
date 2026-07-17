@@ -71,9 +71,11 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
             is TableGenTemplateArgDecl -> resolve.typeNode.toType()
             is TableGenBangOperatorDefinition -> {
                 when (val parent = resolve.parent) {
-                    is TableGenForeachOperatorValueNode ->
-                        (parent.iterable?.type as? TableGenListType)?.elementType
-                            ?: TableGenUnknownType
+                    is TableGenForeachOperatorValueNode -> when (val iterableType = parent.iterable?.type) {
+                        is TableGenDagType -> TableGenDagType
+                        is TableGenListType -> iterableType.elementType
+                        else -> TableGenUnknownType
+                    }
 
                     is TableGenFoldlOperatorValueNode ->
                         when (resolve) {
@@ -137,7 +139,12 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
     }
 
     override fun visitForeachOperatorValueNode(element: TableGenForeachOperatorValueNode) =
-        TableGenListType(element.body?.type ?: TableGenUnknownType)
+        when (element.iterable?.type) {
+            // Iterating a dag rebuilds the dag rather than collecting the body values into a list, making the body type
+            // irrelevant for the result type.
+            is TableGenDagType -> TableGenDagType
+            else -> TableGenListType(element.body?.type ?: TableGenUnknownType)
+        }
 
     override fun visitFoldlOperatorValueNode(element: TableGenFoldlOperatorValueNode): TableGenType =
         element.start?.type ?: TableGenUnknownType
