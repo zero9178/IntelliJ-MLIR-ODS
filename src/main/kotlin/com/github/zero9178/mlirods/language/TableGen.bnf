@@ -315,6 +315,8 @@ multi_class_ref ::= IDENTIFIER class_ref_suffix? {
 
 class_ref ::= IDENTIFIER class_ref_suffix? {
     implements=[
+        // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
+        "com.intellij.psi.PsiElement"
         "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
         abstract_class_ref
     ]
@@ -328,7 +330,6 @@ class_ref ::= IDENTIFIER class_ref_suffix? {
         getReference
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassRefMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassRefStubElementType"
 }
 private class_ref_suffix ::= '<' arg_value_list? '>' {pin=1}
@@ -414,6 +415,8 @@ deftype_statement ::= 'deftype' IDENTIFIER '=' type_node ';' {pin=1}
 defvar_statement ::= 'defvar' IDENTIFIER '=' value_node ';' {
     pin=1
     implements=[
+        // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
+        "com.intellij.psi.PsiElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
         scope_item
     ]
@@ -427,7 +430,6 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value_node ';' {
         getPresentation
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefvarStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefvarStatementStubElementType"
 }
 dump_statement ::= 'dump' value_node ';' {
@@ -467,7 +469,6 @@ foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_no
     ]
     pin=1
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenForeachIteratorMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachIteratorStubElementType"
 }
 
@@ -478,7 +479,6 @@ if_statement ::= 'if' value_node 'then' if_body else_body? {
     ]
     pin=1
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIfStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIfStatementStubElementType"
 }
 private else_body ::= 'else' if_body {pin=1}
@@ -553,7 +553,6 @@ type_node ::= bit_type_node
         toString
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenTypeNodeStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenTypeNodeMixin"
 }
 bit_type_node ::= 'bit' {
     methods=[
@@ -629,7 +628,6 @@ value_node ::= concat_value_node
         toString
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub"
-    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenValueNodeMixin"
 }
 private value_node_follows ::= '#' | '[' | '{' | 'then' | 'in' | '.' | ',' | ':' | '=' | ')' | ']' | '}' | ';' | '>'
 
