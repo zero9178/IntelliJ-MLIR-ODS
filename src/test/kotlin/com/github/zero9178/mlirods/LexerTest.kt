@@ -144,7 +144,7 @@ class LexerTest : LexerTestCase() {
                 "WHITE_SPACE ('\\n')\n" +
                 "INTEGER ('0xaFfE')\n" +
                 "WHITE_SPACE ('\\n')\n" +
-                "INTEGER ('0b0101')"
+                "BINARY_INTEGER ('0b0101')"
     )
 
     fun `test strings`() = doTest(

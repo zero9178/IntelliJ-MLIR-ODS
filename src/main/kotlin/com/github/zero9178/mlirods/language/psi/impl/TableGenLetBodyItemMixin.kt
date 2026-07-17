@@ -51,10 +51,11 @@ abstract class TableGenLetBodyItemMixin : StubBasedPsiElementBase<TableGenLetBod
                 // Arbitrary heuristic:
                 if (value.textLength > 25) return false
 
-                return when (value.elementType) {
+                return when (value.iElementType) {
                     // Print literal atoms only.
                     TableGenTypes.STRING_VALUE_NODE,
                     TableGenTypes.INTEGER_VALUE_NODE,
+                    TableGenTypes.BINARY_INTEGER_VALUE_NODE,
                     TableGenTypes.BOOL_VALUE_NODE,
                     TableGenTypes.UNDEF_VALUE_NODE -> true
 

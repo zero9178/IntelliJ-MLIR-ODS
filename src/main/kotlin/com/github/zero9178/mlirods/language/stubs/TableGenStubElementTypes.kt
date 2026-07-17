@@ -95,6 +95,9 @@ interface TableGenStubElementTypes {
         val INTEGER_VALUE_NODE = TableGenTypes.INTEGER_VALUE_NODE!!
 
         @JvmField
+        val BINARY_INTEGER_VALUE_NODE = TableGenTypes.BINARY_INTEGER_VALUE_NODE!!
+
+        @JvmField
         val STRING_VALUE_NODE = TableGenTypes.STRING_VALUE_NODE!!
 
         @JvmField

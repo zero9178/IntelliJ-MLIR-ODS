@@ -22,10 +22,12 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenIntegerValue(0x10L)
     )
 
-    fun `test integer binary`() = doTest(
+    // A binary literal is a 'bits<n>' rather than an integer, and bits values are not modelled yet. Yielding an unknown
+    // value keeps the evaluation honest until they are; folding it to an integer would claim the wrong type.
+    fun `test integer binary is not folded`() = doTest(
         """
         defvar v = 0b10;
-    """.trimIndent(), TableGenIntegerValue(0b10L)
+    """.trimIndent(), TableGenUnknownValue
     )
 
     fun `test integer huge hex`() = doTest(
