@@ -958,7 +958,14 @@ cast_operator_value_node ::= '!cast' '<' type_node '>' '(' value_node ')' {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCastOperatorValueNodeStubElementType"
 }
 
-bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_node_list ')' value_node_follows>>? ')' {
+// The argument list of a bang operator is pinned on the opening parenthesis rather than on the operator itself.
+// Otherwise a bang operator without arguments would enter the list's "everything up to the closing delimiter is an
+// item" recovery without a closing delimiter ever following, consuming the remainder of the file.
+private bang_operator_arguments ::= '(' <<value_node_list ')' value_node_follows>>? ')' {
+    pin=1
+}
+
+bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? bang_operator_arguments {
     pin=1
     methods=[
         toString
@@ -969,7 +976,11 @@ bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? '(' <<value_node
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorValueNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBangOperatorValueNodeStubElementType"
 }
-cond_operator_value_node ::= '!cond' '(' <<trailing_item_list ')' value_node_follows cond_clause>> ')' {
+private cond_operator_clauses ::= '(' <<trailing_item_list ')' value_node_follows cond_clause>> ')' {
+    pin=1
+}
+
+cond_operator_value_node ::= '!cond' cond_operator_clauses {
     pin=1
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCondOperatorValueNodeStubElementType"
 }
@@ -984,7 +995,11 @@ cond_clause ::= value_node ':' value_node {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCondClauseStubElementType"
 }
 
-switch_operator_value_node ::= '!switch' '(' value_node ',' <<trailing_item_list_no_comma ')' value_node_follows switch_clause>> ')' {
+private switch_operator_clauses ::= '(' value_node ',' <<trailing_item_list_no_comma ')' value_node_follows switch_clause>> ')' {
+    pin=1
+}
+
+switch_operator_value_node ::= '!switch' switch_operator_clauses {
     pin=1
     methods=[
         key="value_node"
