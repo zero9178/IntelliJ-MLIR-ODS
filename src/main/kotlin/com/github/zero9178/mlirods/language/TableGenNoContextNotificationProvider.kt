@@ -2,7 +2,7 @@ package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.lsp.isTableGenFile
-import com.github.zero9178.mlirods.model.TableGenContextService
+import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceOrNull
@@ -36,7 +36,7 @@ internal val NO_CONTEXT_BANNER_DISMISSED = Key.create<Boolean>("TableGen.noConte
 private class TableGenNoContextNotificationService(project: Project, cs: CoroutineScope) {
     init {
         cs.launch {
-            project.service<TableGenContextService>().contextGeneration.collectLatest {
+            project.service<TableGenIncludeGraphService>().graphGeneration.collectLatest {
                 EditorNotifications.getInstance(project).updateAllNotifications()
             }
         }
@@ -54,10 +54,10 @@ internal class TableGenNoContextNotificationProvider : EditorNotificationProvide
     ): Function<in FileEditor, out JComponent?>? {
         if (!file.isTableGenFile) return null
 
-        val contextService = project.serviceOrNull<TableGenContextService>() ?: return null
+        val graphService = project.serviceOrNull<TableGenIncludeGraphService>() ?: return null
         // Start the refresher so the banner is re-evaluated once contexts change.
         project.service<TableGenNoContextNotificationService>()
-        if (contextService.getActiveContext(file) != null) return null
+        if (graphService.getContextOf(file) != null) return null
 
         return Function { editor ->
             if (editor.getUserData(NO_CONTEXT_BANNER_DISMISSED) == true) return@Function null

@@ -110,8 +110,14 @@ class TableGenPsiImplUtil {
          * Returns the string value that the TableGen string element corresponds to.
          */
         @JvmStatic
-        fun getStringValue(stringElement: PsiElement): String {
-            var text = stringElement.text
+        fun getStringValue(stringElement: PsiElement): String = getStringValue(stringElement.text)
+
+        /**
+         * Returns the string value that [tokenText] – the text of a TableGen string token – corresponds to.
+         */
+        @JvmStatic
+        fun getStringValue(tokenText: String): String {
+            var text = tokenText
             if (!text.startsWith("\"")) {
                 text = text.drop(2)
                 if (text.endsWith("}]"))

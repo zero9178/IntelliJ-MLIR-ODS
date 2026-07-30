@@ -2,20 +2,19 @@ package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.TableGenTypes.*
-import com.github.zero9178.mlirods.model.TableGenContext
 import com.intellij.lang.PsiBuilder
 import com.intellij.lang.impl.DelegateMarker
 import com.intellij.lang.impl.PsiBuilderAdapter
 import com.intellij.psi.tree.IElementType
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentSet
+import kotlinx.collections.immutable.persistentSetOf
 
 /**
  * Special [PsiBuilder] which interprets Preprocessor directives when advancing the lexer.
  * Corresponding Psi elements are built and inserted for every Preprocessor directive.
  */
-class TableGenPreprocessingPsiBuilder(myContext: TableGenContext, delegate: PsiBuilder) : PsiBuilderAdapter(delegate) {
-    private var myDefines = myContext.defines.toPersistentSet()
+class TableGenPreprocessingPsiBuilder(delegate: PsiBuilder) : PsiBuilderAdapter(delegate) {
+    private var myDefines = persistentSetOf<String>()
     private var myFirst = true
 
     private enum class State {

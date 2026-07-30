@@ -76,7 +76,7 @@ class TableGenIncludeReferenceSet(
         override fun getContexts(): Collection<PsiDirectory> {
             if (index == 0) {
                 val file = fileReferenceSet.containingFile as? TableGenFile ?: return emptyList()
-                return file.context.includePaths.mapNotNull {
+                return file.includePaths.mapNotNull {
                     if (!it.isValid) return@mapNotNull null
 
                     PsiManager.getInstance(file.project).findDirectory(it)

@@ -6,8 +6,8 @@ import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
-import com.github.zero9178.mlirods.model.TableGenContext
-import com.github.zero9178.mlirods.model.TableGenContextService
+import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.fileTypes.FileType
@@ -21,11 +21,15 @@ import com.intellij.util.resettableLazy
 class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, TableGenLanguage.INSTANCE),
     TableGenIdentifierScopeNode {
 
-    val context: TableGenContext
+    /**
+     * The include paths this file resolves its `include` directives against, taken from its active context in the
+     * include graph, or empty if the file has no context.
+     */
+    val includePaths: List<VirtualFile>
         get() = originalFile.virtualFile?.let {
             // Note: [serviceOrNull] is needed for parser tests which do not have any services.
-            project.serviceOrNull<TableGenContextService>()?.getActiveContext(it)
-        } ?: TableGenContext()
+            project.serviceOrNull<TableGenIncludeGraphService>()?.getContextOf(it)?.includePaths
+        } ?: emptyList()
 
     override fun getFileType(): FileType = TableGenFileType.INSTANCE
 
