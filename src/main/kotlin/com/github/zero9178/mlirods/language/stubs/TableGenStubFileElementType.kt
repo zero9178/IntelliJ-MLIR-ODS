@@ -58,9 +58,9 @@ class TableGenStubFileElementType :
         val languageForParser = getLanguageForParser(psi)
 
         val builder = TableGenPreprocessingPsiBuilder(
-            psi.context, PsiBuilderFactory.getInstance().createBuilder(
-                    project, chameleon, null, languageForParser, chameleon.chars
-                )
+            PsiBuilderFactory.getInstance().createBuilder(
+                project, chameleon, null, languageForParser, chameleon.chars
+            )
         )
         val parser = LanguageParserDefinitions.INSTANCE.forLanguage(languageForParser).createParser(project)
         val startTime = System.nanoTime()

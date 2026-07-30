@@ -69,6 +69,7 @@
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllClassesIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenMayDeriveClassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefineIndex"/>
+        <fileBasedIndex implementation="com.github.zero9178.mlirods.index.TableGenIncludeIndex"/>
         <elementDescriptionProvider
                 implementation="com.github.zero9178.mlirods.language.TableGenElementDescriptionProvider"/>
         <usageTypeProvider

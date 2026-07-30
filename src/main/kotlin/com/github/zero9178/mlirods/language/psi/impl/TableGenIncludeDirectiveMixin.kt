@@ -5,7 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirecti
 import com.github.zero9178.mlirods.language.psi.TableGenIncludeReferenceSet
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.getStringValue
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStub
-import com.github.zero9178.mlirods.model.TableGenContextService
+import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.components.service
@@ -24,17 +24,20 @@ abstract class TableGenIncludeDirectiveMixin : StubBasedPsiElementBase<TableGenI
     private val myIncludedFileCache = lazy {
         CachedValuesManager.getManager(project)
             .createCachedValue {
-                val tableGenFile = containingFile as? TableGenFile
-                val result = tableGenFile?.run {
-                    context.includePaths.firstNotNullOfOrNull {
-                        if (!it.isValid) return@firstNotNullOfOrNull null
+                val service = project.service<TableGenIncludeGraphService>()
+                // The active context's include paths are the source of truth for include resolution; the graph resolves
+                // its own edges against the very same paths, so both stay in sync.
+                val result = (containingFile as? TableGenFile)?.includePaths.orEmpty().firstNotNullOfOrNull {
+                    if (!it.isValid) return@firstNotNullOfOrNull null
 
-                        it.findFileByRelativePath(includeSuffix)
-                    }
+                    it.findFileByRelativePath(includeSuffix)
                 }
+                // Anything that may make this directive resolve to a different file – the file's context changing, the
+                // file it resolves to appearing or disappearing – changes the edge the graph derives from this very
+                // directive and therefore the graph itself.
                 CachedValueProvider.Result.create(
                     result,
-                    project.service<TableGenContextService>().includeResultModificationTracker,
+                    service.graphChangedModificationTracker,
                     mySubtreeModificationTracker
                 )
             }

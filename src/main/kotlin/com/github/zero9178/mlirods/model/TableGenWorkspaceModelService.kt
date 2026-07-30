@@ -7,7 +7,6 @@ import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.backend.workspace.WorkspaceModel
 import com.intellij.platform.workspace.jps.entities.ContentRootEntity
 import com.intellij.platform.workspace.jps.entities.ModuleEntity
@@ -20,6 +19,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -40,7 +40,7 @@ private const val MODULE_NAME = "TableGen Roots"
 /**
  * Project service maintaining a synthetic module in the workspace model whose content roots are exactly the TableGen
  * files that currently have a context, i.e. the compile-command roots and every file transitively included from one of
- * them (see [TableGenContextService.getFilesWithContext]).
+ * them (see [TableGenIncludeGraphService.getFilesWithContext]).
  *
  * Registering these files as content roots makes them indexed and part of
  * [com.intellij.psi.search.GlobalSearchScope.allScope], even when they live outside the project's own content (e.g. the
@@ -54,8 +54,8 @@ class TableGenWorkspaceModelService(private val project: Project, cs: CoroutineS
     }
 
     /**
-     * [StateFlow] holding the latest [TableGenContextService.contextGeneration] whose files have finished being applied
-     * as content roots.
+     * [StateFlow] holding the latest [TableGenIncludeGraphService.graphGeneration] whose files have finished being
+     * applied as content roots.
      */
     @TestOnly
     val finishedGeneration: StateFlow<Long>
@@ -63,7 +63,7 @@ class TableGenWorkspaceModelService(private val project: Project, cs: CoroutineS
 
     init {
         cs.launch(start = CoroutineStart.UNDISPATCHED) {
-            val contextService = project.service<TableGenContextService>()
+            val graphService = project.service<TableGenIncludeGraphService>()
             val workspaceModel = project.serviceAsync<WorkspaceModel>()
 
             // Re-derive the content roots on two signals:
@@ -71,13 +71,12 @@ class TableGenWorkspaceModelService(private val project: Project, cs: CoroutineS
             //  - another module's roots changed, e.g. CMake reconfigured. updateContentRoots drops files another
             //    module already owns, so that decision goes stale when those modules' content roots move.
             val foreignRootChanges = workspaceModel.eventLog.filter { it.hasForeignRootChange() }
-            merge(contextService.contextGeneration.map { }, foreignRootChanges.map { }).collectLatest {
-                val generation = contextService.contextGeneration.value
+            graphService.graphGeneration.combine(foreignRootChanges) { gen, _ -> gen }.collectLatest {
                 val startTime = System.nanoTime()
-                updateContentRoots(contextService.getFilesWithContext())
+                updateContentRoots(graphService)
                 val endTime = System.nanoTime()
                 LOGGER.info("Updating content roots took ${(endTime - startTime) / 1.0e9} seconds")
-                finishedGeneration.value = generation
+                finishedGeneration.emit(it)
             }
         }
     }
@@ -96,7 +95,7 @@ class TableGenWorkspaceModelService(private val project: Project, cs: CoroutineS
         return entity != null && entity.entitySource != TableGenEntitySource
     }
 
-    private suspend fun updateContentRoots(files: Set<VirtualFile>) {
+    private suspend fun updateContentRoots(graphService: TableGenIncludeGraphService) {
         val workspaceModel = project.serviceAsync<WorkspaceModel>()
         val urlManager = workspaceModel.getVirtualFileUrlManager()
 
@@ -106,7 +105,7 @@ class TableGenWorkspaceModelService(private val project: Project, cs: CoroutineS
         // currently no better mechanism.
         val fileIndex = ProjectFileIndex.getInstance(project)
         val ownFiles = readAction {
-            files.filter { file ->
+            graphService.getFilesWithContext().filter { file ->
                 val owner = fileIndex.getModuleForFile(file)
                 owner == null || owner.name == MODULE_NAME
             }

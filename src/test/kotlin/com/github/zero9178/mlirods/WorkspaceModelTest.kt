@@ -3,8 +3,8 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.model.IncludePaths
-import com.github.zero9178.mlirods.model.TableGenContextService
 import com.github.zero9178.mlirods.model.TableGenEntitySource
+import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.github.zero9178.mlirods.model.TableGenWorkspaceModelService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.roots.ProjectFileIndex
@@ -36,17 +36,17 @@ class WorkspaceModelTest : HeavyPlatformTestCase() {
      */
     private fun workspaceUpdater(): (Map<VirtualFile, IncludePaths>) -> Unit {
         val setCompileCommands = compileCommandsUpdater(project)
-        val contextService = project.service<TableGenContextService>()
+        val graphService = project.service<TableGenIncludeGraphService>()
         val workspaceService = project.service<TableGenWorkspaceModelService>()
 
         return { map ->
-            // Sets the compile commands and waits for the context service to finish propagating them.
+            // Sets the compile commands and waits for the include graph to finish propagating them.
             setCompileCommands(map)
-            // The workspace service reacts to the context change off the EDT and commits via an EDT write action, so
-            // keep pumping the event queue until it has caught up to the settled context generation.
+            // The workspace service reacts to the graph change off the EDT and commits via an EDT write action, so
+            // keep pumping the event queue until it has caught up to the settled graph generation.
             PlatformTestUtil.waitWithEventsDispatching(
                 "TableGen content roots were not applied",
-                { workspaceService.finishedGeneration.value == contextService.contextGeneration.value },
+                { workspaceService.finishedGeneration.value == graphService.graphChangedModificationTracker.modificationCount },
                 10
             )
             IndexingTestUtil.waitUntilIndexesAreReady(project)

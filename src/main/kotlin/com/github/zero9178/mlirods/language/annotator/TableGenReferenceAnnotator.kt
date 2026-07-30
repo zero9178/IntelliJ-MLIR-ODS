@@ -6,7 +6,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessVal
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
-import com.github.zero9178.mlirods.model.TableGenContextService
+import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.components.serviceOrNull
@@ -70,7 +70,7 @@ internal class TableGenReferenceAnnotator : TableGenAnnotator(ANNOTATIONS.asIter
         // commands). The no-context banner already explains this, so skip annotating to avoid flagging every reference.
         val file = element.containingFile as? TableGenFile ?: return
         val virtualFile = file.originalFile.virtualFile ?: return
-        if (file.project.serviceOrNull<TableGenContextService>()?.getActiveContext(virtualFile) == null) return
+        if (file.project.serviceOrNull<TableGenIncludeGraphService>()?.getContextOf(virtualFile) == null) return
 
         super.annotate(element, holder)
     }
