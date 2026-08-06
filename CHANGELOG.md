@@ -26,6 +26,7 @@
 - Binary literals such as `0b1010` are now `bits<n>` values with one bit per digit written rather than integers, making e.g. `{ 0b1010, 0b0101 }` a `bits<8>` rather than a `bits<2>`.
 - Binary literals are no longer accepted where TableGen requires an integer, such as the width of a `bits<n>` type.
 - Usages of a definition are now highlighted and found in every TableGen file, rather than only in those belonging to the same module as the definition.
+- A class that is forward declared before being defined, as LLVM's `Instruction` is, is now recognized as one class rather than two. Records deriving from its definition are therefore no longer reported as having the wrong type where the declaration is used as a template argument type or base class.
 
 ## [0.14.0] - 2026-06-25
 

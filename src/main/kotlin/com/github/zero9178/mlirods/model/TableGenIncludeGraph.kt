@@ -356,6 +356,20 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
     private fun expansionOf(root: Root): Expansion =
         myExpansionCache.value.computeIfAbsent(root) { Expansion(it.node) }
 
+    /**
+     * The transitive includers computed so far, one entry per file someone asked about.
+     *
+     * Like the expansions, and unlike the labeling, these cannot be computed for every file in one pass: the closures
+     * of two files overlap without either being derivable from the other, making all of them together quadratic in the
+     * size of the graph.
+     */
+    private val myIncluderCache: CachedValue<ConcurrentHashMap<VirtualFile, Set<VirtualFile>>> =
+        CachedValuesManager.getManager(project).createCachedValue {
+            CachedValueProvider.Result.create(
+                ConcurrentHashMap<VirtualFile, Set<VirtualFile>>(), graphChangedModificationTracker
+            )
+        }
+
     // -----------------------------------------------------------------------------------------------------------------
     // Queries
     // -----------------------------------------------------------------------------------------------------------------
@@ -393,6 +407,34 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
     @RequiresReadLock
     fun getIncludersOf(vf: VirtualFile): List<VirtualFile> =
         getNodeFor(vf)?.incoming?.map { it.file }.orEmpty()
+
+    /**
+     * Returns every file that includes [vf], directly or through any number of intermediate files. [vf] itself is only
+     * part of the result if it takes part in an include cycle.
+     *
+     * Unlike [getIncludedFiles] this is not relative to a context: it is the set of files from which anything [vf]
+     * declares can be seen at all, no matter which root the file pasting it in derives its context from. Restricting it
+     * to a single context would only answer for one particular expansion, whereas a caller asking what a declaration
+     * in [vf] may refer to has to consider every expansion [vf] takes part in.
+     *
+     * TODO: This answers whether a file may follow [vf] at all, not whether it does so in a given expansion. An
+     *       order-aware variant is cheap to add: [Expansion] already stores the exclusive end of every file's subtree,
+     *       making "x is entirely before [vf]" the single comparison 'end(x) <= position(vf)' and the result of such a
+     *       query a view mirroring [Prefix]. See the TODO on 'TableGenIncluderSearchScope' for what keeps its callers
+     *       from asking for one.
+     */
+    @RequiresReadLock
+    fun getTransitiveIncludersOf(vf: VirtualFile): Set<VirtualFile> =
+        myIncluderCache.value.computeIfAbsent(vf) { file ->
+            val stack = mutableListOf(getNodeFor(file) ?: return@computeIfAbsent emptySet())
+            val result = mutableSetOf<VirtualFile>()
+            while (stack.isNotEmpty()) {
+                stack.removeLast().incoming.forEach {
+                    if (result.add(it.file)) stack.add(it)
+                }
+            }
+            result
+        }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Change notification

@@ -129,6 +129,10 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Returns whether this record is [target] or transitively derives from it. Returns null if the class hierarchy
      * could not be fully resolved without finding [target]; in that case a derivation through the unresolved class
      * cannot be ruled out.
+     *
+     * Note that a forward declaration and its definition denote the same class while being distinct statements. Since
+     * matching the two up is only approximate, a derivation involving a declaration is reported as unresolved rather
+     * than ruled out, trading missed errors for the absence of false ones.
      */
     fun derivesFrom(target: TableGenFieldScopeNode): Boolean? {
         // Trivial self case.
@@ -137,12 +141,24 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         // Cannot derive from a non-class.
         if (target !is TableGenClassStatement) return false
 
-        if (allBaseClasses.contains(target)) return true
+        // A class may be declared before it is defined, in which case [target] may be a mere declaration while the
+        // class hierarchy derives from the definition. Both denote the same class, so comparing against the definition
+        // still recognizes the derivation.
+        val targetDefinition = target.definition ?: target
+        if (targetDefinition === this || allBaseClasses.contains(targetDefinition)) return true
 
         // If null is contained in the set then not all base classes are known.
         // Depending on the caller we should handle this explicitly.
         // Return a null sentinel in this case.
         if (allBaseClasses.contains(null)) return null
+
+        // No derivation was found, but a declaration that is defined elsewhere may still denote the same class as one
+        // of the statements compared above without this being provable here: [target] may be a declaration whose
+        // definition is ambiguous, and a base class may be a declaration of the very class [target] defines. Report
+        // the derivation as unresolved in those cases rather than ruling it out.
+        // A declaration that is never defined denotes a class of its own, so it stays a definite answer.
+        if (target.definitions.size > 1) return null
+        if (allBaseClasses.any { it != null && it.isDeclaration && it.definitions.isNotEmpty() }) return null
         return false
     }
 

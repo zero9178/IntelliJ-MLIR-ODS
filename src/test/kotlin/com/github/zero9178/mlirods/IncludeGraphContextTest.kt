@@ -330,6 +330,44 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         assertEmpty(service.getIncludersOf(root))
     }
 
+    fun `test the graph can be traversed backwards transitively`() {
+        val leaf = myFixture.createFile("leaf.td", "")
+        val mid = myFixture.createFile("mid.td", "include \"leaf.td\"")
+        val sibling = myFixture.createFile("sibling.td", "")
+        val root = myFixture.createFile(
+            "root.td", """
+            include "mid.td"
+            include "sibling.td"
+        """.trimIndent()
+        )
+        val dir = root.parent
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
+
+        // Every file 'leaf' is pasted into, no matter how indirectly. 'sibling' is none of them: it neither includes
+        // 'leaf' nor is it included by anything that does.
+        assertEquals(setOf(mid, root), service.getTransitiveIncludersOf(leaf))
+        assertEquals(setOf(root), service.getTransitiveIncludersOf(mid))
+        assertEmpty(service.getTransitiveIncludersOf(root))
+
+        // Deleting 'mid' is what took 'leaf' out of the graph, so nothing includes it anymore. Answering from the
+        // closure computed above would keep reporting the include chain that no longer exists.
+        WriteCommandAction.runWriteCommandAction(project) {
+            mid.delete(this)
+        }
+        awaitIncludeGraph(project)
+
+        assertEmpty(service.getTransitiveIncludersOf(leaf))
+    }
+
+    fun `test a file outside of any include chain has no includers`() {
+        val root = myFixture.createFile("root.td", "")
+        val orphan = myFixture.createFile("orphan.td", "")
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(root.parent))))
+
+        // A file that is not part of the graph at all is not an error, it simply has nothing including it.
+        assertEmpty(service.getTransitiveIncludersOf(orphan))
+    }
+
     fun `test creating a file resolves an include that resolved to nothing`() {
         val root = myFixture.createFile("root.td", "include \"appears.td\"")
         val dir = root.parent
