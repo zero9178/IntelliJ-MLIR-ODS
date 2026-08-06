@@ -89,6 +89,7 @@
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>
         <lang.findUsagesProvider language="TableGen"
                                  implementationClass="com.github.zero9178.mlirods.language.TableGenFindUsageProvider"/>
+        <useScopeEnlarger implementation="com.github.zero9178.mlirods.language.TableGenUseScopeEnlarger"/>
         <codeInsight.parameterInfo language="TableGen"
                                    implementationClass="com.github.zero9178.mlirods.language.TableGenParameterInfoHandler"/>
         <codeInsight.lineMarkerProvider language="TableGen"

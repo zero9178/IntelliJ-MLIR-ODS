@@ -106,8 +106,9 @@ class TableGenWorkspaceModelService(private val project: Project, cs: CoroutineS
         val fileIndex = ProjectFileIndex.getInstance(project)
         val ownFiles = readAction {
             graphService.getFilesWithContext().filter { file ->
-                val owner = fileIndex.getModuleForFile(file)
-                owner == null || owner.name == MODULE_NAME
+                fileIndex.getModulesForFile(file, true).all {
+                    it.name == MODULE_NAME
+                }
             }
         }
 
