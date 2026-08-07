@@ -7,9 +7,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.IndexingTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.UsefulTestCase
+import com.intellij.util.ui.EDT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
@@ -25,17 +30,32 @@ import kotlin.time.Duration.Companion.seconds
 private val TIMEOUT = 60.seconds
 
 /**
- * Runs [action], which blocks the current thread until the include graph has settled.
+ * Runs [action] and waits until it completes, i.e. until the include graph has settled.
  *
  * Tests run on the EDT with the write-intent lock held, while the graph applies its changes in background write
- * actions. Blocking the EDT without giving up that lock would therefore deadlock the graph update we are waiting for.
+ * actions. Holding on to that lock would deadlock the graph update we are waiting for, and so would blocking the EDT:
+ * committing to the workspace model – which reacting to a graph change does – needs events to be dispatched.
  */
 private fun awaitOffEdt(action: suspend CoroutineScope.() -> Unit) =
     TestOnlyThreading.releaseTheAcquiredWriteIntentLockThenExecuteActionAndTakeWriteIntentLockBack {
-        runBlocking {
-            withTimeout(TIMEOUT) {
-                action()
+        val scope = CoroutineScope(Dispatchers.Default)
+        try {
+            val job = scope.async { action() }
+            if (EDT.isCurrentThreadEdt()) {
+                PlatformTestUtil.waitWithEventsDispatching(
+                    "Timed out waiting for the include graph to settle",
+                    { job.isCompleted },
+                    TIMEOUT.inWholeSeconds.toInt(),
+                )
             }
+            // Rethrows whatever the action failed with, and covers the non-EDT case.
+            runBlocking {
+                withTimeout(TIMEOUT) {
+                    job.await()
+                }
+            }
+        } finally {
+            scope.cancel()
         }
     }
 

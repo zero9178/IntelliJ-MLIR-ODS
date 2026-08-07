@@ -7,7 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.lsp.api.LspServerSupportProvider
+import com.intellij.platform.lsp.api.LspIntegrationProvider
 import com.jetbrains.cidr.cpp.cmake.model.CMakeTarget
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
 import org.eclipse.lsp4j.InitializeResult
@@ -16,7 +16,7 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
     override fun fileOpened(
         project: Project,
         file: VirtualFile,
-        serverStarter: LspServerSupportProvider.LspServerStarter
+        clientStarter: LspIntegrationProvider.LspClientStarter
     ): Boolean {
         val target =
             project.service<CMakeWorkspace>().modelTargets.firstOrNull(CMakeTarget::isTableGenLspServer)
@@ -42,7 +42,7 @@ internal class CMakeTableGenLspServerSupportProvider : TableGenLspServerSupportP
 
         /// TODO: This assumes layout as in the LLVM monorepo. No clue whether this holds!
         val compileCommands = buildConfig.configurationGenerationDir.resolve("tablegen_compile_commands.yml")
-        serverStarter.ensureServerStarted(
+        clientStarter.ensureClientStarted(
             TableGenLspServerDescriptor(
                 productFile,
                 compileCommands,

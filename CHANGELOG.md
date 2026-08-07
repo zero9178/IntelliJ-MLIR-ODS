@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The plugin now requires 2026.2 or newer.
+
 ## [0.16.0] - 2026-09-10
 
 ### Added

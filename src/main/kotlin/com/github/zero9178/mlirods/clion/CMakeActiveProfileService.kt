@@ -47,7 +47,7 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
         }
 
         project.messageBus.connect(cs).subscribe(CMakeWorkspaceListener.TOPIC, object : CMakeWorkspaceListener {
-            override fun afterApplyingNoLocks() {
+            override fun reloadingFinished(canceled: Boolean) {
                 cs.launch(block = block)
             }
         })

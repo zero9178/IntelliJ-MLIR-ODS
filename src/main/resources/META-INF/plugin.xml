@@ -140,7 +140,7 @@
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.platform.lsp">
-        <serverSupportProvider
+        <integrationProvider
                 implementation="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProvider"/>
     </extensions>
 
