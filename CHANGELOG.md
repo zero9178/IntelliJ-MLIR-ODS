@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Files reachable from the compile commands are now indexed right after opening a project, rather than only once a module's content roots happened to change afterwards. Their classes, defs and other definitions were previously not found by references, completion or find usages until e.g. CMake reconfigured.
+
 ## [0.15.0] - 2026-08-07
 
 ### Added

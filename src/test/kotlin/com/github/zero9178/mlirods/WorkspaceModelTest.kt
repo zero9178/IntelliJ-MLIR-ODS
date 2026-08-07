@@ -6,6 +6,8 @@ import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenEntitySource
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.github.zero9178.mlirods.model.TableGenWorkspaceModelService
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.impl.TestOnlyThreading
 import com.intellij.openapi.components.service
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.io.FileUtil
@@ -18,7 +20,16 @@ import com.intellij.psi.stubs.StubIndex
 import com.intellij.testFramework.HeavyPlatformTestCase
 import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.PlatformTestUtil
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import java.io.File
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * Name of the module the test contributes with [TableGenEntitySource], i.e. one the service considers its own.
+ */
+private const val OUR_MODULE_NAME = "Test TableGen Module"
 
 /**
  * Tests for [TableGenWorkspaceModelService]: every TableGen file that has a context – a compile-command root or a file
@@ -101,6 +112,39 @@ class WorkspaceModelTest : HeavyPlatformTestCase() {
         assertContainsElements(urls, rootB.url)
         assertDoesntContain(urls, rootA.url)
         assertDoesntContain(urls, included.url)
+    }
+
+    fun `test content roots are contributed without any workspace change following`() {
+        val (includeDir, included) = createExternalDir("included.td", "class Included;")
+        val (_, root) = createExternalDir("root.td", "include \"included.td\"")
+
+        // Leave a change of our own as the last one in the workspace model before the service starts. The service
+        // ignores its own changes, so this stands in for a project whose modules have all been loaded by the time it
+        // starts: nothing it reacts to is left to arrive, and it must contribute content roots regardless.
+        val workspaceModel = WorkspaceModel.getInstance(project)
+        WriteAction.runAndWait<Throwable> {
+            workspaceModel.updateProjectModel("Add a module of our own") { storage ->
+                storage.addEntity(ModuleEntity(OUR_MODULE_NAME, emptyList(), TableGenEntitySource))
+            }
+        }
+        // The service subscribes to the event log, which replays the last change to every new subscriber. Only once
+        // ours is that change does the test cover a service that is not handed a change it reacts to.
+        TestOnlyThreading.releaseTheAcquiredWriteIntentLockThenExecuteActionAndTakeWriteIntentLockBack {
+            runBlocking {
+                withTimeout(10.seconds) {
+                    workspaceModel.eventLog.first { change ->
+                        change.getChanges(ModuleEntity::class.java).any {
+                            (it.newEntity ?: it.oldEntity)?.name == OUR_MODULE_NAME
+                        }
+                    }
+                }
+            }
+        }
+
+        val update = workspaceUpdater()
+        update(mapOf(root to IncludePaths(listOf(includeDir))))
+
+        assertContainsElements(ourContentRootUrls(), root.url, included.url)
     }
 
     fun `test class in included file is indexed and in allScope`() {

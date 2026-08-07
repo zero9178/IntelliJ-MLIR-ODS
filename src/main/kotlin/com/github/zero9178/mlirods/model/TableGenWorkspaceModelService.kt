@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import org.jetbrains.annotations.TestOnly
 
@@ -70,7 +71,12 @@ class TableGenWorkspaceModelService(private val project: Project, cs: CoroutineS
             //  - the set of files-with-context changed (contextGeneration), and
             //  - another module's roots changed, e.g. CMake reconfigured. updateContentRoots drops files another
             //    module already owns, so that decision goes stale when those modules' content roots move.
-            val foreignRootChanges = workspaceModel.eventLog.filter { it.hasForeignRootChange() }
+            // The event log only reports changes made from here on, so seed it: every module may already have been
+            // loaded by the time this service starts, in which case there is no further change to wait for.
+            val foreignRootChanges = workspaceModel.eventLog
+                .filter { it.hasForeignRootChange() }
+                .map { }
+                .onStart { emit(Unit) }
             graphService.graphGeneration.combine(foreignRootChanges) { gen, _ -> gen }.collectLatest {
                 val startTime = System.nanoTime()
                 updateContentRoots(graphService)
