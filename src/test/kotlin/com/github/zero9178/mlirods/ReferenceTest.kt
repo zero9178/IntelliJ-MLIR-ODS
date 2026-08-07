@@ -363,6 +363,62 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNotNull(element.parentOfType<TableGenMulticlassStatement>())
     }
 
+    fun `test multiclass def not referenceable`() {
+        val mainVF = myFixture.createFile(
+            "test.td", """
+            multiclass M {
+                def foo;
+                def bar { int x = <caret>foo; }
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                mainVF to IncludePaths(emptyList())
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(mainVF)
+        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
+    }
+
+    fun `test multiclass def does not shadow global def`() {
+        val element = doTestInline<TableGenDefStatement>(
+            """
+            def foo;
+
+            multiclass M {
+                def foo;
+                def bar { int x = <caret>foo; }
+            }
+        """.trimIndent()
+        )
+        assertEquals("foo", element.name)
+        assertNull(element.parentOfType<TableGenMulticlassStatement>())
+    }
+
+    fun `test multiclass def not in index`() {
+        val mainVF = myFixture.createFile(
+            "test.td", """
+            multiclass M {
+                foreach i = [0] in {
+                    def foo;
+                }
+            }
+
+            defvar v = <caret>foo;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                mainVF to IncludePaths(emptyList())
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(mainVF)
+        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
+    }
+
     fun `test append let`() {
         val iter = doTestInline<TableGenFieldBodyItem>(
             """
