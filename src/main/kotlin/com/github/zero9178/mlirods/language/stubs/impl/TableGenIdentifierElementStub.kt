@@ -11,6 +11,7 @@ import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenForeachIt
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.stubs.TableGenFileStub
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
+import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.*
 
@@ -130,10 +131,17 @@ class TableGenDefStatementStubElementType(debugName: String) :
         stub: TableGenDefStatementStub,
         sink: IndexSink
     ) {
-        stub.name?.let {
-            sink.occurrence(IDENTIFIER_INDEX, it)
+        // 'def's within a multiclass are only instantiated by 'defm's with 'NAME' prepended to their names.
+        // They can therefore never be found by identifier lookup under their local name.
+        val withinMulticlass = generateSequence(stub.parentStub) { it.parentStub }.any {
+            it.elementType === TableGenStubElementTypes.MULTICLASS_STATEMENT
         }
-        sink.occurrence(ALL_IDENTIFIERS_INDEX, 0)
+        if (!withinMulticlass) {
+            stub.name?.let {
+                sink.occurrence(IDENTIFIER_INDEX, it)
+            }
+            sink.occurrence(ALL_IDENTIFIERS_INDEX, 0)
+        }
         stub.baseClassNames.forEach {
             sink.occurrence(MAY_DERIVE_CLASS_INDEX, it)
         }

@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode
@@ -20,7 +21,9 @@ abstract class TableGenMulticlassStatementMixin : StubBasedPsiElementBase<TableG
     override fun toString(): String = TableGenPsiImplUtil.toString(this)
 
     private var myDirectIdMap = resettableLazy {
-        stubbedChildren<TableGenIdentifierElement>().mapNotNull {
+        // 'def's within a multiclass are only instantiated by 'defm's with 'NAME' prepended to their names.
+        // They can therefore never be found by identifier lookup, only via '!cast'.
+        stubbedChildren<TableGenIdentifierElement>().filter { it !is TableGenDefStatement }.mapNotNull {
             val name = it.name ?: return@mapNotNull null
             name to it
         }.groupBy({
