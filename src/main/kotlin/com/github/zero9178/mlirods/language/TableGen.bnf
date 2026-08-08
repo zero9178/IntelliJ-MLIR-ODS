@@ -75,7 +75,6 @@
     BANG_FILTER="!filter"
     BANG_SORT="!sort"
     BANG_SWITCH="!switch"
-    BANG_CAST="!cast"
     // Used by live preview only.
     WHITE_SPACE="regexp:\s*"
   ]
@@ -723,7 +722,6 @@ private simple_value_node ::= integer_value_node
                           | identifier_value_node
                           | cond_operator_value_node
                           | switch_operator_value_node
-                          | cast_operator_value_node
                           | foreach_operator_value_node
                           | foldl_operator_value_node
                           | filter_operator_value_node
@@ -953,11 +951,6 @@ sort_operator_value_node ::= '!sort' '(' bang_operator_definition ',' value_node
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSortOperatorValueNodeStubElementType"
 }
 
-cast_operator_value_node ::= '!cast' '<' type_node '>' '(' value_node ')' {
-    pin=1
-    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenCastOperatorValueNodeStubElementType"
-}
-
 // The argument list of a bang operator is pinned on the opening parenthesis rather than on the operator itself.
 // Otherwise a bang operator without arguments would enter the list's "everything up to the closing delimiter is an
 // item" recovery without a closing delimiter ever following, consuming the remainder of the file.
@@ -968,6 +961,9 @@ private bang_operator_arguments ::= '(' <<value_node_list ')' value_node_follows
 bang_operator_value_node ::= BANG_OPERATOR ('<' type_node '>')? bang_operator_arguments {
     pin=1
     methods=[
+        leftAngle="LANGLE"
+        rightAngle="RANGLE"
+
         toString
     ]
     implements=[

@@ -13,6 +13,7 @@ import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.util.containers.ConcurrentFactoryMap
 
@@ -153,6 +154,13 @@ interface TableGenBangOperatorValueNodeEx : TableGenValueNodeEx {
      */
     val operator: TableGenBangOperator?
         get() = TableGenBangOperator.fromOperatorName(operatorName)
+
+    /**
+     * Text range of the '<type>' argument including its angle brackets, or null if the operator has no type argument.
+     * The operator's own angle brackets are used rather than the outermost ones of the type, which may bring its own
+     * (e.g. 'list<int>').
+     */
+    val typeArgumentRange: TextRange?
 }
 
 interface TableGenBoolValueNodeEx : TableGenAtomicValue {

@@ -1,6 +1,26 @@
 package com.github.zero9178.mlirods.language.psi
 
 /**
+ * How a bang operator may be given a '<type>' argument between the operator and its parenthesized operands.
+ */
+enum class TableGenTypeArgument {
+    /**
+     * The operator must not be given a type argument. This is the case for the vast majority of operators.
+     */
+    DISALLOWED,
+
+    /**
+     * The operator may be given a type argument but does not have to be.
+     */
+    OPTIONAL,
+
+    /**
+     * The operator is ill-formed without a type argument.
+     */
+    REQUIRED,
+}
+
+/**
  * Enumeration of all bang operators known to TableGen.
  *
  * The [operatorName] is the full operator token text including the leading '!'. [arity] is the range of allowed operand
@@ -11,10 +31,9 @@ enum class TableGenBangOperator(
     val operatorName: String,
     val arity: IntRange,
     /**
-     * Whether the operator requires a '<type>' argument between the operator and its operands. Operators that merely
-     * allow one do not set this.
+     * Whether the operator takes a '<type>' argument between the operator and its operands.
      */
-    val requiresTypeArgument: Boolean = false,
+    val typeArgument: TableGenTypeArgument = TableGenTypeArgument.DISALLOWED,
 ) {
     // Comparison.
     EQ("!eq", 2..2),
@@ -28,10 +47,11 @@ enum class TableGenBangOperator(
     IF("!if", 3..3),
 
     // Type and value queries.
-    ISA("!isa", 1..1),
-    EXISTS("!exists", 1..1),
+    CAST("!cast", 1..1, TableGenTypeArgument.REQUIRED),
+    ISA("!isa", 1..1, TableGenTypeArgument.REQUIRED),
+    EXISTS("!exists", 1..1, TableGenTypeArgument.REQUIRED),
     INITIALIZED("!initialized", 1..1),
-    INSTANCES("!instances", 0..1),
+    INSTANCES("!instances", 0..1, TableGenTypeArgument.REQUIRED),
     REPR("!repr", 1..1),
 
     // Arithmetic and bitwise.
@@ -72,17 +92,15 @@ enum class TableGenBangOperator(
     // DAG operations.
     DAG("!dag", 3..3),
     CON("!con", 2..Int.MAX_VALUE),
-    GETDAGOP("!getdagop", 1..1),
+    // '!getdagop<Class>(dag)' is shorthand for '!cast<Class>(!getdagop(dag))', making the type argument optional.
+    GETDAGOP("!getdagop", 1..1, TableGenTypeArgument.OPTIONAL),
     SETDAGOP("!setdagop", 2..2),
     GETDAGOPNAME("!getdagopname", 1..1),
     SETDAGOPNAME("!setdagopname", 2..2),
-    GETDAGARG("!getdagarg", 2..2),
+    GETDAGARG("!getdagarg", 2..2, TableGenTypeArgument.REQUIRED),
     SETDAGARG("!setdagarg", 3..3),
     GETDAGNAME("!getdagname", 2..2),
     SETDAGNAME("!setdagname", 3..3),
-
-    // Operators parsed into a dedicated Psi node.
-    CAST("!cast", 1..1, requiresTypeArgument = true),
 
     // The operands of '!cond' are 'condition : value' clauses, of which at least one is required.
     COND("!cond", 1..Int.MAX_VALUE),
