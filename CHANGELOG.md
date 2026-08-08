@@ -15,6 +15,7 @@
 - Files reachable from the compile commands are now indexed right after opening a project, rather than only once a module's content roots happened to change afterwards. Their classes, defs and other definitions were previously not found by references, completion or find usages until e.g. CMake reconfigured.
 - Completing `list` or `bits` in front of already written angled brackets no longer inserts a second empty pair.
 - Selecting a class, `list` or `bits` completion by typing `<` no longer types that `<` into the angled brackets inserted by the completion.
+- Completion no longer pops up on its own while an integer literal is being written. Since TableGen identifiers may start with digits, typing e.g. `1` previously offered every identifier starting with that digit. The popup appears as soon as the text can no longer become an integer literal, and explicitly requesting completion still offers those identifiers.
 
 ## [0.15.0] - 2026-08-07
 

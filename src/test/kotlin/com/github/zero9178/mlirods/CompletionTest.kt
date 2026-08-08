@@ -608,6 +608,18 @@ class CompletionTest : BasePlatformTestCase() {
     }
 
 
+    /**
+     * Only the automatic popup is suppressed while an integer literal may be being typed; explicitly asking for
+     * completion still offers the identifiers starting with the digits.
+     */
+    fun `test explicit completion after digits`() = doTest(
+        """
+            def 123abc;
+            def 123def;
+            defvar l = 1<caret>;
+        """.trimIndent(), "123abc", "123def"
+    )
+
     fun `test class cross file access lookup`() = doCrossFileTestTyping(
         """
             class BLong;
