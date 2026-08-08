@@ -1,16 +1,21 @@
 package com.github.zero9178.mlirods.language.psi
 
 /**
- * Enumeration of the bang operators parsed as a generic 'bang_operator_value_node'.
- *
- * This is the set of bang operators known to TableGen, minus those that have their own dedicated token and PSI node and
- * are therefore parsed specially.
+ * Enumeration of all bang operators known to TableGen.
  *
  * The [operatorName] is the full operator token text including the leading '!'. [arity] is the range of allowed operand
  * counts (the values inside the parentheses; a leading '<type>' is not an operand). Operators whose arguments are folded
  * left-associatively (e.g. '!add') accept any number of operands greater than or equal to two.
  */
-enum class TableGenBangOperator(val operatorName: String, val arity: IntRange) {
+enum class TableGenBangOperator(
+    val operatorName: String,
+    val arity: IntRange,
+    /**
+     * Whether the operator requires a '<type>' argument between the operator and its operands. Operators that merely
+     * allow one do not set this.
+     */
+    val requiresTypeArgument: Boolean = false,
+) {
     // Comparison.
     EQ("!eq", 2..2),
     NE("!ne", 2..2),
@@ -75,6 +80,20 @@ enum class TableGenBangOperator(val operatorName: String, val arity: IntRange) {
     SETDAGARG("!setdagarg", 3..3),
     GETDAGNAME("!getdagname", 2..2),
     SETDAGNAME("!setdagname", 3..3),
+
+    // Operators parsed into a dedicated Psi node.
+    CAST("!cast", 1..1, requiresTypeArgument = true),
+
+    // The operands of '!cond' are 'condition : value' clauses, of which at least one is required.
+    COND("!cond", 1..Int.MAX_VALUE),
+
+    // '!switch' takes the value to match on, at least one 'case : value' clause and the mandatory default value.
+    SWITCH("!switch", 3..Int.MAX_VALUE),
+
+    FOREACH("!foreach", 3..3),
+    FOLDL("!foldl", 5..5),
+    FILTER("!filter", 3..3),
+    SORT("!sort", 3..3),
     ;
 
     companion object {

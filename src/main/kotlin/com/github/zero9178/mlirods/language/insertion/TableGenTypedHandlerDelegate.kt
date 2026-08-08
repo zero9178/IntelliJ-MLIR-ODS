@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.insertion
 import com.github.zero9178.mlirods.language.STRING_LITERALS
 import com.github.zero9178.mlirods.language.TableGenFileType
 import com.github.zero9178.mlirods.language.generated.TableGenTypes.BLOCK_STRING_LITERAL
+import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -11,6 +12,19 @@ import com.intellij.psi.util.elementType
 import com.intellij.psi.util.startOffset
 
 internal class TableGenTypedHandlerDelegate : TypedHandlerDelegate() {
+    override fun checkAutoPopup(
+        charTyped: Char, project: Project, editor: Editor, file: PsiFile
+    ): Result {
+        if (file.fileType != TableGenFileType.INSTANCE) return Result.CONTINUE
+
+        if (charTyped != '!') return Result.CONTINUE
+
+        // A '!' starts a bang operator, but as it is not an identifier character the platform would not consider it
+        // worth showing completion for on its own.
+        AutoPopupController.getInstance(project).scheduleAutoPopup(editor)
+        return Result.STOP
+    }
+
     override fun charTyped(
         c: Char, project: Project, editor: Editor, file: PsiFile
     ): Result {

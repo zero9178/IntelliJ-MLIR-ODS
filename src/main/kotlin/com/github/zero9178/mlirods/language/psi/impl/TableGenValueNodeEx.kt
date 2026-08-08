@@ -148,7 +148,8 @@ interface TableGenBangOperatorValueNodeEx : TableGenValueNodeEx {
     val operatorName: String
 
     /**
-     * The known bang operator this node uses, or null if [operatorName] is not a recognized bang operator.
+     * The known bang operator this node uses, or null if [operatorName] is not a recognized bang operator. Only
+     * operators without a dedicated Psi node can ever be returned.
      */
     val operator: TableGenBangOperator?
         get() = TableGenBangOperator.fromOperatorName(operatorName)
