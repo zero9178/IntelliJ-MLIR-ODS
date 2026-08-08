@@ -4,9 +4,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- Typing `!` now offers completion for every bang operator known to the plugin, inserting the parentheses of its argument list and, in the case of `!cast`, also the angle brackets of its type argument. Delimiters that have already been written are reused and, if left unclosed, completed to a balanced pair, and the Tab key moves the caret out of an inserted pair — for `!cast`, from the type argument into the parentheses and finally behind them.
+- Completing a class or the `list` and `bits` types now also enters angled brackets that were already written but are still empty, and the Tab key moves the caret out of the brackets after the content has been written.
+
 ### Fixed
 
 - Files reachable from the compile commands are now indexed right after opening a project, rather than only once a module's content roots happened to change afterwards. Their classes, defs and other definitions were previously not found by references, completion or find usages until e.g. CMake reconfigured.
+- Completing `list` or `bits` in front of already written angled brackets no longer inserts a second empty pair.
+- Selecting a class, `list` or `bits` completion by typing `<` no longer types that `<` into the angled brackets inserted by the completion.
 
 ## [0.15.0] - 2026-08-07
 

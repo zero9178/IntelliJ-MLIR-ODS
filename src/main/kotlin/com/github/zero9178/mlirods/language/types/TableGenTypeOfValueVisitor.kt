@@ -246,6 +246,9 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
             LISTCONCAT, LISTREMOVE -> operands.map { it.type }.commonType() as? TableGenListType
                 ?: TableGenUnknownType
 
+            // These are parsed into their own Psi node and have their type computed by the corresponding visit method.
+            CAST, COND, SWITCH, FOREACH, FOLDL, FILTER, SORT -> TableGenUnknownType
+
             LISTFLATTEN -> {
                 val elementType = (operands.firstOrNull()?.type as? TableGenListType)?.elementType
                     ?: return TableGenUnknownType

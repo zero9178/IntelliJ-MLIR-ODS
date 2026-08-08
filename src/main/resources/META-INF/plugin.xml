@@ -81,6 +81,8 @@
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenKeywordCompletionContributor"/>
         <completion.contributor language="TableGen"
+                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenBangOperatorCompletionContributor"/>
+        <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenInterFileCompletionContributor"/>
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenClassReferenceCompletionContributor"/>

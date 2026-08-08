@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.TableGenTypes.IDENTIFIER
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.editorActions.TabOutScopesTracker
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.Key
@@ -157,8 +158,18 @@ internal class TableGenKeywordCompletionContributor : CompletionContributor(), D
                 ) {
                     TYPE_START_ANGLED.forEach {
                         result.addElement(keywordLookupElement(it).withInsertHandler { c, l ->
-                            c.document.insertString(c.tailOffset, "<>")
-                            c.editor.caretModel.moveCaretRelatively(1, 0, false, false, false)
+                            // A '<' the completion was selected with is established by this handler already and must
+                            // not be typed into the brackets the caret is placed in.
+                            if (c.completionChar == '<') c.setAddCompletionChar(false)
+
+                            val editor = c.editor
+                            val angleBrackets = establishAngleBrackets(editor.document, editor.caretModel.offset)
+                            // Enter the brackets if their content has yet to be written; otherwise leave the caret
+                            // behind the keyword.
+                            if (angleBrackets.isEmpty) {
+                                editor.caretModel.moveToOffset(angleBrackets.start + 1)
+                                TabOutScopesTracker.getInstance().registerEmptyScopeAtCaret(editor)
+                            }
                         })
                     }
                 }

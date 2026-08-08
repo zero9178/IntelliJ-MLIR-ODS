@@ -1,7 +1,13 @@
 package com.github.zero9178.mlirods
 
+import com.github.zero9178.mlirods.language.BANG_OPERATORS
+import com.github.zero9178.mlirods.language.generated.TableGenTypes
+import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
 import com.github.zero9178.mlirods.model.IncludePaths
+import com.intellij.codeInsight.lookup.impl.LookupImpl
+import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.editor.ex.EditorSettingsExternalizable
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.DumbModeTestUtils
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -24,6 +30,199 @@ class CompletionTest : BasePlatformTestCase() {
             defvar test = !foreach(i, <caret>, i);
         """.trimIndent(), "values", doesNotContain = listOf("i")
     )
+
+    fun `test bang operator completion`() = doTest(
+        """
+            defvar test = !<caret>;
+        """.trimIndent(),
+        "!add",
+        "!eq",
+        "!getdagarg",
+        "!cast",
+        "!cond",
+        "!filter",
+        "!foldl",
+        "!foreach",
+        "!sort",
+        "!switch",
+    )
+
+    /**
+     * Every operator with a dedicated token has to be part of [TableGenBangOperator] as well to be offered for
+     * completion.
+     */
+    fun `test bang operator completion contains every dedicated operator`() = doTest(
+        """
+            defvar test = !<caret>;
+        """.trimIndent(),
+        *BANG_OPERATORS.types.filter { it != TableGenTypes.BANG_OPERATOR }.map { it.toString() }.toTypedArray()
+    )
+
+    fun `test bang operator completion at eof`() = doTest(
+        """
+            defvar test = !<caret>
+        """.trimIndent(), "!add", "!cond"
+    )
+
+    fun `test bang operator completion in nested value`() = doTest(
+        """
+            defvar test = [1, !<caret>];
+        """.trimIndent(), "!add", "!cond"
+    )
+
+    fun `test bang operator completion typing`() = doTestTyping(
+        """
+            defvar test = !listrem<caret>;
+        """.trimIndent(), """
+            defvar test = !listremove(<caret>);
+        """.trimIndent()
+    )
+
+    fun `test bang operator completion keeps existing parentheses`() = doTestTyping(
+        """
+            defvar test = !listrem<caret>(1, 2);
+        """.trimIndent(), """
+            defvar test = !listremove(<caret>1, 2);
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion typing`() = doTestTyping(
+        """
+            defvar test = !cas<caret>;
+        """.trimIndent(), """
+            defvar test = !cast<<caret>>();
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion adds type argument to existing parentheses`() = doTestTyping(
+        """
+            defvar test = !cas<caret>(1);
+        """.trimIndent(), """
+            defvar test = !cast<<caret>>(1);
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion keeps existing type argument`() = doTestTyping(
+        """
+            defvar test = !cas<caret><int>(1);
+        """.trimIndent(), """
+            defvar test = !cast<caret><int>(1);
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion adds parentheses to existing type argument`() = doTestTyping(
+        """
+            defvar test = !cas<caret><int>;
+        """.trimIndent(), """
+            defvar test = !cast<int>(<caret>);
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion enters existing empty type argument`() = doTestTyping(
+        """
+            defvar test = !cas<caret><>(1);
+        """.trimIndent(), """
+            defvar test = !cast<<caret>>(1);
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion closes unbalanced type argument`() = doTestTyping(
+        """
+            defvar test = !cas<caret><;
+        """.trimIndent(), """
+            defvar test = !cast<<caret>>();
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion closes unbalanced type argument with parentheses`() = doTestTyping(
+        """
+            defvar test = !cas<caret><int(1);
+        """.trimIndent(), """
+            defvar test = !cast<int>(<caret>1);
+        """.trimIndent()
+    )
+
+    fun `test bang operator completion allows tabbing out of parentheses`() = doTestTyping(
+        """
+            defvar test = !ad<caret>;
+        """.trimIndent(), """
+            defvar test = !add(1, 2)<caret>;
+        """.trimIndent()
+    ) {
+        myFixture.type("1, 2")
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+    }
+
+    fun `test cast operator completion allows tabbing from type argument into parentheses`() = doTestTyping(
+        """
+            defvar test = !cas<caret>;
+        """.trimIndent(), """
+            defvar test = !cast<int>(<caret>);
+        """.trimIndent()
+    ) {
+        myFixture.type("int")
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+    }
+
+    fun `test cast operator completion allows tabbing into existing parentheses`() = doTestTyping(
+        """
+            defvar test = !cas<caret>(1);
+        """.trimIndent(), """
+            defvar test = !cast<int>(<caret>1);
+        """.trimIndent()
+    ) {
+        myFixture.type("int")
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+    }
+
+    fun `test cast operator completion selected with angle bracket`() = doTestSelectWithChar(
+        """
+            defvar test = !c<caret>;
+        """.trimIndent(), "!cast", '<', """
+            defvar test = !cast<<caret>>();
+        """.trimIndent()
+    )
+
+    fun `test cast operator completion without automatic parentheses`() {
+        val settings = EditorSettingsExternalizable.getInstance()
+        val previous = settings.isInsertParenthesesAutomatically
+        settings.isInsertParenthesesAutomatically = false
+        try {
+            doTestTyping(
+                """
+                    defvar test = !cas<caret>;
+                """.trimIndent(), """
+                    defvar test = !cast<caret>;
+                """.trimIndent()
+            )
+        } finally {
+            settings.isInsertParenthesesAutomatically = previous
+        }
+    }
+
+    fun `test cast operator completion allows tabbing through both empty pairs`() = doTestTyping(
+        """
+            defvar test = !cas<caret>;
+        """.trimIndent(), """
+            defvar test = !cast<>()<caret>;
+        """.trimIndent()
+    ) {
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+    }
+
+    fun `test cast operator completion allows tabbing out after writing both pairs`() = doTestTyping(
+        """
+            defvar test = !cas<caret>;
+        """.trimIndent(), """
+            defvar test = !cast<int>(1)<caret>;
+        """.trimIndent()
+    ) {
+        myFixture.type("int")
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+        myFixture.type("1")
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+    }
 
     fun `test field access lookup`() = doTest(
         """
@@ -238,6 +437,57 @@ class CompletionTest : BasePlatformTestCase() {
         """.trimIndent()
     )
 
+    fun `test list completion keeps existing type argument`() = doTestTyping(
+        """
+        class A {
+            lis<caret><int> x;
+        }
+    """.trimIndent(), """
+        class A {
+            list<caret><int> x;
+        }
+        """.trimIndent()
+    )
+
+    fun `test list completion enters existing empty type argument`() = doTestTyping(
+        """
+        class A {
+            lis<caret><> x;
+        }
+    """.trimIndent(), """
+        class A {
+            list<<caret>> x;
+        }
+        """.trimIndent()
+    )
+
+    fun `test list completion allows tabbing out of type argument`() = doTestTyping(
+        """
+        class A {
+            lis<caret>
+        }
+    """.trimIndent(), """
+        class A {
+            list<int><caret>
+        }
+        """.trimIndent()
+    ) {
+        myFixture.type("int")
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+    }
+
+    fun `test bits completion selected with angle bracket`() = doTestSelectWithChar(
+        """
+        class A {
+            bit<caret>
+        }
+    """.trimIndent(), "bits", '<', """
+        class A {
+            bits<<caret>>
+        }
+        """.trimIndent()
+    )
+
     fun `test space after field`() = doTestTyping(
         """
         class A {
@@ -316,6 +566,47 @@ class CompletionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test class completion enters existing empty brackets`() = doTestTyping(
+        """
+            class ALong<int i>;
+
+            def : A<caret><>;
+        """.trimIndent(), """
+            class ALong<int i>;
+
+            def : ALong<<caret>>;
+        """.trimIndent()
+    )
+
+    fun `test class completion selected with angle bracket`() = doTestSelectWithChar(
+        """
+            class ALong<int i>;
+            class AOther<int i>;
+
+            def : A<caret>;
+        """.trimIndent(), "ALong", '<', """
+            class ALong<int i>;
+            class AOther<int i>;
+
+            def : ALong<<caret>>;
+        """.trimIndent()
+    )
+
+    fun `test class completion allows tabbing out of brackets`() = doTestTyping(
+        """
+            class ALong<int i>;
+
+            def : A<caret>;
+        """.trimIndent(), """
+            class ALong<int i>;
+
+            def : ALong<1><caret>;
+        """.trimIndent()
+    ) {
+        myFixture.type("1")
+        myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
+    }
+
 
     fun `test class cross file access lookup`() = doCrossFileTestTyping(
         """
@@ -365,12 +656,30 @@ class CompletionTest : BasePlatformTestCase() {
         assertDoesntContain(collection, doesNotContain)
     }
 
-    private fun doTestTyping(source: String, expectedText: String) {
+    private fun doTestTyping(source: String, expectedText: String, afterCompletion: () -> Unit = {}) {
         myFixture.configureByText(
             "test.td", source
         )
 
         myFixture.completeBasicAllCarets(null)
+        afterCompletion()
+        myFixture.checkResult(expectedText)
+    }
+
+    /**
+     * Completes at the caret in [source], selecting [lookupString] from the lookup by typing [completionChar].
+     */
+    private fun doTestSelectWithChar(
+        source: String, lookupString: String, completionChar: Char, expectedText: String
+    ) {
+        myFixture.configureByText(
+            "test.td", source
+        )
+
+        myFixture.completeBasic()
+        val lookup = myFixture.lookup as LookupImpl
+        lookup.currentItem = myFixture.lookupElements!!.first { it.lookupString == lookupString }
+        myFixture.finishLookup(completionChar)
         myFixture.checkResult(expectedText)
     }
 
