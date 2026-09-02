@@ -1,14 +1,17 @@
 package com.github.zero9178.mlirods.lsp
 
+import com.github.zero9178.mlirods.language.isTableGenFile
 import com.github.zero9178.mlirods.settings.TableGenToolsApplicationSettings
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerSupportProvider
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 internal class TableGenLspServerSupportProvider : LspServerSupportProvider {
 
+    @RequiresReadLock
     override fun fileOpened(
         project: Project,
         file: VirtualFile,
