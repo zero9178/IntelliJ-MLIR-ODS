@@ -4,25 +4,16 @@ import com.github.zero9178.mlirods.language.COMMENTS
 import com.github.zero9178.mlirods.language.TableGenFileType
 import com.github.zero9178.mlirods.language.TableGenLexerAdapter
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
-import com.github.zero9178.mlirods.language.psi.TableGenFile
+import com.github.zero9178.mlirods.language.isTableGenFile
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.getStringValue
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiManager
 import com.intellij.psi.TokenType
-import com.intellij.psi.util.parentOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
-import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
-import com.intellij.util.indexing.DumbModeAccessType
-import com.intellij.util.indexing.FileBasedIndex
-import com.intellij.util.indexing.FileContent
-import com.intellij.util.indexing.ID
-import com.intellij.util.indexing.SingleEntryFileBasedIndexExtension
-import com.intellij.util.indexing.SingleEntryIndexer
+import com.intellij.util.indexing.*
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.DataInputOutputUtil
 import com.intellij.util.io.IOUtil
@@ -126,7 +117,9 @@ private fun computeIncludeEntries(text: CharSequence): List<TableGenIncludeEntry
  */
 @RequiresReadLock
 fun getIncludeEntries(project: Project, file: VirtualFile): List<TableGenIncludeEntry> {
-    if (!file.isValid) return emptyList()
+    // Only a TableGen file has 'include' directives, and only a TableGen file is part of the index below. Anything else
+    // has no text to lex in the first place: loading the text of a directory or of a binary file throws outright.
+    if (!file.isTableGenFile) return emptyList()
 
     // A file that is being edited is only reflected in the index once it has been saved, making its entries have to be
     // computed from the document instead. This only ever applies to the handful of files that are open and is still

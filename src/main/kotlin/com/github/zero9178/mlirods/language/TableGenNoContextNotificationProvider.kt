@@ -1,7 +1,6 @@
 package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.MyBundle
-import com.github.zero9178.mlirods.lsp.isTableGenFile
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -14,8 +13,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import com.intellij.ui.EditorNotifications
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.function.Function
@@ -49,6 +48,7 @@ private class TableGenNoContextNotificationService(project: Project, cs: Corouti
  * incomplete. The banner can be dismissed via its close button for the lifetime of the editor.
  */
 internal class TableGenNoContextNotificationProvider : EditorNotificationProvider, DumbAware {
+    @RequiresReadLock
     override fun collectNotificationData(
         project: Project, file: VirtualFile
     ): Function<in FileEditor, out JComponent?>? {
