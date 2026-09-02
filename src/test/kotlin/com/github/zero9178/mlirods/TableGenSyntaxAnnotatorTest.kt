@@ -290,6 +290,76 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
+    fun `test operator with required type argument`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !cast<string>(5);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test operator missing required type argument`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Bang operator '!cast' requires a '<type>' argument">!cast</error>(5);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test operator missing required type argument is reported alongside a wrong argument count`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Bang operator '!getdagarg' expects exactly 2 arguments, but got 1"><error descr="Bang operator '!getdagarg' requires a '<type>' argument">!getdagarg</error>(d)</error>;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test operator with optional type argument`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C;
+            defvar d = (C);
+            defvar with = !getdagop<C>(d);
+            defvar without = !getdagop(d);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test operator with disallowed type argument`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !add<error descr="Bang operator '!add' does not take a '<type>' argument"><int></error>(1, 2);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    /**
+     * The angle brackets delimiting the type argument are the ones directly following the operator, not the ones
+     * within the type itself.
+     */
+    fun `test disallowed type argument is flagged including a nested type`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = !size<error descr="Bang operator '!size' does not take a '<type>' argument"><list<int>></error>([]);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test unknown operator with a type argument is only reported as unknown`() {
+        myFixture.configureByText(
+            "test.td", """
+            defvar v = <error descr="Unknown bang operator '!bogus'">!bogus</error><int>(1);
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
     fun `test positional only arguments`() {
         myFixture.configureByText(
             "test.td", """
