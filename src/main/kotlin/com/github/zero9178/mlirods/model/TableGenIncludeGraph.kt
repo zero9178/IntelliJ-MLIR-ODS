@@ -3,12 +3,14 @@ package com.github.zero9178.mlirods.model
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.index.TableGenIncludeEntry
 import com.github.zero9178.mlirods.index.getIncludeEntries
+import com.github.zero9178.mlirods.language.isTableGenFile
+import com.github.zero9178.mlirods.language.isTableGenFileName
 import com.github.zero9178.mlirods.language.psi.TableGenFile
-import com.github.zero9178.mlirods.lsp.isTableGenFile
-import com.github.zero9178.mlirods.lsp.isTableGenFileName
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.backgroundWriteAction
 import com.intellij.openapi.application.readAction
+import com.intellij.openapi.application.readAndBackgroundWriteAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -18,60 +20,54 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
-import com.intellij.openapi.vfs.AsyncFileListener
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileCopyEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.*
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.util.progress.reportProgressScope
-import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.util.concurrency.annotations.RequiresReadLock
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.annotations.TestOnly
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
-import java.util.TreeMap
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-
-/**
- * Whether this event may change what an 'include' directive resolves to, i.e. whether it makes a TableGen file appear at
- * or disappear from a path.
- *
- * Directories count just as much as TableGen files do: they carry whatever files they contain with them, and an include
- * path only resolves anything at all once the directory it names exists.
- */
-private val VFileEvent.changesIncludeResolution: Boolean
-    get() = when (this) {
-        is VFileContentChangeEvent -> false
-        // The created file does not exist yet, making its name all there is to go by.
-        is VFileCreateEvent -> isDirectory || childName.isTableGenFileName
-        is VFileCopyEvent -> file.isDirectory || newChildName.isTableGenFileName
-        // A rename makes the file disappear under its old name and appear under its new one.
-        is VFilePropertyChangeEvent -> propertyName == VirtualFile.PROP_NAME && (file.isDirectory ||
-                (oldValue as String).isTableGenFileName || (newValue as String).isTableGenFileName)
-        // Deletions and moves, both of which name an existing file.
-        else -> file?.let { it.isDirectory || it.isTableGenFile } == true
-    }
+import kotlin.collections.AbstractSet
+import kotlin.collections.Collection
+import kotlin.collections.HashMap
+import kotlin.collections.Iterator
+import kotlin.collections.List
+import kotlin.collections.Map
+import kotlin.collections.Set
+import kotlin.collections.asReversed
+import kotlin.collections.chunked
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.emptyList
+import kotlin.collections.emptySet
+import kotlin.collections.filterKeys
+import kotlin.collections.first
+import kotlin.collections.firstNotNullOfOrNull
+import kotlin.collections.forEach
+import kotlin.collections.isNotEmpty
+import kotlin.collections.last
+import kotlin.collections.listOf
+import kotlin.collections.map
+import kotlin.collections.mapNotNull
+import kotlin.collections.mapTo
+import kotlin.collections.mutableListOf
+import kotlin.collections.mutableSetOf
+import kotlin.collections.orEmpty
+import kotlin.collections.set
+import kotlin.collections.toSet
 
 /**
  * Maintains the include graph of all TableGen files reachable from the compile commands and exposes, per file, the
@@ -531,14 +527,52 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
     }
 
     /**
-     * Schedules the edges of every node to be recomputed, which is what a TableGen file having appeared or disappeared
-     * amounts to: any 'include' directive of any file may resolve to a different file than before.
+     * Schedules whatever [events] changed about the file tree to be caught up with.
      */
-    private fun scheduleUpdateOfAll() {
-        synchronized(myPendingFiles) {
-            myPendingAllFiles = true
+    private fun scheduleUpdateAfter(events: List<VFileEvent>) = launchUpdate {
+        val (changed, structureChanged) = readAction {
+            val changed = mutableSetOf<VirtualFile>()
+            var structureChanged = false
+            events.forEach { event ->
+                if (event is VFileContentChangeEvent) {
+                    if (event.file.isTableGenFile) changed.add(event.file)
+                } else if (changesIncludeResolution(event)) structureChanged = true
+            }
+            changed to structureChanged
         }
-        launchUpdate { update() }
+        if (!structureChanged && changed.isEmpty()) return@launchUpdate
+
+        synchronized(myPendingFiles) {
+            // A file appearing, disappearing or being renamed may change what the includes of *any* file resolve to,
+            // not just those of the file the event is about, hence the whole graph is recomputed rather than a file.
+            if (structureChanged) myPendingAllFiles = true else myPendingFiles.addAll(changed)
+        }
+        update()
+    }
+
+    /**
+     * Whether [event], which has already been applied, may change what an 'include' directive resolves to, i.e. whether
+     * it makes a TableGen file appear at or disappear from a path.
+     *
+     * Directories count just as much as TableGen files do: they carry whatever files they contain with them, and an
+     * include path only resolves anything at all once the directory it names exists.
+     */
+    @RequiresReadLock
+    private fun changesIncludeResolution(event: VFileEvent): Boolean = when (event) {
+        is VFileContentChangeEvent -> false
+        // Both put a file in place that exists by now, so it can be asked for its type. The name it was created under
+        // is not necessarily the name it ended up with, which is why the file is asked rather than the event.
+        is VFileCreateEvent -> event.isDirectory || event.file?.isTableGenFile == true
+        is VFileCopyEvent -> event.file.isDirectory || event.findCreatedFile()?.isTableGenFile == true
+        // A rename makes the file disappear under its old name and appear under its new one. The file carries its new
+        // name by now, leaving the old one to be judged by itself.
+        is VFilePropertyChangeEvent -> event.propertyName == VirtualFile.PROP_NAME && (event.file.isDirectory ||
+                event.file.isTableGenFile || (event.oldValue as String).isTableGenFileName)
+        // Deletions and moves. A moved file still exists, a deleted one does not and is only recognizable by the graph
+        // having held it.
+        else -> event.file?.let {
+            it.isDirectory || if (it.isValid) it.isTableGenFile else myFileToNodeMapping.containsKey(it)
+        } == true
     }
 
     /**
@@ -658,7 +692,12 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
         val seen = mutableSetOf<VirtualFile>()
         return getIncludeEntries(project, file).mapNotNull { entry ->
             val included = includePaths.firstNotNullOfOrNull { path ->
-                if (!path.isValid) null else path.findFileByRelativePath(entry.suffix)
+                if (!path.isValid) return@firstNotNullOfOrNull null
+
+                // An 'include' names a TableGen file. Anything else the suffix may name – a directory, which the empty
+                // suffix always names, or a file of some other type – is not a match, so the search carries on with the
+                // later include paths rather than ending here.
+                path.findFileByRelativePath(entry.suffix)?.takeIf { it.isTableGenFile }
             } ?: return@mapNotNull null
 
             // Including a file more than once does not make it reachable twice; the earlier include always wins.
@@ -703,6 +742,7 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
         return node!!
     }
 
+    @RequiresReadLock
     private fun getNodeFor(vf: VirtualFile): FileNode? {
         if (!vf.isTableGenFile) return null
 
@@ -727,23 +767,13 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
 
         // Documents only cover files that are being edited. Files changing on disk – e.g. by being saved or by a
         // version control operation – have to be picked up as well, as does the file tree itself changing shape.
-        VirtualFileManager.getInstance().addAsyncFileListener({ events ->
-            val changed = mutableSetOf<VirtualFile>()
-            var structureChanged = false
-            events.forEach { event ->
-                if (event is VFileContentChangeEvent) {
-                    if (event.file.isTableGenFile) changed.add(event.file)
-                } else if (event.changesIncludeResolution) structureChanged = true
-            }
-            if (changed.isEmpty() && !structureChanged) return@addAsyncFileListener null
-
-            object : AsyncFileListener.ChangeApplier {
-                // Any file appearing, disappearing or being renamed may change what the includes of any file resolve
-                // to, not just those of the file the event is about, hence the world is refreshed rather than the file.
-                override fun afterVfsChange() =
-                    if (structureChanged) scheduleUpdateOfAll() else scheduleUpdateOf(changed)
-            }
-        }, this)
+        //
+        // The graph only has to catch up with these eventually, which is why this listens for changes that have already
+        // been applied rather than preparing for ones that are about to be.
+        ApplicationManager.getApplication().messageBus.connect(this)
+            .subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+                override fun after(events: List<VFileEvent>) = scheduleUpdateAfter(events)
+            })
 
         cs.launch(start = CoroutineStart.UNDISPATCHED) {
             project.service<CompilationCommands>().flow.collect { state ->
@@ -753,10 +783,17 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
                         withBackgroundProgress(project, MyBundle.message("tableGen.progress.updatingContexts")) {
                             val startTime = System.nanoTime()
 
-                            backgroundWriteAction {
-                                // The order of the compile commands is the priority of the roots they yield.
-                                myRoots = state.map.map { (file, paths) -> Root(getOrCreate(file), paths.paths) }
-                                graphGeneration.update { it + 1 }
+                            readAndBackgroundWriteAction {
+                                // A command naming something that is not TableGen source cannot be a root: the graph
+                                // would have nothing to read the includes of. Answering that may read the file, which
+                                // is why it happens under a read lock rather than inside the write action.
+                                val roots = state.map.filterKeys { it.isTableGenFile }
+
+                                writeAction {
+                                    // The order of the compile commands is the priority of the roots they yield.
+                                    myRoots = roots.map { (file, paths) -> Root(getOrCreate(file), paths.paths) }
+                                    graphGeneration.update { it + 1 }
+                                }
                             }
                             // Every file's context may have changed, so the graph has to be walked even if nothing was
                             // scheduled for recomputation.
