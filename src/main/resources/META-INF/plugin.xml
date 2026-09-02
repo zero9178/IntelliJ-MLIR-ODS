@@ -103,6 +103,8 @@
         <codeInsight.lineMarkerProvider language="TableGen"
                                         implementationClass="com.github.zero9178.mlirods.language.linemarkers.TableGenDerivesClassLineMarkerProvider"/>
         <breadcrumbsInfoProvider implementation="com.github.zero9178.mlirods.language.TableGenBreadcrumbsProvider"/>
+        <platform.backend.documentation.psiTargetProvider
+                implementation="com.github.zero9178.mlirods.language.documentation.TableGenDocumentationTargetProvider"/>
         <applicationConfigurable
                 parentId="tools"
                 instance="com.github.zero9178.mlirods.settings.TableGenToolsApplicationConfigurable"
