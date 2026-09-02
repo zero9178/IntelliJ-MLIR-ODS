@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirecti
 import com.github.zero9178.mlirods.language.psi.TableGenIncludeReferenceSet
 import com.github.zero9178.mlirods.language.psi.impl.TableGenPsiImplUtil.Companion.getStringValue
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIncludeDirectiveStub
+import com.github.zero9178.mlirods.language.isTableGenFile
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
@@ -30,7 +31,9 @@ abstract class TableGenIncludeDirectiveMixin : StubBasedPsiElementBase<TableGenI
                 val result = (containingFile as? TableGenFile)?.includePaths.orEmpty().firstNotNullOfOrNull {
                     if (!it.isValid) return@firstNotNullOfOrNull null
 
-                    it.findFileByRelativePath(includeSuffix)
+                    // Only a TableGen file is an include target, exactly as the graph decides for its own edges; a
+                    // suffix naming a directory or a file of some other type keeps the search going in the later paths.
+                    it.findFileByRelativePath(includeSuffix)?.takeIf { file -> file.isTableGenFile }
                 }
                 // Anything that may make this directive resolve to a different file – the file's context changing, the
                 // file it resolves to appearing or disappearing – changes the edge the graph derives from this very

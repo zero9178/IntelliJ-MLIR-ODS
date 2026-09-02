@@ -1,7 +1,7 @@
 package com.github.zero9178.mlirods.clion
 
 import com.github.zero9178.mlirods.MyBundle
-import com.github.zero9178.mlirods.lsp.isTableGenFile
+import com.github.zero9178.mlirods.language.isTableGenFile
 import com.github.zero9178.mlirods.settings.TableGenToolsApplicationSettings
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service

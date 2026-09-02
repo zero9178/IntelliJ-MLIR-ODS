@@ -1,5 +1,7 @@
 package com.github.zero9178.mlirods
 
+import com.github.zero9178.mlirods.language.TableGenFileType
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
@@ -7,6 +9,7 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -14,6 +17,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.VfsTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlin.io.path.createDirectory
@@ -491,6 +495,102 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
 
         assertEquals("the include of the root does not resolve to anything anymore", setOf(root), includedFiles(root))
         assertEquals(setOf(root), service.getFilesWithContext())
+    }
+
+    /**
+     * Returns the file the single 'include' directive of [file] resolves to according to its psi.
+     *
+     * The psi resolves an include on its own rather than reading the answer off the graph, so it has to agree with the
+     * graph about what a directive resolves to for e.g. navigation and the graph's contexts to describe the same thing.
+     */
+    private fun psiIncludeTargetOf(file: VirtualFile): VirtualFile? {
+        val psiFile = PsiManager.getInstance(project).findFile(file) as TableGenFile
+        return PsiTreeUtil.findChildOfType(psiFile, TableGenIncludeDirective::class.java)!!.includedFile
+    }
+
+    fun `test an include naming a directory resolves to nothing`() {
+        // A directory is not TableGen source and cannot be pasted into a file. Letting one into the graph has it try to
+        // read the include directives of a directory, which is not something a directory can be asked for at all.
+        val root = myFixture.createFile("root.td", "include \"sub\"")
+        val dir = root.parent
+        VfsTestUtil.createFile(dir, "sub/leaf.td", "class Leaf;")
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
+
+        assertEquals(setOf(root), includedFiles(root))
+        assertEquals(setOf(root), service.getFilesWithContext())
+        assertNull(psiIncludeTargetOf(root))
+    }
+
+    fun `test an empty include does not resolve to the include path`() {
+        // The empty suffix names the include path itself, i.e. a directory, and does so without any file existing.
+        val root = myFixture.createFile("root.td", "include \"\"")
+        val dir = root.parent
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
+
+        assertEquals(setOf(root), includedFiles(root))
+        assertEquals(setOf(root), service.getFilesWithContext())
+        assertNull(psiIncludeTargetOf(root))
+    }
+
+    fun `test an include naming a file of another type resolves to nothing`() {
+        // An 'include' may name any path, but only a TableGen file is TableGen source. Resolving to anything else has
+        // the file lexed as TableGen and whatever that yields followed as further includes.
+        val root = myFixture.createFile("root.td", "include \"header.h\"")
+        val header = myFixture.createFile("header.h", "#include <vector>")
+        val dir = root.parent
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
+
+        assertEquals(setOf(root), includedFiles(root))
+        assertNull("a C header is not part of the include graph", service.getContextOf(header))
+        assertNull(psiIncludeTargetOf(root))
+    }
+
+    fun `test a directory in an earlier include path does not shadow the file in a later one`() {
+        // The first include path holds a directory named exactly like the file the include names. Include paths are
+        // searched in order for the *file*, so a path holding something that is not one has to be skipped rather than
+        // end the search.
+        val first = myFixture.tempDirFixture.findOrCreateDir("first")
+        val second = myFixture.tempDirFixture.findOrCreateDir("second")
+        VfsTestUtil.createDir(first, "leaf.td")
+        val leaf = VfsTestUtil.createFile(second, "leaf.td", "class Leaf;")
+        val root = myFixture.createFile("root.td", "include \"leaf.td\"")
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(first, second))))
+
+        assertContainsElements(includedFiles(root), leaf)
+        assertEquals(leaf, psiIncludeTargetOf(root))
+    }
+
+    /**
+     * Associates [pattern] with the TableGen file type for the duration of the test, exactly as adding it under
+     * Settings | Editor | File Types does.
+     */
+    private fun associateWithTableGen(pattern: String) {
+        val fileTypeManager = FileTypeManager.getInstance()
+        val matcher = FileTypeManager.parseFromString(pattern)
+        runWriteAction { fileTypeManager.associate(TableGenFileType.INSTANCE, matcher) }
+        Disposer.register(testRootDisposable) {
+            runWriteAction { fileTypeManager.removeAssociation(TableGenFileType.INSTANCE, matcher) }
+        }
+    }
+
+    fun `test a file matching a pattern associated with the TableGen file type is TableGen source`() {
+        // Which files are TableGen source is up to the file type the IDE associates with them rather than up to the
+        // '.td' extension, so a file appearing under a pattern a user added to the TableGen file type is one appearing
+        // in the graph just as much as a '.td' file is.
+        associateWithTableGen("*.tablegen")
+
+        val root = myFixture.createFile("root.td", "include \"appears.tablegen\"")
+        val dir = root.parent
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
+
+        assertEquals("the file the root includes does not exist yet", setOf(root), includedFiles(root))
+
+        val appears = myFixture.createFile("appears.tablegen", "class Appears;")
+        awaitIncludeGraph(project)
+
+        assertEquals(listOf(dir), includePaths(appears))
+        assertContainsElements(includedFiles(root), appears)
+        assertEquals(appears, psiIncludeTargetOf(root))
     }
 
     /**
