@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenSwitchOperatorValueNode
+import com.github.zero9178.mlirods.language.psi.TableGenTypeArgument
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.project.DumbAware
@@ -38,6 +39,27 @@ private val ANNOTATIONS = arrayOf(
             )
         }
         holder.newAnnotation(HighlightSeverity.ERROR, message).range(element).create()
+    },
+    /**
+     * Flags a known operator whose '<type>' argument is either missing (e.g. '!cast(x)') or given even though the
+     * operator does not take one (e.g. '!add<int>(1, 2)').
+     */
+    addAnnotationFor { element: TableGenBangOperatorValueNode, holder ->
+        when ((element.operator ?: return@addAnnotationFor).typeArgument) {
+            TableGenTypeArgument.REQUIRED -> if (element.typeNode == null) holder.newAnnotation(
+                HighlightSeverity.ERROR,
+                MyBundle.message("tableGen.syntax.bangOperator.missingTypeArgument", element.operatorName)
+            ).range(element.bangOperator).create()
+
+            TableGenTypeArgument.DISALLOWED -> element.typeArgumentRange?.let {
+                holder.newAnnotation(
+                    HighlightSeverity.ERROR,
+                    MyBundle.message("tableGen.syntax.bangOperator.unexpectedTypeArgument", element.operatorName)
+                ).range(it).create()
+            }
+
+            TableGenTypeArgument.OPTIONAL -> {}
+        }
     },
     addAnnotationFor { element: TableGenAbstractLetItem, holder ->
         val letModeIdentifier = element.letModeIdentifier

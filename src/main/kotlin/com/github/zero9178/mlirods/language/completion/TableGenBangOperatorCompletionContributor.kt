@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.completion
 import com.github.zero9178.mlirods.language.generated.TableGenTypes.BANG_OPERATOR
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorValueNode
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
+import com.github.zero9178.mlirods.language.psi.TableGenTypeArgument
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -73,7 +74,7 @@ private object TypeAndArgumentsInsertHandler : InsertHandler<LookupElement> {
 private fun bangOperatorLookupElement(operator: TableGenBangOperator) =
     LookupElementBuilder.create(operator.operatorName).bold().withInsertHandler(
         // The platform handler suffices for operators taking only parentheses.
-        if (operator.requiresTypeArgument) TypeAndArgumentsInsertHandler
+        if (operator.typeArgument == TableGenTypeArgument.REQUIRED) TypeAndArgumentsInsertHandler
         else ParenthesesInsertHandler.WITH_PARAMETERS
     )
 

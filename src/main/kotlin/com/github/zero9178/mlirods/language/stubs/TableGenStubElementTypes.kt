@@ -137,9 +137,6 @@ interface TableGenStubElementTypes {
         val BLOCK_STRING_VALUE = TableGenTypes.BLOCK_STRING_VALUE!!
 
         @JvmField
-        val CAST_OPERATOR_VALUE_NODE = TableGenTypes.CAST_OPERATOR_VALUE_NODE!!
-
-        @JvmField
         val SORT_OPERATOR_VALUE_NODE = TableGenTypes.SORT_OPERATOR_VALUE_NODE!!
 
         @JvmField

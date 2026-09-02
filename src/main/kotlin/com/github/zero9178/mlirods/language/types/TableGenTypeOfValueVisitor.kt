@@ -4,7 +4,6 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorDe
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBinaryIntegerValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBoolValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenCastOperatorValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenConcatValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDagInitValueNode
@@ -160,9 +159,6 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
     override fun visitFilterOperatorValueNode(element: TableGenFilterOperatorValueNode) =
         element.iterable?.type ?: TableGenUnknownType
 
-    override fun visitCastOperatorValueNode(o: TableGenCastOperatorValueNode) =
-        o.typeNode?.toType() ?: TableGenUnknownType
-
     override fun visitBitsInitValueNode(element: TableGenBitsInitValueNode): TableGenType {
         var numberOfBits = 0L
         for (value in element.valueNodeList) {
@@ -225,8 +221,9 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
 
             INSTANCES -> TableGenListType(typeArgument ?: TableGenUnknownType)
 
-            // '!getdagop' without a type argument yields a record of any class, which is not modelled as a type.
-            GETDAGOP, GETDAGARG -> typeArgument ?: TableGenUnknownType
+            // '!cast' and '!getdagarg' yield exactly their type argument, while '!getdagop' without one yields a record
+            // of any class, which is not modelled as a type.
+            CAST, GETDAGOP, GETDAGARG -> typeArgument ?: TableGenUnknownType
 
             IF -> commonType(
                 operands.getOrNull(1)?.type ?: TableGenUnknownType,
@@ -247,7 +244,7 @@ object TableGenTypeOfValueVisitor : TableGenVisitor<TableGenType>() {
                 ?: TableGenUnknownType
 
             // These are parsed into their own Psi node and have their type computed by the corresponding visit method.
-            CAST, COND, SWITCH, FOREACH, FOLDL, FILTER, SORT -> TableGenUnknownType
+            COND, SWITCH, FOREACH, FOLDL, FILTER, SORT -> TableGenUnknownType
 
             LISTFLATTEN -> {
                 val elementType = (operands.firstOrNull()?.type as? TableGenListType)?.elementType

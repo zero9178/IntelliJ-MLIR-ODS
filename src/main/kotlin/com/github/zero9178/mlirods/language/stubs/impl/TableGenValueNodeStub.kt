@@ -383,11 +383,6 @@ class TableGenCondOperatorValueNodeStubElementType(debugName: String) :
         debugName, ::TableGenCondOperatorValueNodeImpl
     )
 
-class TableGenCastOperatorValueNodeStubElementType(debugName: String) :
-    TableGenAbstractValueNodeStubElementType<TableGenCastOperatorValueNode>(
-        debugName, ::TableGenCastOperatorValueNodeImpl
-    )
-
 class TableGenFilterOperatorValueNodeStubElementType(debugName: String) :
     TableGenAbstractValueNodeStubElementType<TableGenFilterOperatorValueNode>(
         debugName, ::TableGenFilterOperatorValueNodeImpl
