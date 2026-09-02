@@ -20,6 +20,7 @@
 - Selecting a class, `list` or `bits` completion by typing `<` no longer types that `<` into the angled brackets inserted by the completion.
 - Fixed an exception when an include points to a file that isn't a TableGen file.
 - TableGen files are now recognized based on the IDE's filetype setting rather than by extension.
+- Completion no longer pops up on its own while an integer literal is being written. Since TableGen identifiers may start with digits, typing e.g. `1` previously offered every identifier starting with that digit. The popup appears as soon as the text can no longer become an integer literal, and explicitly requesting completion still offers those identifiers.
 
 ## [0.15.0] - 2026-08-07
 
