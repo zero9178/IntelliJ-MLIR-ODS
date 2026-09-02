@@ -6,6 +6,9 @@
 
 ### Added
 
+- Quick documentation (Ctrl+Q or hover) for `class`, `multiclass`, `def` and `defvar` statements as well as fields. It
+  shows the element's syntax-highlighted definition together with the comment block written directly above the element,
+  rendered as Markdown.
 - Typing `!` now offers completion for every bang operator known to the plugin, inserting the parentheses of its argument list and, in the case of `!cast`, also the angle brackets of its type argument. Delimiters that have already been written are reused and, if left unclosed, completed to a balanced pair, and the Tab key moves the caret out of an inserted pair — for `!cast`, from the type argument into the parentheses and finally behind them.
 - Completing a class or the `list` and `bits` types now also enters angled brackets that were already written but are still empty, and the Tab key moves the caret out of the brackets after the content has been written.
 - Added an error for bang operators that are missing their mandatory `<type>` argument, such as `!cast(x)`, or that are given one although they do not take any, such as `!add<int>(1, 2)`.
