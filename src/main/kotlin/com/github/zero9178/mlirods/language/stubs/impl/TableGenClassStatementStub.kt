@@ -7,6 +7,8 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenClassStatementImpl
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
+import com.github.zero9178.mlirods.language.stubs.readNames
+import com.github.zero9178.mlirods.language.stubs.writeNames
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.*
@@ -33,7 +35,12 @@ class TableGenClassStatementStubElementType(debugName: String) :
     override fun createStub(
         psi: TableGenClassStatement, parentStub: StubElement<out PsiElement?>?
     ): TableGenClassStatementStub {
-        return TableGenClassStatementStubImpl(psi.identifier!!.text, psi.hasBody, psi.classRefList.map {
+        // 'shouldCreateStub' only lets a class with an identifier get here, but it decides that on a throwaway PSI
+        // element built from the node rather than on 'psi' itself, so the two agreeing is worth stating.
+        val identifier = checkNotNull(psi.identifier) {
+            "class statement without an identifier was stubbed in ${psi.containingFile?.name}"
+        }
+        return TableGenClassStatementStubImpl(identifier.text, psi.hasBody, psi.classRefList.map {
             it.className
         }, parentStub)
     }
@@ -43,20 +50,14 @@ class TableGenClassStatementStubElementType(debugName: String) :
     ) {
         dataStream.writeUTFFast(stub.name)
         dataStream.writeBoolean(stub.hasBody)
-        dataStream.writeVarInt(stub.baseClassNames.size)
-        stub.baseClassNames.forEach {
-            dataStream.writeName(it)
-        }
+        dataStream.writeNames(stub.baseClassNames)
     }
 
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenClassStatementStub {
         return TableGenClassStatementStubImpl(
-            dataStream.readUTFFast(), dataStream.readBoolean(),
-            buildList {
-                repeat(dataStream.readVarInt()) { _ -> add(dataStream.readNameString() ?: return@repeat) }
-            }, parentStub
+            dataStream.readUTFFast(), dataStream.readBoolean(), dataStream.readNames(), parentStub
         )
     }
 

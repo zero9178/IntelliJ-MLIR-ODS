@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.util.Condition
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
@@ -27,6 +28,10 @@ class TableGenIncludeReferenceSet(
         delegateSet.isCaseSensitive,
         delegateSet.isEndingSlashNotAllowed
     ) {
+
+    companion object {
+        private val LOGGER = logger<TableGenIncludeReferenceSet>()
+    }
 
     override fun createFileReference(
         range: TextRange?,
@@ -83,8 +88,14 @@ class TableGenIncludeReferenceSet(
                 }
             }
 
-            val reference =
-                fileReferenceSet.myReferences[index - 1] as? TableGenIncludeFileReference ?: return emptyList()
+            // 'createFileReference' only ever produces 'TableGenIncludeFileReference's, so every preceding reference of
+            // the set is one. Were it not, completion in an include path would silently stop offering anything past
+            // the first path segment.
+            val previous = fileReferenceSet.myReferences[index - 1]
+            val reference = previous as? TableGenIncludeFileReference ?: run {
+                LOGGER.error("Include reference $index is preceded by a ${previous?.javaClass?.name}")
+                return emptyList()
+            }
             return reference.contexts.mapNotNull {
                 it.findSubdirectory(reference.text)
             }

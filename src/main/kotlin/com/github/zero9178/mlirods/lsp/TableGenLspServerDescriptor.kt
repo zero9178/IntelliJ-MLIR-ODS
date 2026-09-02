@@ -4,6 +4,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessNotCreatedException
 import com.intellij.openapi.components.serviceIfCreated
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfoRt
@@ -12,32 +13,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
-import com.intellij.platform.lsp.api.customization.LspCodeActionsCustomizer
-import com.intellij.platform.lsp.api.customization.LspCodeActionsDisabled
-import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
-import com.intellij.platform.lsp.api.customization.LspCommandsCustomizer
-import com.intellij.platform.lsp.api.customization.LspCompletionCustomizer
-import com.intellij.platform.lsp.api.customization.LspCompletionDisabled
-import com.intellij.platform.lsp.api.customization.LspCompletionSupport
-import com.intellij.platform.lsp.api.customization.LspCustomization
-import com.intellij.platform.lsp.api.customization.LspDiagnosticsCustomizer
-import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
-import com.intellij.platform.lsp.api.customization.LspDocumentColorCustomizer
-import com.intellij.platform.lsp.api.customization.LspDocumentLinkCustomizer
-import com.intellij.platform.lsp.api.customization.LspDocumentLinkDisabled
-import com.intellij.platform.lsp.api.customization.LspDocumentLinkSupport
-import com.intellij.platform.lsp.api.customization.LspFindReferencesCustomizer
-import com.intellij.platform.lsp.api.customization.LspFindReferencesDisabled
-import com.intellij.platform.lsp.api.customization.LspFindReferencesSupport
-import com.intellij.platform.lsp.api.customization.LspFormattingCustomizer
-import com.intellij.platform.lsp.api.customization.LspGoToDefinitionCustomizer
-import com.intellij.platform.lsp.api.customization.LspGoToDefinitionDisabled
-import com.intellij.platform.lsp.api.customization.LspGoToTypeDefinitionCustomizer
-import com.intellij.platform.lsp.api.customization.LspGoToTypeDefinitionDisabled
-import com.intellij.platform.lsp.api.customization.LspHoverCustomizer
-import com.intellij.platform.lsp.api.customization.LspSemanticTokensCustomizer
-import com.intellij.platform.lsp.api.customization.LspSemanticTokensDisabled
-import com.intellij.platform.lsp.api.customization.LspSemanticTokensSupport
+import com.intellij.platform.lsp.api.customization.*
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
 import java.io.File
@@ -67,6 +43,10 @@ class TableGenLspServerDescriptor(
     private val listener: LspLifetimeListener? = null
 ) : ProjectWideLspServerDescriptor(project, "TableGen") {
 
+    companion object {
+        private val LOGGER = logger<TableGenLspServerDescriptor>()
+    }
+
     private val useTempExecutable: Boolean
         get() = SystemInfoRt.isWindows
 
@@ -85,6 +65,11 @@ class TableGenLspServerDescriptor(
             try {
                 FileUtil.copy(originalFile, tempFile)
             } catch (e: IOException) {
+                // Falling back to the original executable reintroduces exactly the file locking this copy exists to
+                // avoid, so the user is about to find that rebuilding the server fails for no visible reason.
+                LOGGER.warn(
+                    "Failed to copy $originalFile to $tempFile; rebuilding the server while it runs will fail", e
+                )
                 return@apply
             }
             withExePath(tempFile.absolutePath)
@@ -122,6 +107,9 @@ class TableGenLspServerDescriptor(
                 throw e
             }
         } catch (e: ProcessNotCreatedException) {
+            // The banner the listener puts up tells the user to build the server but not why starting it failed, which
+            // is the only place that answer exists.
+            LOGGER.warn("Failed to start the TableGen LSP server", e)
             listener?.serverFailedToStart()
             // TODO: Ideally we could throw this exception to silently fail without logging, but this is currently not
             //       the case.

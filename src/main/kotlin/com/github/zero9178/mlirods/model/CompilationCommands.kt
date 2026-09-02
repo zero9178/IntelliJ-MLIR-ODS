@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.model
 
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -54,7 +55,13 @@ class CompilationCommands(private val project: Project, private val cs: Coroutin
 
         val newFlow = EP_NAME.computeSafeIfAny {
             it.getCompilationCommandsFlow(project)
-        } ?: return
+        }
+        if (newFlow == null) {
+            // Not an error – an IDE without the CLion CMake support has no provider at all – but it is the reason no
+            // TableGen file will ever get a context, which is worth being able to tell apart from a bug in the graph.
+            thisLogger().info("No compilation commands provider yielded a flow; TableGen files will have no context")
+            return
+        }
         myBackingFlowEmission = cs.launch(start = CoroutineStart.UNDISPATCHED) {
             newFlow.collect {
                 flow.emit(it)

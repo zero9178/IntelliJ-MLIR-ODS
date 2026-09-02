@@ -37,24 +37,30 @@ fun createEncodedLineStringLiteral(project: Project, encodedText: String): PsiEl
  * Returns an [TableGenIdentifierValue] using [name] as value.
  */
 fun createIdentifierValueNode(project: Project, name: String): TableGenIdentifierValueNode {
-    return PsiTreeUtil.findChildOfAnyType(
-        createFile(project, "defvar $name = $name;"),
-        TableGenIdentifierValueNode::class.java
-    )!!
+    val text = "defvar $name = $name;"
+    // The text is a literal built right here, so failing to find the node in it means the grammar no longer parses it
+    // the way this factory assumes – something only a change to the grammar can cause, and something every caller
+    // (rename, quick fixes) would otherwise report as a bare NPE.
+    return checkNotNull(
+        PsiTreeUtil.findChildOfAnyType(createFile(project, text), TableGenIdentifierValueNode::class.java)
+    ) { "no identifier value node in '$text'" }
 }
 
 /**
  * Returns an identifier token with [name] as identifier.
  */
-fun createIdentifier(project: Project, name: String) =
-    (createFile(project, "defvar $name = $name;").firstChild as TableGenDefvarStatement).nameIdentifier!!
+fun createIdentifier(project: Project, name: String): PsiElement {
+    val text = "defvar $name = $name;"
+    val statement = createFile(project, text).firstChild as? TableGenDefvarStatement
+    return checkNotNull(statement?.nameIdentifier) { "no defvar name identifier in '$text'" }
+}
 
 /**
  * Returns a [TableGenLetBodyItem] of the form `let [name] = [value];`.
  */
 fun createLetBodyItem(project: Project, name: String, value: String): TableGenLetBodyItem {
-    return PsiTreeUtil.findChildOfType(
-        createFile(project, "class __dummy { let $name = $value; }"),
-        TableGenLetBodyItem::class.java
-    )!!
+    val text = "class __dummy { let $name = $value; }"
+    return checkNotNull(
+        PsiTreeUtil.findChildOfType(createFile(project, text), TableGenLetBodyItem::class.java)
+    ) { "no let body item in '$text'" }
 }

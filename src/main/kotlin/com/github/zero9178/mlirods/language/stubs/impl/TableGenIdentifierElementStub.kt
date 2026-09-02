@@ -12,6 +12,8 @@ import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.stubs.TableGenFileStub
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
+import com.github.zero9178.mlirods.language.stubs.readNames
+import com.github.zero9178.mlirods.language.stubs.writeNames
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.*
 
@@ -108,22 +110,14 @@ class TableGenDefStatementStubElementType(debugName: String) :
         stub: TableGenDefStatementStub, dataStream: StubOutputStream
     ) {
         dataStream.writeName(stub.name)
-        dataStream.writeVarInt(stub.baseClassNames.size)
-        stub.baseClassNames.forEach {
-            dataStream.writeName(it)
-        }
+        dataStream.writeNames(stub.baseClassNames)
     }
 
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenDefStatementStub {
         return TableGenDefStatementElementStubImpl(
-            dataStream.readNameString(),
-            buildList {
-                repeat(dataStream.readVarInt()) {
-                    add(dataStream.readNameString() ?: return@repeat)
-                }
-            }, parentStub, this
+            dataStream.readNameString(), dataStream.readNames(), parentStub, this
         )
     }
 
