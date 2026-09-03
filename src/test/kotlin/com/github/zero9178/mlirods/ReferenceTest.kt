@@ -3,6 +3,8 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
@@ -570,6 +572,72 @@ class ReferenceTest : BasePlatformTestCase() {
         val element = assertInstanceOf(myFixture.elementAtCaret, TableGenDefineDirective::class.java)
         assertEquals("FOO", element.macroName)
         assertEquals("define.td", element.containingFile.name)
+    }
+
+    fun `test inherited field visibility follows the base class`() {
+        val mainVF = myFixture.createFile(
+            "test.td", """
+            class A {
+            }
+            class B : A {
+                defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                mainVF to IncludePaths(emptyList())
+            )
+        )
+        myFixture.configureFromExistingVirtualFile(mainVF)
+
+        // Resolving 'i' populates the id map of 'B' while 'A' does not declare it yet.
+        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
+
+        // Declare the field in 'A', which is outside of the subtree of 'B'.
+        val document = myFixture.getDocument(myFixture.file)
+        WriteCommandAction.runWriteCommandAction(project) {
+            document.insertString(document.text.indexOf('{') + 1, "int i = 5;")
+            PsiDocumentManager.getInstance(project).commitDocument(document)
+        }
+
+        val element = assertInstanceOf(
+            myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve(), TableGenFieldBodyItem::class.java
+        )
+        assertEquals("A", element.parentOfType<TableGenClassStatement>()?.name)
+    }
+
+    fun `test inherited field visibility of a def follows the base class`() {
+        val mainVF = myFixture.createFile(
+            "test.td", """
+            class A {
+            }
+            def B : A {
+                defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                mainVF to IncludePaths(emptyList())
+            )
+        )
+        myFixture.configureFromExistingVirtualFile(mainVF)
+
+        // Resolving 'i' populates the id map of 'B' while 'A' does not declare it yet.
+        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
+
+        // Declare the field in 'A', which is outside of the subtree of 'B'.
+        val document = myFixture.getDocument(myFixture.file)
+        WriteCommandAction.runWriteCommandAction(project) {
+            document.insertString(document.text.indexOf('{') + 1, "int i = 5;")
+            PsiDocumentManager.getInstance(project).commitDocument(document)
+        }
+
+        val element = assertInstanceOf(
+            myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve(), TableGenFieldBodyItem::class.java
+        )
+        assertEquals("A", element.parentOfType<TableGenClassStatement>()?.name)
     }
 
     fun `test ifndef unresolved`() {
