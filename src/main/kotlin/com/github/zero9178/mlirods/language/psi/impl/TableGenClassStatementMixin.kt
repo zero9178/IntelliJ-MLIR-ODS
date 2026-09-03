@@ -5,10 +5,10 @@ import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMa
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub
 import com.github.zero9178.mlirods.language.stubs.stubbedChildren
+import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
-import com.intellij.util.resettableLazy
 import com.intellij.util.takeWhileInclusive
 
 abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableGenClassStatementStub>,
@@ -47,21 +47,17 @@ abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableG
         return super.classStatementsBefore(withSelf)
     }
 
-    private var myDirectIdMap = resettableLazy {
-        (templateArgDeclList.asSequence().map(::IdMapEntry) + bodyIdEntries).mapNotNull {
-            val name = it.element.name ?: return@mapNotNull null
-            name to it
-        }.groupBy({
-            it.first
-        }) {
-            it.second
+    // Note: [bodyIdEntries] resolves base classes and must therefore be cached per resolution context, not just per
+    // subtree.
+    override val directIdMap
+        get() = getProjectContextDependentCache(this) { klass ->
+            (klass.templateArgDeclList.asSequence().map(::IdMapEntry) + klass.bodyIdEntries).mapNotNull {
+                val name = it.element.name ?: return@mapNotNull null
+                name to it
+            }.groupBy({
+                it.first
+            }) {
+                it.second
+            }
         }
-    }
-
-    override val directIdMap by myDirectIdMap
-
-    override fun subtreeChanged() {
-        super.subtreeChanged()
-        myDirectIdMap.reset()
-    }
 }
