@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.intellij.lang.ASTNode
 import com.intellij.lang.LanguageParserDefinitions
 import com.intellij.lang.PsiBuilderFactory
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.psi.ParsingDiagnostics
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -52,7 +53,13 @@ class TableGenStubFileElementType :
     override fun doParseContents(
         chameleon: ASTNode, psi: PsiElement
     ): ASTNode? {
-        if (psi !is TableGenFile) return null
+        if (psi !is TableGenFile) {
+            // This element type is only registered for 'TableGenLanguage', whose parser definition only ever creates
+            // 'TableGenFile's. Returning null leaves the chameleon unparsed, i.e. the file without any PSI at all,
+            // which is indistinguishable from an empty file.
+            thisLogger().error("Parsing the contents of a ${psi.javaClass.name} as TableGen")
+            return null
+        }
 
         val project = psi.project
         val languageForParser = getLanguageForParser(psi)

@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.index.getIncludeEntries
 import com.github.zero9178.mlirods.language.isTableGenFile
 import com.github.zero9178.mlirods.language.isTableGenFileName
 import com.github.zero9178.mlirods.language.psi.TableGenFile
+import com.github.zero9178.mlirods.rethrowIfControlFlow
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.backgroundWriteAction
@@ -653,7 +654,7 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
         val batches = stale.chunked(BATCH_SIZE)
         reportProgressScope(batches.size) { reporter ->
             batches.map { batch ->
-                async {
+                launch {
                     reporter.itemStep(
                         MyBundle.message("tableGen.progress.updatingContext", batch.first().first.file.name)
                     ) {
@@ -661,7 +662,21 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
                         // change in between this and the write action below cannot invalidate the result. A change to
                         // the include paths themselves is caught by the next round, which finds the node stale again.
                         val resolved = readAction {
-                            batch.map { (node, paths) -> Triple(node, paths, resolveIncludes(node, paths)) }
+                            batch.mapNotNull { (node, paths) ->
+                                try {
+                                    Triple(node, paths, resolveIncludes(node, paths))
+                                } catch (e: Throwable) {
+                                    // Rethrow cancellations.
+                                    rethrowIfControlFlow(e)
+
+                                    LOGGER.error(
+                                        "Exception while resolving includes for (${node.file.name}, ${paths.map { it.name }})",
+                                        e
+                                    )
+                                    // Swallow exception to keep on running.
+                                    null
+                                }
+                            }
                         }
 
                         backgroundWriteAction {
@@ -674,7 +689,7 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
                         }
                     }
                 }
-            }.awaitAll()
+            }
         }
     }
 
@@ -739,7 +754,7 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
         }
         // Kotlin doesn't know that the compute method is a crossinline lambda and therefore can't prove that node will
         // never be null due to concurrent access.
-        return node!!
+        return checkNotNull(node) { "'compute' did not run its remapping function for ${vf.url}" }
     }
 
     @RequiresReadLock
@@ -800,11 +815,18 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
                             update(force = true)
 
                             LOGGER.info(
-                                "Updating contexts after compile commands change took " + "${(System.nanoTime() - startTime) / 1.0e9} seconds"
+                                "Updating contexts after compile commands change took " +
+                                        "${(System.nanoTime() - startTime) / 1.0e9} seconds for " +
+                                        "${state.map.size} compile command(s)"
                             )
                         }
                         finishedCompileCommands.emit(state)
                     }
+                } catch (e: Throwable) {
+                    // Rethrow cancellations.
+                    rethrowIfControlFlow(e)
+
+                    LOGGER.error("exception thrown during compilation command update", e)
                 } finally {
                     updatesInFlight.update { it - 1 }
                 }

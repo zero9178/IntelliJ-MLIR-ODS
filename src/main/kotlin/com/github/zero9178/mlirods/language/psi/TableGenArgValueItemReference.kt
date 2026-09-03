@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
@@ -51,8 +52,11 @@ class TableGenArgValueItemReference(element: TableGenArgValueItem) :
                     val index = classRef.argValueItemList.binarySearchBy(element.startOffsetInParent) {
                         it.startOffsetInParent
                     }
-                    assert(index >= 0) {
-                        "element should be guaranteed to be within the arg-value item list"
+                    // 'element' is one of the arg-value items of the class ref it was reached through, so the search
+                    // always finds it.
+                    if (index < 0) {
+                        thisLogger().error("Positional argument is not among the arg-value items of ${classRef.text}")
+                        return@disallowTreeLoading emptyArray<ResolveResult>()
                     }
                     targetClass.templateArgDeclList.getOrNull(index)
                 }

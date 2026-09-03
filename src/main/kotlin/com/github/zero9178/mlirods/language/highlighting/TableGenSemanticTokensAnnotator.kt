@@ -23,7 +23,9 @@ internal class TableGenDumbAwareSemanticTokensAnnotator : HighlightVisitor, Dumb
 
 
     private fun addInfo(highlightInfo: HighlightInfo?) {
-        myHolder!!.add(highlightInfo)
+        // 'analyze' sets the holder before running the action that visits anything, so a visit outside of it means the
+        // platform called this visitor in a way it was not written for.
+        checkNotNull(myHolder) { "visited an element outside of 'analyze'" }.add(highlightInfo)
     }
 
     override fun clone(): HighlightVisitor {
@@ -106,7 +108,9 @@ internal class TableGenSemanticTokensAnnotator : HighlightVisitor {
 
 
     private fun addInfo(highlightInfo: HighlightInfo?) {
-        myHolder!!.add(highlightInfo)
+        // 'analyze' sets the holder before running the action that visits anything, so a visit outside of it means the
+        // platform called this visitor in a way it was not written for.
+        checkNotNull(myHolder) { "visited an element outside of 'analyze'" }.add(highlightInfo)
     }
 
     override fun clone(): HighlightVisitor {

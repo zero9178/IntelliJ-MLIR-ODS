@@ -152,7 +152,8 @@ class TableGenPreprocessingPsiBuilder(delegate: PsiBuilder) : PsiBuilderAdapter(
                         marker.rollbackTo()
                         return
                     }
-                    val define = tokenText!!
+                    // The token was just checked to be an IDENTIFIER, which always has text.
+                    val define = checkNotNull(tokenText) { "IDENTIFIER token without text" }
                     super.advanceLexer()
                     marker.done(IFDEF_IFNDEF_DIRECTIVE)
 

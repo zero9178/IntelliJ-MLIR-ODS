@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.stubs.impl
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.generated.psi.impl.*
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
+import com.github.zero9178.mlirods.language.stubs.readRequiredName
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubBase
@@ -306,7 +307,9 @@ class TableGenIdentifierValueNodeStubElementType(
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenIdentifierValueNodeStub {
-        return TableGenIdentifierValueNodeStubImpl(dataStream.readNameString()!!, parentStub, this)
+        return TableGenIdentifierValueNodeStubImpl(
+            dataStream.readRequiredName("identifier value node"), parentStub, this
+        )
     }
 
     override fun isAlwaysLeaf(root: StubBase<*>) = true
@@ -366,7 +369,9 @@ class TableGenBangOperatorValueNodeStubElementType(
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenBangOperatorValueNodeStub {
-        return TableGenBangOperatorValueNodeStubImpl(dataStream.readNameString()!!, parentStub, this)
+        return TableGenBangOperatorValueNodeStubImpl(
+            dataStream.readRequiredName("bang operator"), parentStub, this
+        )
     }
 }
 

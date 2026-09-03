@@ -28,7 +28,12 @@ class TableGenFieldBodyItemStubElementType(debugName: String) :
     override fun createStub(
         psi: TableGenFieldBodyItem, parentStub: StubElement<out PsiElement?>?
     ): TableGenFieldBodyItemStub {
-        return TableGenFieldBodyItemStubImpl(psi.fieldName!!, parentStub)
+        // 'shouldCreateStub' only lets a field body item with a name get here, but it decides that on a throwaway PSI
+        // element built from the node rather than on 'psi' itself, so the two agreeing is worth stating.
+        val fieldName = checkNotNull(psi.fieldName) {
+            "field body item without a name was stubbed in ${psi.containingFile?.name}"
+        }
+        return TableGenFieldBodyItemStubImpl(fieldName, parentStub)
     }
 
     override fun serialize(

@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.model.CompilationCommandsState
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenCompilationCommandsProvider
 import com.intellij.openapi.components.service
+import com.github.zero9178.mlirods.rethrowIfControlFlow
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -12,8 +13,6 @@ import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.*
 import com.intellij.util.messages.impl.subscribeAsFlow
 import com.jetbrains.cidr.cpp.toolchains.CPPEnvironment
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.*
 import org.yaml.snakeyaml.LoaderOptions
 import org.yaml.snakeyaml.Yaml
@@ -26,8 +25,6 @@ data class FileInfoDto(
     var filepath: String = "",
     var includes: String = "",
 )
-
-private val LOG = logger<CMakeTableGenCompilationCommandsProvider>()
 
 private fun CPPEnvironment.toLocalVFS(path: String): VirtualFile? {
     val instance = VirtualFileManager.getInstance()
@@ -42,6 +39,10 @@ private const val COMPILE_COMMANDS_FILE_NAME = "tablegen_compile_commands.yml"
 
 
 class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProvider {
+
+    companion object {
+        private val LOGGER = logger<CMakeTableGenCompilationCommandsProvider>()
+    }
 
     private enum class VFSChange {
         IncludeChanges, CompileCommandChange,
@@ -93,15 +94,16 @@ class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProv
                     emit(emptyList<FileInfoDto>() to env)
                 } catch (e: Throwable) {
                     // Rethrow cancellations.
-                    currentCoroutineContext().ensureActive()
+                    rethrowIfControlFlow(e)
+
                     // Otherwise just warn.
-                    LOG.warn(e)
+                    LOGGER.warn(e)
                 }
             }.distinctUntilChanged().combine(includeChangesFlow) { (dtos, env), _ ->
                 val map = dtos.flatMap { dto ->
                     val virtualFile = env.toLocalVFS(dto.filepath)
                     if (virtualFile == null) {
-                        LOG.warn("failed to find virtual file for ${dto.filepath}")
+                        LOGGER.warn("failed to find virtual file for ${dto.filepath}")
                         return@flatMap emptyList()
                     }
 
@@ -112,7 +114,7 @@ class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProv
                             ).flatMap {
                                 val virtualFile = env.toLocalVFS(it)
                                 if (virtualFile == null) {
-                                    LOG.warn("failed to find virtual file for $it")
+                                    LOGGER.warn("failed to find virtual file for $it")
                                     return@flatMap emptyList()
                                 }
                                 listOf(virtualFile)
