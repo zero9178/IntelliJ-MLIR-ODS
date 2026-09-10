@@ -242,4 +242,20 @@ class LexerTest : LexerTestCase() {
                 "# ('#')\n" +
                 "IDENTIFIER ('endif')"
     )
+
+    /**
+     * Incremental lexing restarts the lexer somewhere in the middle of the file rather than at its beginning, which
+     * [checkCorrectRestart] exercises by restarting it at every single token. The "beginning of line" state a
+     * preprocessor directive requires therefore has to be derived from the restart position rather than assumed.
+     */
+    fun `test restarting the lexer`() = checkCorrectRestart(
+        """
+            #ifdef TEST
+            a
+            #endif
+            b #endif
+        """.trimIndent()
+    )
+
+    fun `test restarting the lexer with carriage returns`() = checkCorrectRestart("#ifdef TEST\r\na\r#endif\rb #endif")
 }
