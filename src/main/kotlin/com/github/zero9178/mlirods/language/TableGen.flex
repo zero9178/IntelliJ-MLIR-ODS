@@ -16,6 +16,34 @@ import com.intellij.psi.TokenType;
 %eof{  return;
 %eof}
 
+%{
+  /**
+   * Recomputes whether the scanner is at the beginning of a line from the character preceding the current position.
+   *
+   * JFlex' generated 'reset' unconditionally assumes the scanner starts at the beginning of a line. That is wrong when
+   * the lexer is restarted in the middle of a file, as done by incremental lexing, and would make e.g. a '#endif' in
+   * the middle of a line lex as a preprocessor directive. The line terminators below are the ones JFlex itself uses to
+   * maintain the flag while scanning.
+   */
+  public void syncAtBOL() {
+    if (zzStartRead == 0) {
+      zzAtBOL = true;
+      return;
+    }
+    switch (zzBuffer.charAt(zzStartRead - 1)) {
+      case '\n': case '\u000B': case '\u000C': case '\u0085': case '\u2028': case '\u2029':
+        zzAtBOL = true;
+        break;
+      case '\r':
+        // A carriage return ends the line only if it is not the first half of a "\r\n" sequence.
+        zzAtBOL = zzStartRead >= zzEndRead || zzBuffer.charAt(zzStartRead) != '\n';
+        break;
+      default:
+        zzAtBOL = false;
+    }
+  }
+%}
+
 CRLF=\R
 WHITE_SPACE=[\ \t\f]
 ESCAPES=("\\n"|"\\\\"|"\\\""|"\\t"|"\\'")
