@@ -190,6 +190,12 @@ tasks {
             }") {
             targetRootOutputDir.set(file("src/main/parser"))
             sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.bnf"))
+            // Only files below these paths count as task outputs. Without them the task declares no outputs at all,
+            // is always considered up-to-date and restores nothing from the build cache. The PSI root covers the whole
+            // generated package rather than just the psi subpackage so that the element type holder class next to
+            // the parser is tracked as well.
+            pathToParser.set("com/github/zero9178/mlirods/language/generated/TableGenParser.java")
+            pathToPsiRoot.set("com/github/zero9178/mlirods/language/generated")
             config()
         }
 
@@ -203,6 +209,8 @@ tasks {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/language/TableGen.flex"))
         extraSourceDirs += "src/main/lexer"
         targetRootOutputDir.set(file(extraSourceDirs.last()))
+        // The generated class is the only declared task output; see the parser tasks above.
+        pathToClass.set("com/github/zero9178/mlirods/language/generated/TableGenLexer.java")
 
         dependsOn(initial)
     }
@@ -210,6 +218,7 @@ tasks {
         sourceFile.set(file("src/main/kotlin/com/github/zero9178/mlirods/highlighting/TableGenString.flex"))
         extraSourceDirs += "src/main/stringLexer"
         targetRootOutputDir.set(file(extraSourceDirs.last()))
+        pathToClass.set("com/github/zero9178/mlirods/highlighting/generated/TableGenStringLexer.java")
     }
 
     compileKotlin {
