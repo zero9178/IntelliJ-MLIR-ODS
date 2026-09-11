@@ -5,7 +5,6 @@
     <vendor>zero9178</vendor>
 
     <depends>com.intellij.modules.platform</depends>
-    <depends>com.intellij.modules.lsp</depends>
     <depends optional="true" config-file="com.github.zero9178.mlirods-clion.xml">com.intellij.clion.cmake</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
@@ -105,12 +104,6 @@
         <breadcrumbsInfoProvider implementation="com.github.zero9178.mlirods.language.TableGenBreadcrumbsProvider"/>
         <platform.backend.documentation.psiTargetProvider
                 implementation="com.github.zero9178.mlirods.language.documentation.TableGenDocumentationTargetProvider"/>
-        <applicationConfigurable
-                parentId="tools"
-                instance="com.github.zero9178.mlirods.settings.TableGenToolsApplicationConfigurable"
-                id="com.github.zero9178.mlirods.settings.TableGenToolsApplicationConfigurable"
-                key="tableGen.tools.displayName"
-                bundle="messages.MyBundle"/>
         <annotator language="TableGen"
                    implementationClass="com.github.zero9178.mlirods.language.annotator.TableGenSyntaxAnnotator"
         />
@@ -139,14 +132,7 @@
         <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>
 
-    <extensions defaultExtensionNs="com.intellij.platform.lsp">
-        <integrationProvider
-                implementation="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProvider"/>
-    </extensions>
-
     <extensionPoints>
-        <extensionPoint name="tableGenServerSupportProvider" dynamic="true"
-                        interface="com.github.zero9178.mlirods.lsp.TableGenLspServerSupportProviderInterface"/>
         <extensionPoint name="compilationCommandsProvider" dynamic="true"
                         interface="com.github.zero9178.mlirods.model.TableGenCompilationCommandsProvider"/>
     </extensionPoints>

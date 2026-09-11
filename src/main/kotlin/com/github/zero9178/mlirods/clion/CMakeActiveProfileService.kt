@@ -1,11 +1,9 @@
 package com.github.zero9178.mlirods.clion
 
-import com.github.zero9178.mlirods.lsp.restartTableGenLSPAsync
 import com.intellij.execution.*
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeProfileInfo
 import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
@@ -15,17 +13,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-
-private val LOG = logger<CMakeActiveProfileService>()
 
 private class CMakeExecutionTargetListener(private val project: Project) : ExecutionTargetListener {
     override fun activeTargetChanged(newTarget: ExecutionTarget) {
         val target = newTarget as? CMakeBuildProfileExecutionTarget ?: return
 
         project.service<CMakeActiveProfileService>().profileName = target.profileName
-        LOG.info("Restarting LSP due to build profile change")
     }
 }
 
@@ -53,11 +47,6 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
         })
         cs.launch(block = block)
 
-        cs.launch {
-            myProfileNameFlow.filter { !it.isEmpty() }.collect {
-                restartTableGenLSPAsync(project)
-            }
-        }
         initFromExecutionManager()
     }
 
@@ -71,7 +60,6 @@ class CMakeActiveProfileService(private val project: Project, private val cs: Co
         } ?: return@launch
 
         profileName = target.profileName
-        LOG.info("Restarting LSP due to run manager being initialized")
     }
 
     /**

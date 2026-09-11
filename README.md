@@ -5,8 +5,22 @@
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/26204-mlir-ods.svg)](https://plugins.jetbrains.com/plugin/26204-mlir-ods)
 
 <!-- Plugin description -->
-Plugin adding language support for [MLIR ODS](https://mlir.llvm.org/docs/DefiningDialects/Operations/) to IntelliJ-based
-IDEs via `tblgen-lsp-server`.
+Language support for [TableGen](https://llvm.org/docs/TableGen/) `.td` files, the language LLVM and
+[MLIR ODS](https://mlir.llvm.org/docs/DefiningDialects/Operations/) use to define dialects, operations, types and
+attributes.
+
+Features:
+
+* Syntax highlighting, brace matching, code folding and breadcrumbs.
+* Code completion for fields, keywords, bang operators and for classes and definitions from other files.
+* Navigation to definitions, find usages, rename, go-to-class and go-to-symbol, parameter info and gutter markers for
+  inherited classes and overridden field assignments.
+* Quick documentation showing an element's definition together with its doc comment.
+* Error highlighting and inspections for syntax mistakes, unresolved references, unknown fields and mismatched template
+  arguments.
+
+In CLion, includes are resolved using the `tablegen_compile_commands.yml` file of the active CMake profile, so files of
+the LLVM monorepo are analyzed with the same include paths that TableGen itself is invoked with.
 <!-- Plugin description end -->
 
 ## Installation
