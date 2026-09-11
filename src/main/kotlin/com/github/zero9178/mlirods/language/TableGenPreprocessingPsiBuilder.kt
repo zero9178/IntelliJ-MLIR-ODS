@@ -71,7 +71,7 @@ class TableGenPreprocessingPsiBuilder(delegate: PsiBuilder) : PsiBuilderAdapter(
                         marker = super.mark()
                         super.advanceLexer()
                         marker.done(ELSE_DIRECTIVE)
-                        myPreprocessorStateStack = myPreprocessorStateStack.add(State.YIELD_TILL_ENDIF)
+                        myPreprocessorStateStack = myPreprocessorStateStack.adding(State.YIELD_TILL_ENDIF)
                         return
                     }
                 }
@@ -103,7 +103,7 @@ class TableGenPreprocessingPsiBuilder(delegate: PsiBuilder) : PsiBuilderAdapter(
                         return
                     }
 
-                    tokenText?.let { myDefines = myDefines.add(it) }
+                    tokenText?.let { myDefines = myDefines.adding(it) }
 
                     super.advanceLexer()
                     marker.done(DEFINE_DIRECTIVE)
@@ -120,7 +120,7 @@ class TableGenPreprocessingPsiBuilder(delegate: PsiBuilder) : PsiBuilderAdapter(
                     }
 
                     val marker = super.mark()
-                    myPreprocessorStateStack = myPreprocessorStateStack.removeAt(myPreprocessorStateStack.size - 1)
+                    myPreprocessorStateStack = myPreprocessorStateStack.removingAt(myPreprocessorStateStack.size - 1)
                     super.advanceLexer()
                     marker.done(ENDIF_DIRECTIVE)
                     continue
@@ -139,7 +139,7 @@ class TableGenPreprocessingPsiBuilder(delegate: PsiBuilder) : PsiBuilderAdapter(
                     super.advanceLexer()
                     marker.done(ELSE_DIRECTIVE)
                     skipCodeBlock(allowElse = false)
-                    myPreprocessorStateStack = myPreprocessorStateStack.removeAt(myPreprocessorStateStack.size - 1)
+                    myPreprocessorStateStack = myPreprocessorStateStack.removingAt(myPreprocessorStateStack.size - 1)
                     continue
                 }
 
@@ -161,7 +161,7 @@ class TableGenPreprocessingPsiBuilder(delegate: PsiBuilder) : PsiBuilderAdapter(
                         skipCodeBlock(allowElse = true)
                         continue
                     }
-                    myPreprocessorStateStack = myPreprocessorStateStack.add(State.YIELD_TILL_ELSE_OR_ENDIF)
+                    myPreprocessorStateStack = myPreprocessorStateStack.adding(State.YIELD_TILL_ELSE_OR_ENDIF)
                     continue
                 }
 

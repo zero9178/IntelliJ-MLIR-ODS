@@ -24,13 +24,13 @@ version = providers.gradleProperty("pluginVersion").get()
 
 // Set the JVM language level used to build the project.
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
     compilerOptions {
         jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
     }
 }
 java {
-    targetCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 // Configure project's dependencies
@@ -170,6 +170,13 @@ tasks {
 
     publishPlugin {
         dependsOn(patchChangelog)
+    }
+
+    test {
+        // Load only this plugin and what it needs into the test IDE rather than every plugin bundled with CLion. The
+        // CLion language plugin in particular reconfigures the IDE and reloads its project model from a background
+        // process, which changes settings and project roots in the middle of tests.
+        systemProperty("idea.load.plugins.id", "com.github.zero9178.mlirods,intellij.libraries.misc.plugin")
     }
 
     fun generateParserTask(suffix: String = "", config: GenerateParserTask.() -> Unit = {}) =

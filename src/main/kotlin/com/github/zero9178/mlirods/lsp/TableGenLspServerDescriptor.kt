@@ -10,9 +10,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerListener
-import com.intellij.platform.lsp.api.LspServerManager
-import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
+import com.intellij.platform.lsp.api.ProjectWideLspClientDescriptor
 import com.intellij.platform.lsp.api.customization.*
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
@@ -41,7 +41,7 @@ interface LspLifetimeListener : LspServerListener {
 class TableGenLspServerDescriptor(
     private val executable: File, private val compileCommands: File, project: Project,
     private val listener: LspLifetimeListener? = null
-) : ProjectWideLspServerDescriptor(project, "TableGen") {
+) : ProjectWideLspClientDescriptor(project, "TableGen") {
 
     companion object {
         private val LOGGER = logger<TableGenLspServerDescriptor>()
@@ -157,5 +157,6 @@ class TableGenLspServerDescriptor(
 }
 
 fun restartTableGenLSPAsync(project: Project) {
-    project.serviceIfCreated<LspServerManager>()?.stopAndRestartIfNeeded(TableGenLspServerSupportProvider::class.java)
+    project.serviceIfCreated<LspClientManager>()
+        ?.stopAndRestartClientsIfNeeded(TableGenLspServerSupportProvider::class.java)
 }

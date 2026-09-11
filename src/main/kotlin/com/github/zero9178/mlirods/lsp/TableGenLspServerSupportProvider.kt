@@ -6,23 +6,23 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.lsp.api.LspServerSupportProvider
+import com.intellij.platform.lsp.api.LspIntegrationProvider
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
-internal class TableGenLspServerSupportProvider : LspServerSupportProvider {
+internal class TableGenLspServerSupportProvider : LspIntegrationProvider {
 
     @RequiresReadLock
     override fun fileOpened(
         project: Project,
         file: VirtualFile,
-        serverStarter: LspServerSupportProvider.LspServerStarter
+        clientStarter: LspIntegrationProvider.LspClientStarter
     ) {
         if (!service<TableGenToolsApplicationSettings>().lspEnabled) return
 
         if (!file.isTableGenFile) return
 
         EP_NAME.findFirstSafe {
-            it.fileOpened(project, file, serverStarter)
+            it.fileOpened(project, file, clientStarter)
         }
     }
 }
