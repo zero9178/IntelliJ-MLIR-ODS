@@ -8,6 +8,12 @@
 
 - The plugin now requires 2026.2 or newer.
 
+### Removed
+
+- Support for `tblgen-lsp-server`. The server was only used as a second source of diagnostics next to the plugin's own
+  analysis. The settings page under `Tools` -> `TableGen` and the prompt to build the `tblgen-lsp-server` target are
+  gone with it, and the plugin no longer requires an IDE with language server support.
+
 ## [0.16.0] - 2026-09-10
 
 ### Added
