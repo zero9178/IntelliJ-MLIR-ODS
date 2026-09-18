@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatemen
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.values.*
+import com.intellij.openapi.util.RecursionManager
 import com.intellij.testFramework.assertInstanceOf
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
@@ -202,6 +203,20 @@ class ValueComputationTest : BasePlatformTestCase() {
         defvar v = O.inner.a;
     """.trimIndent(), TableGenIntegerValue(9)
     )
+
+    fun `test cyclic field reference within record`() {
+        RecursionManager.disableMissedCacheAssertions(testRootDisposable)
+        doTest(
+            """
+            def A {
+                int f = 0;
+                int g = f;
+                let f = g;
+            }
+            defvar v = A.f;
+        """.trimIndent(), TableGenUnknownValue
+        )
+    }
 
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)

@@ -13,6 +13,7 @@ import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.intellij.openapi.util.RecursionManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.util.containers.ConcurrentFactoryMap
@@ -47,9 +48,11 @@ class TableGenEvaluationContext private constructor(
     constructor(defStatement: TableGenDefStatement) : this(defStatement, {
         defStatement.allArgToTemplateArgMapping[it]?.evaluate(this) ?: TableGenUnknownValue
     }, { fieldName ->
-        // TODO: Implement append and prepend semantics.
-        defStatement.allFieldAssignments[fieldName]?.lastOrNull()?.assignedValueNode
-            ?.evaluate(this) ?: TableGenUnknownValue
+        // Fields may be defined in terms of each other (e.g. 'int g = f; let f = g;'). TableGen rejects such cycles.
+        RecursionManager.doPreventingRecursion(defStatement to fieldName, false) {
+            // TODO: Implement append and prepend semantics.
+            defStatement.allFieldAssignments[fieldName]?.lastOrNull()?.assignedValueNode?.evaluate(this)
+        } ?: TableGenUnknownValue
     })
 
     override fun equals(other: Any?): Boolean =
