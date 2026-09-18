@@ -14,6 +14,10 @@
   analysis. The settings page under `Tools` -> `TableGen` and the prompt to build the `tblgen-lsp-server` target are
   gone with it, and the plugin no longer requires an IDE with language server support.
 
+### Fixed
+
+- Fields of a `def` defined in terms of each other, e.g. `int g = f; let f = g;`, no longer cause a stack overflow.
+
 ## [0.16.0] - 2026-09-10
 
 ### Added
