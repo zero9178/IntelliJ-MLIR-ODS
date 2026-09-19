@@ -1,0 +1,15 @@
+<!-- Plugin only ever installed into the IDEs run by the integration tests. It is not part of the MLIR ODS plugin. -->
+<idea-plugin>
+    <!-- Supplied by the build. -->
+    <id>${id}</id>
+    <name>MLIR ODS Integration Test Support</name>
+    <vendor>zero9178</vendor>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.github.zero9178.mlirods</depends>
+
+    <extensions defaultExtensionNs="com.github.zero9178.mlirods">
+        <compilationCommandsProvider
+                implementation="com.github.zero9178.mlirods.integration.ProjectFileCompilationCommandsProvider"/>
+    </extensions>
+</idea-plugin>

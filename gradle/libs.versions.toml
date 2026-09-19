@@ -1,6 +1,10 @@
 [versions]
 # libraries
 junit = "4.13.2"
+junitJupiter = "5.13.4"
+kodein = "7.26.1"
+kotlinxCoroutines = "1.10.2"
+teamcityServiceMessages = "2024.07"
 
 # plugins
 changelog = "2.5.0"
@@ -11,6 +15,12 @@ qodana = "2026.2.1"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+junitJupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junitJupiter" }
+junitPlatformLauncher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+kodein = { group = "org.kodein.di", name = "kodein-di-jvm", version.ref = "kodein" }
+kotlinxCoroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core-jvm", version.ref = "kotlinxCoroutines" }
+teamcityServiceMessages = { group = "org.jetbrains.teamcity", name = "serviceMessages", version.ref = "teamcityServiceMessages" }
 
 [plugins]
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }

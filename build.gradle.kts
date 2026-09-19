@@ -38,9 +38,46 @@ repositories {
     }
 }
 
+// Integration tests drive a real, separately downloaded IDE from the outside through the Starter framework. They live
+// in their own source set as they run on JUnit 5 and must not see the IDE classes the unit tests compile against.
+val integrationTest: SourceSet = sourceSets.create("integrationTest")
+
+// Plugin installed next to this plugin into the IDEs run by the integration tests. It supplies this plugin with the
+// compilation commands of the project being tested, which makes the tests independent of CLion and CMake.
+val integrationTestPlugin: SourceSet = sourceSets.create("integrationTestPlugin") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+}
+val integrationTestPluginId = "com.github.zero9178.mlirods.integrationTest"
+
+// The tests name the plugin whose classes they call into within annotations, the arguments of which have to be
+// constants. Generate the constant to not have the tests repeat the ID.
+val generateIntegrationTestConstants = tasks.register("generateIntegrationTestConstants") {
+    description = "Generates the constants the integration tests obtain from the build."
+    val id = integrationTestPluginId
+    val outputDir = layout.buildDirectory.dir("generated/integrationTest")
+    inputs.property("id", id)
+    outputs.dir(outputDir)
+    doLast {
+        outputDir.get().file("Constants.kt").asFile.writeText(
+            "package com.github.zero9178.mlirods\n\ninternal const val TEST_PLUGIN_ID = \"$id\"\n"
+        )
+    }
+}
+kotlin.sourceSets[integrationTest.name].kotlin.srcDir(generateIntegrationTestConstants)
+
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     testImplementation(libs.junit)
+
+    // Unlike everything else in this build, the integration tests run in a JVM of their own and not within an IDE
+    // supplying the Kotlin standard library.
+    "integrationTestImplementation"(kotlin("stdlib"))
+    "integrationTestImplementation"(libs.junitJupiter)
+    "integrationTestRuntimeOnly"(libs.junitPlatformLauncher)
+    // Used by the Starter framework whenever an IDE exits, yet not a dependency Gradle sees of it.
+    "integrationTestRuntimeOnly"(libs.teamcityServiceMessages)
+    "integrationTestImplementation"(libs.kodein)
+    "integrationTestImplementation"(libs.kotlinxCoroutines)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
@@ -55,6 +92,7 @@ dependencies {
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Starter, configurationName = "integrationTestImplementation")
     }
 
     implementation("org.yaml:snakeyaml:2.7")
@@ -113,6 +151,13 @@ intellijPlatform {
 
 // Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
 kover {
+    currentProject {
+        instrumentation {
+            // Kover makes 'check' run every test task it measures the coverage of. The integration tests are not to be
+            // part of 'check', nor do they execute any code of the plugin within their own JVM.
+            disabledForTestTasks.add("integrationTest")
+        }
+    }
     reports {
         total {
             xml {
@@ -192,7 +237,71 @@ sourceSets {
     }
 }
 
+// Layout of an installed plugin: a directory named after the plugin with its jars in 'lib'.
+val integrationTestPluginJar = tasks.register<Jar>("integrationTestPluginJar") {
+    description = "Assembles the plugin supporting the integration tests."
+    archiveBaseName = "mlirods-integration-test"
+    from(integrationTestPlugin.output.classesDirs)
+    // Not a resource of the source set: the IntelliJ Platform Gradle Plugin places the descriptor of this plugin into
+    // the resources of every source set, replacing any other.
+    from("src/integrationTestPlugin/plugin.xml") {
+        into("META-INF")
+        expand("id" to integrationTestPluginId)
+    }
+}
+val prepareIntegrationTestPlugin = tasks.register<Sync>("prepareIntegrationTestPlugin") {
+    description = "Lays out the plugin supporting the integration tests the way an IDE installs plugins."
+    from(integrationTestPluginJar)
+    into(layout.buildDirectory.dir("integrationTestPlugin/mlirods-integration-test/lib"))
+}
+
+// The IDE creates its '.idea' directory within the project it opens. Open a copy to keep the repository clean and
+// have every run start from the same state.
+val prepareIntegrationTestProject = tasks.register<Sync>("prepareIntegrationTestProject") {
+    description = "Copies the project the integration tests open."
+    from("src/integrationTest/testData/llvm-project")
+    into(layout.buildDirectory.dir("integrationTestProject/llvm-project"))
+}
+
 intellijPlatformTesting {
+    testIdeUi {
+        // Not part of 'check': the tests download the IDE they are run in.
+        register("integrationTest") {
+            task {
+                testClassesDirs = integrationTest.output.classesDirs
+                classpath = integrationTest.runtimeClasspath
+                useJUnitPlatform {
+                    // Brought in by the Starter framework without a version of JUnit 4 it is able to work with.
+                    excludeEngines("junit-vintage")
+                }
+
+                val integrationTestDir = layout.buildDirectory.dir("integrationTest")
+                systemProperty("platform.version", providers.gradleProperty("platformVersion").get())
+                // Number of times the inspections are run to arrive at a stable figure for the time they take.
+                systemProperty(
+                    "integration.test.iterations",
+                    providers.gradleProperty("integrationTestIterations").getOrElse("5")
+                )
+                // '-PintegrationTestHeadless=false' shows the user interface of the IDE, e.g. to debug a test.
+                systemProperty(
+                    "integration.test.headless",
+                    providers.gradleProperty("integrationTestHeadless").getOrElse("true")
+                )
+                systemProperty("integration.test.dir", integrationTestDir.get().asFile.path)
+                systemProperty("integration.test.report.dir", integrationTestDir.get().dir("reports").asFile.path)
+                systemProperty(
+                    "integration.test.plugin",
+                    prepareIntegrationTestPlugin.map { it.destinationDir.parentFile.path }.get()
+                )
+                systemProperty("integration.test.project", prepareIntegrationTestProject.map { it.destinationDir.path }.get())
+                dependsOn(prepareIntegrationTestPlugin, prepareIntegrationTestProject)
+                // Written to the working directory, i.e. the root of the repository, by the Starter framework otherwise.
+                systemProperty("allure.results.directory", integrationTestDir.get().dir("allure-results").asFile.path)
+                testLogging.showStandardStreams = true
+            }
+        }
+    }
+
     runIde {
         register("runIdeForUiTests") {
             task {
