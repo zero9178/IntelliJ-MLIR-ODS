@@ -1,8 +1,11 @@
 package com.github.zero9178.mlirods.clion
 
+import com.github.zero9178.mlirods.model.COMPILE_COMMANDS_FILE_NAME
 import com.github.zero9178.mlirods.model.CompilationCommandsState
+import com.github.zero9178.mlirods.model.FileInfoDto
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenCompilationCommandsProvider
+import com.github.zero9178.mlirods.model.readCompilationCommands
 import com.intellij.openapi.components.service
 import com.github.zero9178.mlirods.rethrowIfControlFlow
 import com.intellij.openapi.diagnostic.logger
@@ -14,17 +17,8 @@ import com.intellij.openapi.vfs.newvfs.events.*
 import com.intellij.util.messages.impl.subscribeAsFlow
 import com.jetbrains.cidr.cpp.toolchains.CPPEnvironment
 import kotlinx.coroutines.flow.*
-import org.yaml.snakeyaml.LoaderOptions
-import org.yaml.snakeyaml.Yaml
-import org.yaml.snakeyaml.constructor.Constructor
 import java.io.FileNotFoundException
 import kotlin.io.path.Path
-
-// Note: Needs to be public due to limitations in snakeyaml.
-data class FileInfoDto(
-    var filepath: String = "",
-    var includes: String = "",
-)
 
 private fun CPPEnvironment.toLocalVFS(path: String): VirtualFile? {
     val instance = VirtualFileManager.getInstance()
@@ -34,8 +28,6 @@ private fun CPPEnvironment.toLocalVFS(path: String): VirtualFile? {
         instance.findFileByNioPath(Path(localPath))
     }
 }
-
-private const val COMPILE_COMMANDS_FILE_NAME = "tablegen_compile_commands.yml"
 
 
 class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProvider {
@@ -84,10 +76,7 @@ class CMakeTableGenCompilationCommandsProvider : TableGenCompilationCommandsProv
                 if (env == null) return@transform
 
                 try {
-                    val result = file.inputStream().use { inputStream ->
-                        Yaml(Constructor(FileInfoDto::class.java, LoaderOptions())).loadAll(inputStream)
-                            .filterIsInstance<FileInfoDto>()
-                    }
+                    val result = file.inputStream().use { readCompilationCommands(it) }
                     emit(result to env)
                 } catch (_: FileNotFoundException) {
                     // Swallow completely.

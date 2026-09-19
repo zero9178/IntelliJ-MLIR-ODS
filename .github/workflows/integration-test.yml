@@ -1,0 +1,73 @@
+# GitHub Actions Workflow running the integration tests: IntelliJ is downloaded and has the plugin inspect all TableGen
+# files of LLVM. The time this took and all problems found are shown as the summary of the job and uploaded as a report.
+#
+# Note that the machines running the workflow are shared. Times are only roughly comparable between runs.
+
+name: Integration Tests
+on:
+  # Trigger the workflow on pushes to only the 'main' branch (this avoids duplicate checks being run e.g., for dependabot pull requests)
+  push:
+    branches: [ main ]
+  # Trigger the workflow on any pull request
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  integrationTest:
+    name: Inspect LLVM
+    runs-on: ubuntu-latest
+    steps:
+
+      # Free GitHub Actions Environment Disk Space
+      - name: Maximize Build Space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
+
+      # Check out the current repository
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+
+      # Set up the Java environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 25
+
+      # Setup Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          cache-read-only: true
+
+      # Run the integration tests
+      - name: Run Integration Tests
+        run: ./gradlew integrationTest
+
+      # Show the report as the summary of the job. It is written even if the tests went on to fail.
+      - name: Publish Summary
+        if: ${{ always() && hashFiles('build/integrationTest/reports/job-summary.html') != '' }}
+        run: cat build/integrationTest/reports/job-summary.html >> "$GITHUB_STEP_SUMMARY"
+
+      # Store the report as an artifact for downloading
+      - name: Upload Report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-report
+          path: ${{ github.workspace }}/build/integrationTest/reports
+
+      # Collect the logs of the IDE of failed tests
+      - name: Collect IDE Logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-ide-logs
+          path: ${{ github.workspace }}/build/integrationTest/out/ide-tests/tests/**/log
