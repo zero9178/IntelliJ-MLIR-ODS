@@ -164,6 +164,64 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test fields defined in terms of each other`() {
+        doResolvingTest(
+            """
+            def <error descr="Fields 'f', 'g' are defined in terms of each other">A</error> {
+                int f = 0;
+                int g = f;
+                let f = g;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test fields defined in terms of each other through a base class`() {
+        doResolvingTest(
+            """
+            class C { int f = 0; int g = f; }
+            def <error descr="Fields 'f', 'g' are defined in terms of each other">A</error> : C { let f = g; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test field defined in terms of itself`() {
+        doResolvingTest(
+            """
+            def <error descr="Field 'f' is defined in terms of itself">A</error> { int f = 0; let f = !add(f, 1); }
+        """.trimIndent()
+        )
+    }
+
+    fun `test field referring to a cycle is not reported`() {
+        doResolvingTest(
+            """
+            def <error descr="Fields 'f', 'g' are defined in terms of each other">A</error> {
+                int f = 0;
+                int g = f;
+                int h = f;
+                let f = g;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test self reference in an untaken if branch is not reported`() {
+        doResolvingTest(
+            """
+            def A { int i = 0; let i = !if(1, 0, i); }
+        """.trimIndent()
+        )
+    }
+
+    fun `test fields defined in terms of each other in a class are not reported`() {
+        doResolvingTest(
+            """
+            class C { int f = 0; int g = f; let f = g; }
+        """.trimIndent()
+        )
+    }
+
     fun `test division by zero through an overridden field is revealed on instantiation`() {
         doResolvingTest(
             """

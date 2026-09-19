@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Fields of a `def` defined in terms of each other, e.g. `int g = f; let f = g;`, are reported as an error.
+
 ### Changed
 
 - The plugin now requires 2026.2 or newer.
