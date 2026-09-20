@@ -1,7 +1,12 @@
 package com.github.zero9178.mlirods.model
 
+import com.github.zero9178.mlirods.cache.SuspendingCachedValue
+import com.github.zero9178.mlirods.cache.SuspendingCachedValueScope
+import com.github.zero9178.mlirods.cache.suspendingCachedValue
+import com.github.zero9178.mlirods.cache.suspendingCachedValueKeyOf
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.intellij.openapi.components.service
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValueProvider
@@ -52,3 +57,36 @@ fun <T, P : PsiElement> getProjectContextDependentCache(element: P, provider: (P
         element,
     )
 }
+
+/**
+ * Makes the value being computed depend on what everything cached by [getProjectContextDependentCache] depends on: the
+ * TableGen PSI and the include graph of [project].
+ */
+fun SuspendingCachedValueScope.dependsOnProjectContext(project: Project) = dependsOn(
+    PsiModificationTracker.getInstance(project).forLanguage(TableGenLanguage.INSTANCE),
+    project.service<TableGenIncludeGraphService>().graphChangedModificationTracker,
+)
+
+/**
+ * Suspending counterpart of [getProjectContextDependentCache]: [provider] is a coroutine, and is run once no matter how
+ * many threads request the value while it does. See [SuspendingCachedValue] for what that is good for and how to call
+ * it.
+ *
+ * Returns the cached value rather than what it computes, for the caller to choose between
+ * [SuspendingCachedValue.await] and [SuspendingCachedValue.getBlocking].
+ */
+fun <T, P : PsiElement> projectContextDependentSuspendingCachedValue(
+    element: P,
+    provider: suspend SuspendingCachedValueScope.(P) -> T,
+): SuspendingCachedValue<T> = element.suspendingCachedValue(suspendingCachedValueKeyOf<T>(provider)) { param ->
+    dependsOnProjectContext(param.project)
+    provider(param)
+}
+
+/**
+ * Requests the value of [projectContextDependentSuspendingCachedValue].
+ */
+suspend fun <T, P : PsiElement> getProjectContextDependentCacheSuspending(
+    element: P,
+    provider: suspend SuspendingCachedValueScope.(P) -> T,
+): T = projectContextDependentSuspendingCachedValue(element, provider).await()
