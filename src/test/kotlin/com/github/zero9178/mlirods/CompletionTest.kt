@@ -224,6 +224,17 @@ class CompletionTest : BasePlatformTestCase() {
         myFixture.performEditorAction(IdeActions.ACTION_BRACE_OR_QUOTE_OUT)
     }
 
+    fun `test completion of enclosing scope only suggests prior declarations`() = doTest(
+        """
+            defvar before = 0;
+            class C {
+                int x = <caret>;
+                defvar inner = 0;
+            }
+            defvar after = 0;
+        """.trimIndent(), "before", doesNotContain = listOf("after", "inner")
+    )
+
     fun `test field access lookup`() = doTest(
         """
             defvar v = 0;
