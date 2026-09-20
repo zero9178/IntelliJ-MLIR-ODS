@@ -421,6 +421,20 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
     }
 
+    fun `test multiclass defvar shadows outer defvar`() {
+        val element = doTestInline<TableGenDefvarStatement>(
+            """
+            defvar i = 0;
+            multiclass M {
+                defvar i = 1;
+                defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        assertEquals("i", element.name)
+        assertNotNull(element.parentOfType<TableGenMulticlassStatement>())
+    }
+
     fun `test append let`() {
         val iter = doTestInline<TableGenFieldBodyItem>(
             """
