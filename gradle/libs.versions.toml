@@ -2,7 +2,7 @@
 # libraries
 junit = "4.13.2"
 junitJupiter = "5.13.4"
-kodein = "7.26.1"
+kodein = "7.33.0"
 kotlinxCoroutines = "1.10.2"
 teamcityServiceMessages = "2024.07"
 
