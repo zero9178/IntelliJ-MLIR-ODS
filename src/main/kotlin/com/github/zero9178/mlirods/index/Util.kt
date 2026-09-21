@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.index
 
+import com.github.zero9178.mlirods.model.TableGenVisibility
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
@@ -23,6 +24,25 @@ inline fun <Key : Any, reified Element : PsiElement> StubIndexKey<Key, Element>.
         scope,
         Element::class.java
     )
+}
+
+/**
+ * Returns all elements that are mapped to [key] and visible according to [visibility].
+ */
+inline fun <Key : Any, reified Element : PsiElement> StubIndexKey<Key, Element>.getVisibleElements(
+    key: Key,
+    visibility: TableGenVisibility
+): List<Element> = getElements(key, visibility.project, visibility.scope).filter(visibility::isVisible)
+
+/**
+ * Invokes [processor] with all elements mapped to [key] and visible according to [visibility].
+ */
+inline fun <Key : Any, reified Element : PsiElement> StubIndexKey<Key, Element>.processVisibleElements(
+    key: Key,
+    visibility: TableGenVisibility,
+    processor: Processor<in Element>
+) = processElements(key, visibility.project, visibility.scope) {
+    !visibility.isVisible(it) || processor.process(it)
 }
 
 /**

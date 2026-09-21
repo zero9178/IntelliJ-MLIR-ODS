@@ -235,6 +235,24 @@ class CompletionTest : BasePlatformTestCase() {
         """.trimIndent(), "before", doesNotContain = listOf("after", "inner")
     )
 
+    fun `test def of nested scope is suggested exactly once`() {
+        myFixture.configureByText(
+            "test.td", """
+            def Outer;
+            foreach i = [1] in {
+                def Inner;
+            }
+            defvar v = <caret>;
+        """.trimIndent()
+        )
+
+        myFixture.completeBasic()
+        val collection = requireNotNull(myFixture.lookupElementStrings)
+        // 'Inner' is not part of any scope enclosing the caret but is a record of the file nevertheless.
+        assertEquals(1, collection.count { it == "Inner" })
+        assertEquals(1, collection.count { it == "Outer" })
+    }
+
     fun `test field access lookup`() = doTest(
         """
             defvar v = 0;
@@ -666,6 +684,46 @@ class CompletionTest : BasePlatformTestCase() {
             defvar l = BLong<caret>;
         """.trimIndent()
     )
+
+    fun `test cross file lookup only suggests what precedes the caret`() {
+        myFixture.addFileToProject(
+            "before.td", """
+            class ClassBefore;
+            def DefBefore;
+        """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "after.td", """
+            class ClassAfter;
+            def DefAfter;
+        """.trimIndent()
+        )
+        val testTD = myFixture.addFileToProject(
+            "test.td", """
+            include "before.td"
+            defvar v = <caret>;
+            include "after.td"
+        """.trimIndent()
+        )
+        val rootTD = myFixture.addFileToProject(
+            "root.td", """
+            def DefIncluderBefore;
+            include "test.td"
+            def DefIncluderAfter;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                rootTD.virtualFile to IncludePaths(listOf(rootTD.virtualFile.parent))
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(testTD.virtualFile)
+        myFixture.completeBasic()
+        val collection = requireNotNull(myFixture.lookupElementStrings)
+        assertContainsElements(collection, "ClassBefore", "DefBefore", "DefIncluderBefore")
+        assertDoesntContain(collection, "ClassAfter", "DefAfter", "DefIncluderAfter")
+    }
 
     private fun doTest(source: String, vararg expected: String, doesNotContain: List<String> = emptyList()) {
         myFixture.configureByText(

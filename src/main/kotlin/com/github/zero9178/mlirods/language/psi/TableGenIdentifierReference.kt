@@ -1,17 +1,16 @@
 package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
-import com.github.zero9178.mlirods.index.getElements
+import com.github.zero9178.mlirods.index.getVisibleElements
 import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
-import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.github.zero9178.mlirods.model.TableGenVisibility
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.isAncestor
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
@@ -75,16 +74,10 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
             val project = element.project
             if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
 
-            // Otherwise, use the index to search in TableGen files included by this file and the global scope.
-            IDENTIFIER_INDEX.getElements(
-                name,
-                project,
-                GlobalSearchScope.union(
-                    arrayOf(
-                        TableGenIncludedSearchScope(element, project),
-                        GlobalSearchScope.fileScope(element.containingFile)
-                    )
-                )
-            ).map { res -> PsiElementResolveResult(res) }.toTypedArray()
+            // Otherwise, use the index to search for the global identifiers preceding the reference, be it in this
+            // file or in another one.
+            IDENTIFIER_INDEX.getVisibleElements(name, TableGenVisibility(element)).map { res ->
+                PsiElementResolveResult(res)
+            }.toTypedArray()
         }
 }

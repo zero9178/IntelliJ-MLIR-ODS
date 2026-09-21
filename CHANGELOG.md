@@ -21,6 +21,10 @@
 ### Fixed
 
 - Fields of a `def` defined in terms of each other, e.g. `int g = f; let f = g;`, no longer cause a stack overflow.
+- References to classes and defs, as well as their completion, now respect the order of declarations the way TableGen
+  does: a name only refers to what precedes it once all `include` directives are pasted in. A class or def declared
+  further down in the file, or in a file that is only included after the reference, was previously resolved and
+  suggested although TableGen rejects such code.
 
 ## [0.16.0] - 2026-09-10
 

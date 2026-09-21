@@ -3,14 +3,13 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.index.DEFINE_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIfdefIfndefDirective
-import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.github.zero9178.mlirods.model.TableGenVisibility
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 /**
@@ -36,16 +35,10 @@ class TableGenMacroReference(element: TableGenIfdefIfndefDirective) :
             val project = element.project
             if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
 
-            // A macro may be defined by this file or by any of the files it includes.
-            DEFINE_INDEX.getElements(
-                name,
-                project,
-                GlobalSearchScope.union(
-                    arrayOf(
-                        TableGenIncludedSearchScope(element, project),
-                        GlobalSearchScope.fileScope(element.containingFile)
-                    )
-                )
-            ).map { res -> PsiElementResolveResult(res) }.toTypedArray()
+            // A macro may be defined by this file or by any of the files pasted in before the directive.
+            // TODO: Within those files this does not consider the position of the '#define' yet.
+            DEFINE_INDEX.getElements(name, project, TableGenVisibility(element).scope).map { res ->
+                PsiElementResolveResult(res)
+            }.toTypedArray()
         }
 }
