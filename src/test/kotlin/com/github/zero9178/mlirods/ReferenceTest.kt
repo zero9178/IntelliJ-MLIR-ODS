@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
@@ -27,81 +28,196 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.viewProvider.virtualFile.name, "test.td")
     }
 
-    fun `test included from context`() {
-        val testFile = myFixture.createFile(
-            "test.td", """
-            def : <caret>A;
-        """.trimIndent()
-        )
-        val root = myFixture.createFile(
-            "HasCompileCommands.td", """
-            class A;
-            
-            include "test.td"
-        """.trimIndent()
-        )
-        installCompileCommands(
-            project, mapOf(
-                root to IncludePaths(listOf(testFile.parent))
-            )
-        )
+    fun `test infinite include recursion`() = assertNull(
+        resolveAcrossFiles(
+            "other.td" to """include "test.td"""",
+            "test.td" to """
+                include "other.td"
 
-        myFixture.configureFromExistingVirtualFile(testFile)
-        val element = assertInstanceOf(myFixture.elementAtCaret, TableGenClassStatement::class.java)
-        assertEquals(element.name, "A")
-    }
+                defvar i = <caret>a;
+            """
+        )
+    )
 
-    fun `test infinite include recursion`() {
-        val testFile = myFixture.createFile(
-            "test.td", """
-            include "other.td"
-            
-            defvar i = <caret>a;
-        """.trimIndent()
+    fun `test class of include before reference`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "class A;",
+            "root.td" to """
+                include "a.td"
+                def : <caret>A;
+            """
         )
-        val otherFile = myFixture.createFile(
-            "other.td", """
-            include "test.td"
-        """.trimIndent()
-        )
-        installCompileCommands(
-            project,
-            mapOf(
-                testFile to IncludePaths(listOf(testFile.parent, otherFile.parent))
-            ),
-        )
+    )
 
-        myFixture.configureFromExistingVirtualFile(testFile)
-        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
-    }
+    fun `test class of include after reference`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "class A;",
+            "root.td" to """
+                def : <caret>A;
+                include "a.td"
+            """
+        )
+    )
 
-    fun `test included before context`() {
-        val testFile = myFixture.createFile(
-            "test.td", """
-            def : <caret>A;
-        """.trimIndent()
+    fun `test class of transitive include before reference`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "class A;",
+            "mid.td" to """include "a.td"""",
+            "root.td" to """
+                include "mid.td"
+                def : <caret>A;
+            """
         )
-        myFixture.createFile(
-            "class.td", """
-            class A;
-        """.trimIndent()
-        )
-        val root = myFixture.createFile(
-            "HasCompileCommands.td", """
-            include "class.td"
-            include "test.td"
-        """.trimIndent()
-        )
-        installCompileCommands(
-            project, mapOf(
-                root to IncludePaths(listOf(testFile.parent))
-            )
-        )
+    )
 
-        myFixture.configureFromExistingVirtualFile(testFile)
-        val element = assertInstanceOf(myFixture.elementAtCaret, TableGenClassStatement::class.java)
-        assertEquals(element.name, "A")
-    }
+    fun `test class of transitive include after reference`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "class A;",
+            "mid.td" to """include "a.td"""",
+            "root.td" to """
+                def : <caret>A;
+                include "mid.td"
+            """
+        )
+    )
+
+    fun `test class only of includes before reference`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "class A;",
+            "b.td" to "class A;",
+            "root.td" to """
+                include "a.td"
+                def : <caret>A;
+                include "b.td"
+            """
+        )
+    )
+
+    fun `test class of includer before include`() = assertResolvesToFile(
+        "root.td", resolveAcrossFiles(
+            "test.td" to "def : <caret>A;",
+            "root.td" to """
+                class A;
+                include "test.td"
+            """
+        )
+    )
+
+    fun `test class of includer after include`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to "def : <caret>A;",
+            "root.td" to """
+                include "test.td"
+                class A;
+            """
+        )
+    )
+
+    fun `test class of transitive includer before include`() = assertResolvesToFile(
+        "root.td", resolveAcrossFiles(
+            "test.td" to "def : <caret>A;",
+            "mid.td" to """include "test.td"""",
+            "root.td" to """
+                class A;
+                include "mid.td"
+            """
+        )
+    )
+
+    fun `test class of transitive includer after include`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to "def : <caret>A;",
+            "mid.td" to """include "test.td"""",
+            "root.td" to """
+                include "mid.td"
+                class A;
+            """
+        )
+    )
+
+    fun `test class of includer between repeated includes`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to "def : <caret>A;",
+            "root.td" to """
+                include "test.td"
+                class A;
+                include "test.td"
+            """
+        )
+    )
+
+    fun `test class of file included before`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "class A;",
+            "test.td" to "def : <caret>A;",
+            "root.td" to """
+                include "a.td"
+                include "test.td"
+            """
+        )
+    )
+
+    fun `test class of file included after`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "class A;",
+            "test.td" to "def : <caret>A;",
+            "root.td" to """
+                include "test.td"
+                include "a.td"
+            """
+        )
+    )
+
+    fun `test class of file included by file included before`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "class A;",
+            "sibling.td" to """include "a.td"""",
+            "test.td" to "def : <caret>A;",
+            "root.td" to """
+                include "sibling.td"
+                include "test.td"
+            """
+        )
+    )
+
+    fun `test class of file included before despite repeated include after reference`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "class A;",
+            "test.td" to """
+                def : <caret>A;
+                include "a.td"
+            """,
+            "root.td" to """
+                include "a.td"
+                include "test.td"
+            """
+        )
+    )
+
+    fun `test class of other file without context`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "class A;",
+            "test.td" to """
+                include "a.td"
+                def : <caret>A;
+            """,
+            "root.td" to ""
+        )
+    )
+
+    fun `test class of file included after despite include cycle`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "class A;",
+            "test.td" to """
+                include "root.td"
+                def : <caret>A;
+            """,
+            "root.td" to """
+                include "test.td"
+                include "a.td"
+            """
+        )
+    )
 
     fun `test IncludeReference exception`() {
         val testFile = myFixture.copyFileToProject("test.td")
@@ -164,6 +280,68 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(element.containingFile.name, "test2.td")
     }
 
+    fun `test def of include before reference`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "def A;",
+            "root.td" to """
+                include "a.td"
+                defvar v = <caret>A;
+            """
+        )
+    )
+
+    fun `test def of include after reference`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "def A;",
+            "root.td" to """
+                defvar v = <caret>A;
+                include "a.td"
+            """
+        )
+    )
+
+    fun `test def of includer before include`() = assertResolvesToFile(
+        "root.td", resolveAcrossFiles(
+            "test.td" to "defvar v = <caret>A;",
+            "root.td" to """
+                def A;
+                include "test.td"
+            """
+        )
+    )
+
+    fun `test def of includer after include`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to "defvar v = <caret>A;",
+            "root.td" to """
+                include "test.td"
+                def A;
+            """
+        )
+    )
+
+    fun `test def of file included before`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "def A;",
+            "test.td" to "defvar v = <caret>A;",
+            "root.td" to """
+                include "a.td"
+                include "test.td"
+            """
+        )
+    )
+
+    fun `test def of file included after`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "def A;",
+            "test.td" to "defvar v = <caret>A;",
+            "root.td" to """
+                include "test.td"
+                include "a.td"
+            """
+        )
+    )
+
     fun `test ParentClassListResolution`() {
         val element = doTest<TableGenClassStatement>("ParentClassListResolution.td")
         assertEquals(element.name, "F")
@@ -183,6 +361,15 @@ class ReferenceTest : BasePlatformTestCase() {
         val element = doTest<TableGenClassStatement>("ClassSelfTypeResolution.td")
         assertEquals(element.name, "G")
     }
+
+    fun `test class after reference`() = assertNull(
+        resolveAcrossFiles(
+            "root.td" to """
+                def : <caret>A;
+                class A;
+            """
+        )
+    )
 
     fun `test GlobalClassInstantiationResolution`() {
         val element = doTest<TableGenClassStatement>("GlobalClassInstantiationResolution.td", "test.td")
@@ -365,24 +552,16 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNotNull(element.parentOfType<TableGenMulticlassStatement>())
     }
 
-    fun `test multiclass def not referenceable`() {
-        val mainVF = myFixture.createFile(
-            "test.td", """
-            multiclass M {
-                def foo;
-                def bar { int x = <caret>foo; }
-            }
-        """.trimIndent()
+    fun `test multiclass def not referenceable`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                multiclass M {
+                    def foo;
+                    def bar { int x = <caret>foo; }
+                }
+            """
         )
-        installCompileCommands(
-            project, mapOf(
-                mainVF to IncludePaths(emptyList())
-            )
-        )
-
-        myFixture.configureFromExistingVirtualFile(mainVF)
-        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
-    }
+    )
 
     fun `test multiclass def does not shadow global def`() {
         val element = doTestInline<TableGenDefStatement>(
@@ -399,27 +578,41 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNull(element.parentOfType<TableGenMulticlassStatement>())
     }
 
-    fun `test multiclass def not in index`() {
-        val mainVF = myFixture.createFile(
-            "test.td", """
-            multiclass M {
-                foreach i = [0] in {
-                    def foo;
+    fun `test multiclass def not in index`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                multiclass M {
+                    foreach i = [0] in {
+                        def foo;
+                    }
                 }
-            }
 
-            defvar v = <caret>foo;
-        """.trimIndent()
+                defvar v = <caret>foo;
+            """
         )
-        installCompileCommands(
-            project, mapOf(
-                mainVF to IncludePaths(emptyList())
-            )
-        )
+    )
 
-        myFixture.configureFromExistingVirtualFile(mainVF)
-        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
-    }
+    fun `test nested def before reference`() = assertResolvesToFile(
+        "root.td", resolveAcrossFiles(
+            "root.td" to """
+                foreach i = [0] in {
+                    def A;
+                }
+                defvar v = <caret>A;
+            """
+        )
+    )
+
+    fun `test nested def after reference`() = assertNull(
+        resolveAcrossFiles(
+            "root.td" to """
+                defvar v = <caret>A;
+                foreach i = [0] in {
+                    def A;
+                }
+            """
+        )
+    )
 
     fun `test multiclass defvar shadows outer defvar`() {
         val element = doTestInline<TableGenDefvarStatement>(
@@ -558,35 +751,19 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals("FOO", element.macroName)
     }
 
-    fun `test ifdef resolves to define in include`() {
-        val testFile = myFixture.createFile(
-            "test.td", """
-            #ifdef <caret>FOO
-            #endif
-        """.trimIndent()
+    fun `test ifdef resolves to define in include`() = assertResolvesToFile(
+        "define.td", resolveAcrossFiles(
+            "define.td" to "#define FOO",
+            "test.td" to """
+                #ifdef <caret>FOO
+                #endif
+            """,
+            "root.td" to """
+                include "define.td"
+                include "test.td"
+            """
         )
-        myFixture.createFile(
-            "define.td", """
-            #define FOO
-        """.trimIndent()
-        )
-        val root = myFixture.createFile(
-            "HasCompileCommands.td", """
-            include "define.td"
-            include "test.td"
-        """.trimIndent()
-        )
-        installCompileCommands(
-            project, mapOf(
-                root to IncludePaths(listOf(testFile.parent))
-            )
-        )
-
-        myFixture.configureFromExistingVirtualFile(testFile)
-        val element = assertInstanceOf(myFixture.elementAtCaret, TableGenDefineDirective::class.java)
-        assertEquals("FOO", element.macroName)
-        assertEquals("define.td", element.containingFile.name)
-    }
+    )
 
     fun `test inherited field visibility follows the base class`() {
         val mainVF = myFixture.createFile(
@@ -654,22 +831,15 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals("A", element.parentOfType<TableGenClassStatement>()?.name)
     }
 
-    fun `test ifndef unresolved`() {
-        // A macro that is never '#define'd resolves to nothing (soft reference).
-        val mainVF = myFixture.createFile(
-            "test.td", """
-            #ifndef <caret>FOO
-            #endif
-        """.trimIndent()
+    // A macro that is never '#define'd resolves to nothing (soft reference).
+    fun `test ifndef unresolved`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                #ifndef <caret>FOO
+                #endif
+            """
         )
-        installCompileCommands(
-            project, mapOf(
-                mainVF to IncludePaths(emptyList())
-            )
-        )
-        myFixture.configureFromExistingVirtualFile(mainVF)
-        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
-    }
+    )
 
     override fun getTestDataPath(): String? {
         return "src/test/testData/references"
@@ -706,15 +876,24 @@ class ReferenceTest : BasePlatformTestCase() {
     }
 
 
-    private inline fun <reified T> doTestInline(source: String): T {
-        val mainVF = myFixture.createFile("test.td", source)
-        installCompileCommands(
-            project, mapOf(
-                mainVF to IncludePaths(emptyList())
-            )
-        )
+    private inline fun <reified T> doTestInline(source: String): T =
+        assertInstanceOf(resolveAcrossFiles("test.td" to source), T::class.java)
 
-        myFixture.configureFromExistingVirtualFile(mainVF)
-        return assertInstanceOf(myFixture.elementAtCaret, T::class.java)
+    /**
+     * Creates [files], given as pairs of name and content with the root of the compilation being last, and returns what
+     * the reference at the caret resolves to.
+     */
+    private fun resolveAcrossFiles(vararg files: Pair<String, String>): PsiElement? {
+        val virtualFiles = files.map { (name, content) -> myFixture.createFile(name, content.trimIndent()) }
+        val root = virtualFiles.last()
+        installCompileCommands(project, mapOf(root to IncludePaths(listOf(root.parent))))
+
+        myFixture.configureFromExistingVirtualFile(virtualFiles[files.indexOfFirst { "<caret>" in it.second }])
+        return myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve()
+    }
+
+    private fun assertResolvesToFile(file: String, element: PsiElement?) {
+        assertNotNull(element)
+        assertEquals(file, element!!.containingFile.name)
     }
 }

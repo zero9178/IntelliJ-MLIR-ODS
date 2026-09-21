@@ -218,7 +218,7 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
     /**
      * The order in which a root pastes the files it includes into itself, i.e. its depth-first expansion.
      */
-    private class Expansion(root: FileNode) {
+    internal class Expansion(root: FileNode) {
 
         /**
          * Files in the order the expansion reaches them, each appearing exactly once: a file already pasted in is not
@@ -237,32 +237,58 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
          */
         private val myEnds = mutableListOf<Int>()
 
+        /**
+         * For each position, the position of the file that pastes the file at that position in, or -1 for the root.
+         */
+        private val myParents = mutableListOf<Int>()
+
         init {
             class Frame(val node: FileNode, val position: Int, var next: Int = 0)
 
             // Iterative rather than recursive as include chains are arbitrarily long.
             val stack = mutableListOf<Frame>()
 
-            fun enter(node: FileNode) {
+            fun enter(node: FileNode, parent: Int) {
                 val position = myOrder.size
                 if (myPositions.putIfAbsent(node.file, position) != null) return
 
                 myOrder.add(node.file)
                 myEnds.add(position)
+                myParents.add(parent)
                 stack.add(Frame(node, position))
             }
 
-            enter(root)
+            enter(root, -1)
             while (stack.isNotEmpty()) {
                 val frame = stack.last()
                 val edges = frame.node.outgoing
-                if (frame.next < edges.size) enter(edges[frame.next++].node)
+                if (frame.next < edges.size) enter(edges[frame.next++].node, frame.position)
                 else {
                     myEnds[frame.position] = myOrder.size
                     stack.removeLast()
                 }
             }
         }
+
+        fun fileAt(position: Int): VirtualFile = myOrder[position]
+
+        fun positionOf(file: VirtualFile): Int? = myPositions[file]
+
+        /**
+         * Returns the position just past the last file the file at [position] pastes in.
+         */
+        fun endOf(position: Int): Int = myEnds[position]
+
+        /**
+         * Returns the position of the file pasting the file at [position] in, or -1 if that file is the root.
+         */
+        fun parentOf(position: Int): Int = myParents[position]
+
+        /**
+         * Returns the files preceding [position], i.e. the files whose pasting has begun by the time the expansion
+         * reaches it. The set is a view and costs nothing to create.
+         */
+        fun filesBefore(position: Int): Set<VirtualFile> = Prefix(myOrder, myPositions, position)
 
         /**
          * Returns everything the expansion contains up to and including everything [file] pastes into it, or `null` if
@@ -276,7 +302,7 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
          */
         fun visibleFrom(file: VirtualFile): Set<VirtualFile>? {
             val position = myPositions[file] ?: return null
-            return Prefix(myOrder, myPositions, myEnds[position])
+            return filesBefore(myEnds[position])
         }
     }
 
@@ -395,6 +421,20 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
         val result = file.originalFile.virtualFile?.let { vf ->
             labeling[vf]?.let { expansionOf(it).visibleFrom(vf) }
         }.orEmpty()
+        CachedValueProvider.Result.create(result, graphChangedModificationTracker)
+    }
+
+    /**
+     * Returns where [file] sits within the expansion of the root it derives its active context from, or `null` if it
+     * has no context. This is what any lookup that has to respect the order in which files are pasted into each other
+     * is built on, see [TableGenIncludePosition].
+     */
+    @RequiresReadLock
+    fun getIncludePositionOf(file: TableGenFile): TableGenIncludePosition? = CachedValuesManager.getCachedValue(file) {
+        val result = file.originalFile.virtualFile?.let { vf ->
+            val expansion = labeling[vf]?.let { expansionOf(it) }
+            expansion?.positionOf(vf)?.let { TableGenIncludePosition(expansion, it) }
+        }
         CachedValueProvider.Result.create(result, graphChangedModificationTracker)
     }
 

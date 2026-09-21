@@ -1,13 +1,13 @@
 package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.CLASS_INDEX
-import com.github.zero9178.mlirods.index.getElements
+import com.github.zero9178.mlirods.index.getVisibleElements
 import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
-import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.github.zero9178.mlirods.model.TableGenVisibility
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
@@ -68,10 +68,11 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
                 val name = element.className
                 val file = element.containingFile as? TableGenFile ?: return@disallowTreeLoading emptyArray()
 
-                // TODO: This currently returns all occurrences of a class statement with a given name within the
-                //  same file. We do not yet fully understand the class logic yet to implement this correctly. In
-                //  theory, we even need to search in the class index first whether includes create a class statement.
-                val klass = file.classMap[name].orEmpty()
+                // TODO: This currently returns all occurrences of a class statement with a given name preceding the
+                //  reference within the same file. We do not yet fully understand the class logic yet to implement
+                //  this correctly. In theory, we even need to search in the class index first whether includes create
+                //  a class statement.
+                val klass = file.classMap[name].orEmpty().takeWhile { it.isBefore(element) == true }
 
                 // Lookup in the same file succeeded.
                 if (klass.isNotEmpty()) return@disallowTreeLoading klass.map(::PsiElementResolveResult).toTypedArray()
@@ -79,12 +80,10 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
                 val project = element.project
                 if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
 
-                // Otherwise, use the index to search in TableGen files included by this file.
-                CLASS_INDEX.getElements(
-                    name,
-                    project,
-                    TableGenIncludedSearchScope(element, project)
-                ).map { PsiElementResolveResult(it) }.toTypedArray()
+                // Otherwise, use the index to search for the class statements of other files preceding the reference.
+                CLASS_INDEX.getVisibleElements(name, TableGenVisibility(element)).map {
+                    PsiElementResolveResult(it)
+                }.toTypedArray()
             }
         }
 }

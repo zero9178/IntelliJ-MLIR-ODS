@@ -1,14 +1,15 @@
 package com.github.zero9178.mlirods.language.completion
 
 import com.github.zero9178.mlirods.index.ALL_IDENTIFIERS_INDEX
-import com.github.zero9178.mlirods.index.processElements
+import com.github.zero9178.mlirods.index.processVisibleElements
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
-import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.github.zero9178.mlirods.model.TableGenVisibility
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.util.ProcessingContext
 
@@ -24,11 +25,16 @@ internal class TableGenInterFileIdentifierCompletionContributor : CompletionCont
                 override fun addCompletions(
                     parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet
                 ) {
-                    val project = parameters.position.project
-                    val scope = TableGenIncludedSearchScope(parameters.position, project)
+                    val visibility = TableGenVisibility(parameters.position)
 
-                    ALL_IDENTIFIERS_INDEX.processElements(0, project, scope) {
-                        result.addElement(createLookupElement(it, parameters.position))
+                    // Whatever the reference finds within the file itself is suggested by the reference already.
+                    val local = parameters.position.parent.references.flatMapTo(mutableSetOf()) { reference ->
+                        reference.variants.mapNotNull { (it as? LookupElement)?.lookupString }
+                    }
+
+                    ALL_IDENTIFIERS_INDEX.processVisibleElements(0, visibility) {
+                        if (!visibility.isInSameFile(it) || it.name !in local)
+                            result.addElement(createLookupElement(it, parameters.position))
                         !result.isStopped
                     }
                 }

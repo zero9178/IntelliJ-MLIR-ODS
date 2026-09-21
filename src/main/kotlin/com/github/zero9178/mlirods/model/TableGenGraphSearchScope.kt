@@ -35,18 +35,6 @@ abstract class TableGenGraphSearchScope(project: Project) : GlobalSearchScope(pr
 }
 
 /**
- * Custom [GlobalSearchScope] which only searches in TableGen files included by the file containing [element].
- */
-class TableGenIncludedSearchScope(element: PsiElement, project: Project) : TableGenGraphSearchScope(project) {
-
-    override val files: Set<VirtualFile>? = (element.containingFile as? TableGenFile)?.let {
-        // TODO: The set of files returned here is an overapproximation as it also considers includes after [element].
-        //       Ideally it should ignore those.
-        project.service<TableGenIncludeGraphService>().getIncludedFiles(it)
-    }
-}
-
-/**
  * Custom [GlobalSearchScope] which only searches in the file containing [element] and the TableGen files that include
  * it, directly or transitively.
  *

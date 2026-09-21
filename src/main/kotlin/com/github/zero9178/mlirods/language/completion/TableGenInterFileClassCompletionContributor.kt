@@ -1,10 +1,10 @@
 package com.github.zero9178.mlirods.language.completion
 
 import com.github.zero9178.mlirods.index.ALL_CLASSES_INDEX
-import com.github.zero9178.mlirods.index.processElements
+import com.github.zero9178.mlirods.index.processVisibleElements
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
-import com.github.zero9178.mlirods.model.TableGenIncludedSearchScope
+import com.github.zero9178.mlirods.model.TableGenVisibility
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -34,11 +34,11 @@ internal class TableGenInterFileCompletionContributor : CompletionContributor() 
                     context: ProcessingContext,
                     result: CompletionResultSet
                 ) {
-                    val project = parameters.position.project
-                    val scope = TableGenIncludedSearchScope(parameters.position, project)
+                    val visibility = TableGenVisibility(parameters.position)
 
-                    ALL_CLASSES_INDEX.processElements(0, project, scope) {
-                        result.addElement(createLookupElement(it, parameters.position))
+                    ALL_CLASSES_INDEX.processVisibleElements(0, visibility) {
+                        // The classes of the file itself are suggested by the reference already.
+                        if (!visibility.isInSameFile(it)) result.addElement(createLookupElement(it, parameters.position))
                         !result.isStopped
                     }
                 }

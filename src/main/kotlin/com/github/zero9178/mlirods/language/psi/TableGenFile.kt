@@ -9,13 +9,17 @@ import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.extapi.psi.PsiFileBase
+import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.util.ArrayFactory
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.resettableLazy
 
 class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, TableGenLanguage.INSTANCE),
@@ -54,6 +58,23 @@ class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, T
      */
     val includeDirectives: Sequence<TableGenIncludeDirective>
         get() = myIncludeDirectives.value.asSequence()
+
+    /**
+     * Returns the include directive pasting [included] into this file, i.e. the first of the directives resolving to
+     * it, or `null` if the file does not include [included] directly.
+     */
+    @RequiresReadLock
+    fun findIncludeDirectiveOf(included: VirtualFile): TableGenIncludeDirective? =
+        CachedValuesManager.getCachedValue(this) {
+            val result = HashMap<VirtualFile, TableGenIncludeDirective>()
+            includeDirectives.forEach { directive ->
+                directive.includedFile?.let { result.putIfAbsent(it, directive) }
+            }
+            // What a directive resolves to is a function of the graph, where it is one of the file.
+            CachedValueProvider.Result.create(
+                result, this, project.service<TableGenIncludeGraphService>().graphChangedModificationTracker
+            )
+        }[included]
 
     private val myClassMap = resettableLazy {
         val result = mutableMapOf<String, MutableList<TableGenClassStatement>>()
