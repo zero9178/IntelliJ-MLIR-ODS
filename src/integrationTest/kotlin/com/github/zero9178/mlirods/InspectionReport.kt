@@ -16,7 +16,14 @@ data class Problem(
     val line: String,
     val inspection: String,
     val description: String,
-)
+) {
+    /**
+     * Whether the file is one of the tests of TableGen itself. Many of these are invalid on purpose to test the errors
+     * TableGen reports, making problems found in them expected rather than a sign of something being wrong with the
+     * plugin. Tests of other projects, e.g. 'mlir/test', are tests of what is generated and expected to be valid.
+     */
+    val isInTest get() = file.startsWith("llvm/test/")
+}
 
 /**
  * Reads the problems written to [file] by the plugin of the integration tests: one line per problem consisting of the
@@ -77,16 +84,25 @@ class Summary(
      */
     private val spread = "±%.1f%%".format(Locale.ROOT, (measured.max() - measured.min()) / 2.0 / median * 100)
 
-    private val counts = listOf("ERROR", "WARNING", "WEAK WARNING").joinToString { severity ->
-        "${problems.count { it.severity == severity }} ${severity.lowercase()}s"
+    private fun List<Problem>.counts() = listOf("ERROR", "WARNING", "WEAK WARNING").joinToString { severity ->
+        "${count { it.severity == severity }} ${severity.lowercase()}s"
     }
+
+    /**
+     * The problems to keep an eye on: the ones found in the tests of TableGen are for the most part errors made on
+     * purpose.
+     */
+    private val counts = problems.filterNot { it.isInTest }.counts()
+
+    private val testCounts = problems.filter { it.isInTest }.counts()
 
     /**
      * The one line worth remembering of a run.
      */
     override fun toString() = "TableGen inspections of LLVM in $ide: $files files ($filesWithContext with context), " +
             "median ${median.seconds()} $spread over ${measured.size} runs, cold ${cold.seconds()}, " +
-            "cached ${cached.seconds()}, load average ${"%.1f".format(Locale.ROOT, loadAverage)}, $counts"
+            "cached ${cached.seconds()}, load average ${"%.1f".format(Locale.ROOT, loadAverage)}, $counts " +
+            "(llvm/test: $testCounts)"
 
     private val title = "TableGen inspections of LLVM"
 
@@ -100,6 +116,7 @@ class Summary(
         row("td", "Cached", cached.seconds()),
         row("td", "Load average before the run", "%.1f".format(Locale.ROOT, loadAverage)),
         row("td", "Problems", counts),
+        row("td", "Problems in llvm/test", testCounts),
     )
 
     private val allProblems = HtmlChunk.tag("table").attr("id", "problems").children(
