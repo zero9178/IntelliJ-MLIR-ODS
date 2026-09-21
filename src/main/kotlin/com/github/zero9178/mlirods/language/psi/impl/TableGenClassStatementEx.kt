@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.index.MAY_DERIVE_CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.model.TableGenIncluderSearchScope
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
@@ -24,6 +25,17 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
      * Is true if this class has a body.
      */
     val hasBody: Boolean
+
+    /**
+     * Returns all statements of this class preceding this one be they declarations or definitions.
+     * The statements are in the order they have within that text, making the last one the
+     * closest to this statement.
+     */
+    val previousStatements: List<TableGenClassStatement>
+        get() = getProjectContextDependentCache(this as TableGenClassStatement) { self ->
+            val name = self.name ?: return@getProjectContextDependentCache emptyList()
+            TableGenClassReference.findVisibleClasses(name, self)
+        }
 
     /**
      * Returns all class statements that may be the definition of this class.

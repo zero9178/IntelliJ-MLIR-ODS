@@ -1,7 +1,7 @@
 package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.CLASS_INDEX
-import com.github.zero9178.mlirods.index.getVisibleElements
+import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
@@ -51,6 +51,36 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
         }
 
         /**
+         * Returns all statements of the class called [name] that are visible from [element], i.e. precede it once every
+         * 'include' directive is pasted in, be they declarations or definitions. The statements are in the order they
+         * have within that text, making the last one the closest to [element]. [element] itself is never part of the
+         * result.
+         *
+         * Does not require the syntax tree of any file.
+         */
+        @RequiresReadLock
+        fun findVisibleClasses(name: String, element: PsiElement): List<TableGenClassStatement> {
+            val file = element.containingFile as? TableGenFile ?: return emptyList()
+
+            // Statements of the file itself are taken from the file rather than the index: the file may be a copy,
+            // which the index knows nothing about.
+            val local = file.classMap[name].orEmpty().takeWhile { it.isBefore(element) == true }
+
+            val project = element.project
+            if (DumbService.isDumb(project)) {
+                if (local.isEmpty()) throw IndexNotReadyException.create()
+                return local
+            }
+
+            // Use the index to search for the class statements of other files preceding the element.
+            val visibility = TableGenVisibility(element)
+            val others = CLASS_INDEX.getElements(name, project, visibility.scope).filter {
+                !visibility.isInSameFile(it) && visibility.isVisible(it)
+            }
+            return (local + others).sortedWith(visibility.textOrder)
+        }
+
+        /**
          * Returns all completion variants at the given [positionToken].
          * [positionToken] should be an identifier token.
          */
@@ -65,25 +95,7 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
         getProjectContextDependentCache(element) {
             disallowTreeLoading {
-                val name = element.className
-                val file = element.containingFile as? TableGenFile ?: return@disallowTreeLoading emptyArray()
-
-                // TODO: This currently returns all occurrences of a class statement with a given name preceding the
-                //  reference within the same file. We do not yet fully understand the class logic yet to implement
-                //  this correctly. In theory, we even need to search in the class index first whether includes create
-                //  a class statement.
-                val klass = file.classMap[name].orEmpty().takeWhile { it.isBefore(element) == true }
-
-                // Lookup in the same file succeeded.
-                if (klass.isNotEmpty()) return@disallowTreeLoading klass.map(::PsiElementResolveResult).toTypedArray()
-
-                val project = element.project
-                if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
-
-                // Otherwise, use the index to search for the class statements of other files preceding the reference.
-                CLASS_INDEX.getVisibleElements(name, TableGenVisibility(element)).map {
-                    PsiElementResolveResult(it)
-                }.toTypedArray()
+                findVisibleClasses(it.className, it).map(::PsiElementResolveResult).toTypedArray()
             }
         }
 }

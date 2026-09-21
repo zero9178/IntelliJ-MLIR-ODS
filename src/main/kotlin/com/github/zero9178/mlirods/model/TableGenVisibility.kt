@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.model
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.psi.TableGenFile
+import com.github.zero9178.mlirods.language.psi.compareTo
 import com.github.zero9178.mlirods.language.psi.isBefore
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -83,6 +84,31 @@ class TableGenIncludePosition internal constructor(
      * what precedes the file from what follows it.
      */
     fun pastedThrough(includer: VirtualFile): VirtualFile? = myPastedThrough[includer]
+
+    /**
+     * Compares [first] and [second], both of which must be part of the expansion, by when the expansion begins pasting
+     * them in. A file beginning earlier does not precede the other one entirely if it is what pastes the other one in,
+     * see [pastedThrough].
+     */
+    fun compareBeginOf(first: VirtualFile, second: VirtualFile): Int {
+        val firstPosition = requireNotNull(myRootExpansion.positionOf(first)) { "file must be part of the expansion" }
+        val secondPosition = requireNotNull(myRootExpansion.positionOf(second)) { "file must be part of the expansion" }
+        return firstPosition.compareTo(secondPosition)
+    }
+
+    /**
+     * Returns the file [includer] directly includes to get [included] pasted in, or `null` if [includer] is not what
+     * pastes [included] in. It is the first directive of [includer] including the returned file that separates what
+     * precedes [included] from what follows it.
+     */
+    fun pastedThrough(includer: VirtualFile, included: VirtualFile): VirtualFile? {
+        val ancestor = myRootExpansion.positionOf(includer) ?: return null
+        var child = myRootExpansion.positionOf(included) ?: return null
+        if (child <= ancestor || child >= myRootExpansion.endOf(ancestor)) return null
+
+        while (myRootExpansion.parentOf(child) != ancestor) child = myRootExpansion.parentOf(child)
+        return myRootExpansion.fileAt(child)
+    }
 }
 
 /**
@@ -174,6 +200,30 @@ class TableGenVisibility @RequiresReadLock constructor(private val myElement: Ps
                 override val files: Set<VirtualFile> = visible
             }
         }
+
+    /**
+     * Orders declarations visible from the element by where they are within the text that results from pasting every
+     * file in, making the last of them the one closest to the element. Two declarations of the same file are in the
+     * order they have within it. The file of any other two either precedes the other file entirely, or is what pastes
+     * the other file in, where the 'include' directive doing so stands in for everything it pastes in.
+     */
+    val textOrder: Comparator<PsiElement> = Comparator(::compareTextOrder)
+
+    private fun compareTextOrder(first: PsiElement, second: PsiElement): Int {
+        first.compareTo(second)?.let { return it }
+
+        val firstFile = first.containingFile as TableGenFile
+        val firstVirtualFile = firstFile.originalFile.virtualFile
+        val secondVirtualFile = second.containingFile.originalFile.virtualFile
+        val position = requireNotNull(myPosition) { "a file without a context sees nothing but itself" }
+        if (position.compareBeginOf(firstVirtualFile, secondVirtualFile) > 0) return -compareTextOrder(second, first)
+
+        val directive = position.pastedThrough(firstVirtualFile, secondVirtualFile)?.let {
+            firstFile.findIncludeDirectiveOf(it)
+        } ?: return -1
+        val isBefore = requireNotNull(first.isBefore(directive)) { "directive should have been in the same file" }
+        return if (isBefore) -1 else 1
+    }
 
     /**
      * Returns true if [declaration] is part of the file of the element.

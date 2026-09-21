@@ -5,9 +5,13 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassR
 import com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.modcommand.ActionContext
+import com.intellij.modcommand.ModCommand
+import com.intellij.modcommand.PsiBasedModCommandAction
 
 /**
  * Validates that the arguments passed to a class reference match its template argument declarations:
@@ -84,11 +88,38 @@ private fun checkArgumentType(
     ).range(valueNode).create()
 }
 
+/**
+ * Navigates to the definition a class statement clashes with.
+ */
+private class NavigateToPreviousDefinitionFix(definition: TableGenClassStatement) :
+    PsiBasedModCommandAction<TableGenClassStatement>(definition) {
+
+    override fun getFamilyName() = MyBundle.message("tableGen.syntax.classRedefinition.navigate")
+
+    override fun perform(context: ActionContext, element: TableGenClassStatement): ModCommand =
+        ModCommand.select(element.nameIdentifier ?: element)
+}
+
+/**
+ * Flags a class statement if the class has already been defined by a statement preceding it. Mirroring TableGen, this
+ * includes declarations: a class may be declared any number of times, but only up until it is defined. The definition
+ * reported is the one closest to [element].
+ */
+private fun checkRedefinition(element: TableGenClassStatement, holder: AnnotationHolder) {
+    val identifier = element.nameIdentifier ?: return
+    val previous = element.previousStatements.lastOrNull { !it.isDeclaration } ?: return
+
+    holder.newAnnotation(
+        HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.classRedefinition", element.name ?: "")
+    ).range(identifier).withFix(NavigateToPreviousDefinitionFix(previous)).create()
+}
+
 private val ANNOTATIONS = arrayOf(
     // Only validate arguments for class references in an inheritance list and for class instantiations; other
     // references (such as a class used as a type) do not pass template arguments.
     addAnnotationFor { element: TableGenClassRef, holder -> checkArguments(element, holder) },
     addAnnotationFor { element: TableGenClassInstantiationValueNode, holder -> checkArguments(element, holder) },
+    addAnnotationFor { element: TableGenClassStatement, holder -> checkRedefinition(element, holder) },
 )
 
 internal class TableGenSemanticAnnotator : TableGenAnnotator(ANNOTATIONS.asIterable())
