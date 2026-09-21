@@ -218,6 +218,33 @@ class ValueComputationTest : BasePlatformTestCase() {
         )
     }
 
+    // Neither field can be evaluated without the other. Values on a cycle are unknown rather than recursing forever.
+    fun `test fields referencing each other are unknown`() = doTest(
+        """
+        class C {
+            int a = b;
+            int b = a;
+        }
+        def D : C;
+        defvar v = D.a;
+    """.trimIndent(), TableGenUnknownValue
+    )
+
+    fun `test field referencing itself is unknown`() {
+        RecursionManager.disableMissedCacheAssertions(testRootDisposable)
+        doTest(
+            """
+            class C {
+                int a = 1;
+            }
+            def D : C {
+                let a = a;
+            }
+            defvar v = D.a;
+        """.trimIndent(), TableGenUnknownValue
+        )
+    }
+
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
     }
