@@ -29,16 +29,18 @@ fun <T> suspendingCachedValueKeyOf(provider: Any): Key<SuspendingCachedValue<T>>
  *
  * [provider] is handed the receiver so that it does not need to capture it. Like with the platform's cached values it
  * should not capture anything else either: the provider of the first call is the one kept for all subsequent
- * computations, no matter what later calls captured.
+ * computations, no matter what later calls captured. The same goes for [onCycle], which is what the value is when
+ * requested in a cycle, see [SuspendingCachedValue].
  */
 fun <H : UserDataHolder, T> H.suspendingCachedValue(
     key: Key<SuspendingCachedValue<T>>,
+    onCycle: (() -> T)? = null,
     provider: suspend SuspendingCachedValueScope.(H) -> T,
 ): SuspendingCachedValue<T> {
     getUserData(key)?.let { return it }
 
     val holder = this
-    val created = SuspendingCachedValue(key.toString()) { provider(holder) }
+    val created = SuspendingCachedValue(key.toString(), onCycle) { provider(holder) }
     if (holder is UserDataHolderEx) return holder.putUserDataIfAbsent(key, created)
 
     return synchronized(holder) {
@@ -54,4 +56,4 @@ fun <H : UserDataHolder, T> H.suspendingCachedValue(
  */
 suspend fun <H : UserDataHolder, T> H.getSuspendingCachedValue(
     provider: suspend SuspendingCachedValueScope.(H) -> T,
-): T = suspendingCachedValue(suspendingCachedValueKeyOf(provider), provider).await()
+): T = suspendingCachedValue(suspendingCachedValueKeyOf(provider), provider = provider).await()

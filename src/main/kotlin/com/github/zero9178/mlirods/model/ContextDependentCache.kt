@@ -73,12 +73,14 @@ fun SuspendingCachedValueScope.dependsOnProjectContext(project: Project) = depen
  * it.
  *
  * Returns the cached value rather than what it computes, for the caller to choose between
- * [SuspendingCachedValue.await] and [SuspendingCachedValue.getBlocking].
+ * [SuspendingCachedValue.await] and [SuspendingCachedValue.getBlocking]. [onCycle] is what the value is when requested
+ * in a cycle, see [SuspendingCachedValue].
  */
 fun <T, P : PsiElement> projectContextDependentSuspendingCachedValue(
     element: P,
+    onCycle: (() -> T)? = null,
     provider: suspend SuspendingCachedValueScope.(P) -> T,
-): SuspendingCachedValue<T> = element.suspendingCachedValue(suspendingCachedValueKeyOf<T>(provider)) { param ->
+): SuspendingCachedValue<T> = element.suspendingCachedValue(suspendingCachedValueKeyOf<T>(provider), onCycle) { param ->
     dependsOnProjectContext(param.project)
     provider(param)
 }
@@ -89,4 +91,4 @@ fun <T, P : PsiElement> projectContextDependentSuspendingCachedValue(
 suspend fun <T, P : PsiElement> getProjectContextDependentCacheSuspending(
     element: P,
     provider: suspend SuspendingCachedValueScope.(P) -> T,
-): T = projectContextDependentSuspendingCachedValue(element, provider).await()
+): T = projectContextDependentSuspendingCachedValue(element, provider = provider).await()
