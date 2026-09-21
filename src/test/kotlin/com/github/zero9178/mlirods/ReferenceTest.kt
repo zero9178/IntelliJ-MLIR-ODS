@@ -7,6 +7,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiPolyVariantReference
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -193,6 +194,20 @@ class ReferenceTest : BasePlatformTestCase() {
             """
         )
     )
+
+    fun `test class declared before include defining it`() {
+        // All statements of the class preceding the reference are found, the closest one last.
+        resolveAcrossFiles(
+            "a.td" to "class A { int i = 0; }",
+            "root.td" to """
+                class A;
+                include "a.td"
+                def : <caret>A;
+            """
+        )
+        val reference = myFixture.file.findReferenceAt(myFixture.caretOffset) as PsiPolyVariantReference
+        assertEquals(listOf("root.td", "a.td"), reference.multiResolve(false).map { it.element?.containingFile?.name })
+    }
 
     fun `test class of other file without context`() = assertNull(
         resolveAcrossFiles(

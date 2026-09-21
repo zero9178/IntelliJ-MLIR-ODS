@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.model.IncludePaths
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
@@ -301,6 +302,144 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
             defvar v = !foreach(a, d, C<<error descr="Value of type 'dag' cannot be assigned to template argument 'x' of type 'int'">a</error>>);
         """.trimIndent()
         )
+    }
+
+    fun `test class defined twice`() {
+        doResolvingTest(
+            """
+            class C { int a = 0; }
+            class <error descr="Class 'C' is already defined">C</error> { int b = 0; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test class declared before its definition`() {
+        doResolvingTest(
+            """
+            class C;
+            class C;
+            class C<int a>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test class declared after its definition`() {
+        // TableGen only allows declaring a class up until it is defined.
+        doResolvingTest(
+            """
+            class C<int a>;
+            class <error descr="Class 'C' is already defined">C</error>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test class defined by include before`() {
+        myFixture.addFileToProject("c.td", "class C { int a = 0; }")
+        doResolvingTest(
+            """
+            include "c.td"
+            class <error descr="Class 'C' is already defined">C</error> { int b = 0; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test class defined by include after`() {
+        myFixture.addFileToProject("c.td", "class C;")
+        doResolvingTest(
+            """
+            class C { int b = 0; }
+            include "c.td"
+        """.trimIndent()
+        )
+    }
+
+    fun `test class defined by include between declaration and definition`() {
+        // The declaration of the same file must not hide what the include defines.
+        myFixture.addFileToProject("c.td", "class C { int a = 0; }")
+        doResolvingTest(
+            """
+            class C;
+            include "c.td"
+            class <error descr="Class 'C' is already defined">C</error> { int b = 0; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test class defined by file not included`() {
+        myFixture.addFileToProject("c.td", "class C { int a = 0; }")
+        doResolvingTest("class C { int b = 0; }")
+    }
+
+    fun `test navigates to the closest definition in the same file`() {
+        myFixture.addFileToProject("c.td", "class C { int a = 0; }")
+        doResolvingTest(
+            """
+            include "c.td"
+            class <error descr="Class 'C' is already defined">C</error> { int b = 0; }
+            class <error descr="Class 'C' is already defined">C</error> { int c = 0; }
+        """.trimIndent()
+        )
+        assertNavigatesTo("test.td", "C { int b")
+    }
+
+    fun `test navigates to the closest definition in an include`() {
+        myFixture.addFileToProject("c.td", "class C { int a = 0; }")
+        doResolvingTest(
+            """
+            class C { int b = 0; }
+            include "c.td"
+            class <error descr="Class 'C' is already defined">C</error> { int c = 0; }
+        """.trimIndent()
+        )
+        assertNavigatesTo("c.td", "C { int a")
+    }
+
+    fun `test navigates to the closest definition among includes`() {
+        // 'c.td' begins being pasted in first but only defines the class after having pasted 'nested.td' in.
+        myFixture.addFileToProject("nested.td", "class C { int nested = 0; }")
+        myFixture.addFileToProject(
+            "c.td", """
+            include "nested.td"
+            class C { int a = 0; }
+        """.trimIndent()
+        )
+        doResolvingTest(
+            """
+            include "c.td"
+            class <error descr="Class 'C' is already defined">C</error> { int c = 0; }
+        """.trimIndent()
+        )
+        assertNavigatesTo("c.td", "C { int a")
+    }
+
+    fun `test navigates to the closest definition of an includer`() {
+        // 'root.td' begins being pasted in first and defines the class before pasting 'c.td' in.
+        myFixture.addFileToProject("c.td", "class C { int a = 0; }")
+        val file = myFixture.configureByText("test.td", "class C { int c = 0; }")
+        val root = myFixture.addFileToProject(
+            "root.td", """
+            class C { int root = 0; }
+            include "c.td"
+            include "test.td"
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(root.virtualFile to IncludePaths(listOf(file.virtualFile.parent)))
+        )
+        assertNavigatesTo("c.td", "C { int a")
+    }
+
+    /**
+     * Asserts that the quick fix of the last class redefinition of the file navigates to the occurrence of [text] within
+     * [file].
+     */
+    private fun assertNavigatesTo(file: String, text: String) {
+        myFixture.editor.caretModel.moveToOffset(myFixture.file.text.lastIndexOf("class C") + "class ".length)
+        myFixture.launchAction(myFixture.findSingleIntention("Navigate to previous definition"))
+
+        val editor = FileEditorManager.getInstance(project).selectedTextEditor!!
+        assertEquals(file, editor.virtualFile?.name)
+        assertEquals(editor.document.text.indexOf(text), editor.caretModel.offset)
     }
 
     /**
