@@ -10,6 +10,7 @@ import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.CompletionUtil
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.patterns.StandardPatterns
@@ -31,7 +32,8 @@ internal class TableGenFieldCompletionContributor : CompletionContributor() {
                     result: CompletionResultSet
                 ) {
                     val scope = parameters.position.parentOfType<TableGenFieldScopeNode>() ?: return
-                    scope.allFields.forEach {
+                    // References are resolved from the original file rather than its copy, which no index knows about.
+                    CompletionUtil.getOriginalOrSelf(scope).allFields.forEach {
                         result.addElement(LookupElementBuilder.create(it))
                     }
                 }
@@ -48,7 +50,9 @@ internal class TableGenFieldCompletionContributor : CompletionContributor() {
                     result: CompletionResultSet
                 ) {
                     val fieldAccess = parameters.position.parentOfType<TableGenFieldAccessValueNode>() ?: return
-                    val recordType = fieldAccess.valueNode.type as? TableGenRecordType ?: return
+                    // References are resolved from the original file rather than its copy, which no index knows about.
+                    val recordType =
+                        CompletionUtil.getOriginalOrSelf(fieldAccess.valueNode).type as? TableGenRecordType ?: return
                     recordType.record?.allFields?.forEach {
                         result.addElement(LookupElementBuilder.create(it))
                     }

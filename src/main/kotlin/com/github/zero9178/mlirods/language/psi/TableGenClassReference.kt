@@ -1,7 +1,7 @@
 package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.index.CLASS_INDEX
-import com.github.zero9178.mlirods.index.getElements
+import com.github.zero9178.mlirods.index.getVisibleElements
 import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
@@ -60,24 +60,10 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
          */
         @RequiresReadLock
         fun findVisibleClasses(name: String, element: PsiElement): List<TableGenClassStatement> {
-            val file = element.containingFile as? TableGenFile ?: return emptyList()
+            if (DumbService.isDumb(element.project)) throw IndexNotReadyException.create()
 
-            // Statements of the file itself are taken from the file rather than the index: the file may be a copy,
-            // which the index knows nothing about.
-            val local = file.classMap[name].orEmpty().takeWhile { it.isBefore(element) == true }
-
-            val project = element.project
-            if (DumbService.isDumb(project)) {
-                if (local.isEmpty()) throw IndexNotReadyException.create()
-                return local
-            }
-
-            // Use the index to search for the class statements of other files preceding the element.
             val visibility = TableGenVisibility(element)
-            val others = CLASS_INDEX.getElements(name, project, visibility.scope).filter {
-                !visibility.isInSameFile(it) && visibility.isVisible(it)
-            }
-            return (local + others).sortedWith(visibility.textOrder)
+            return CLASS_INDEX.getVisibleElements(name, visibility).sortedWith(visibility.textOrder)
         }
 
         /**
