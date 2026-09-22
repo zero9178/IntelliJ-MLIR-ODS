@@ -85,6 +85,8 @@ dependencies {
 
         // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
         bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
+        bundledModules(providers.gradleProperty("platformBundledModules").map { it.split(',') })
+        testBundledPlugins(providers.gradleProperty("platformTestBundledPlugins").map { it.split(',') })
 
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
@@ -173,7 +175,10 @@ tasks {
         // Load only this plugin and what it needs into the test IDE rather than every plugin bundled with CLion. The
         // CLion language plugin in particular reconfigures the IDE and reloads its project model from a background
         // process, which changes settings and project roots in the middle of tests.
-        systemProperty("idea.load.plugins.id", "com.github.zero9178.mlirods,intellij.libraries.misc.plugin")
+        systemProperty(
+            "idea.load.plugins.id",
+            "com.github.zero9178.mlirods,intellij.libraries.misc.plugin,org.intellij.plugins.markdown"
+        )
     }
 
     fun generateParserTask(suffix: String = "", config: GenerateParserTask.() -> Unit = {}) =
