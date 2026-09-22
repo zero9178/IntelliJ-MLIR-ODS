@@ -27,6 +27,9 @@
   does: a name only refers to what precedes it once all `include` directives are pasted in. A class or def declared
   further down in the file, or in a file that is only included after the reference, was previously resolved and
   suggested although TableGen rejects such code.
+- A value typed with the forward declaration of a class is no longer reported as having the wrong type where the 
+  definition of the class is expected. The same goes for a class declared in two files neither of which includes the
+  other: the two declarations are one and the same class wherever both are pasted in.
 
 ## [0.16.0] - 2026-09-10
 
