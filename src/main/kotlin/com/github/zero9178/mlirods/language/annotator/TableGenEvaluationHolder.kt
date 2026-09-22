@@ -7,6 +7,7 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.psi.PsiElement
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * Abstraction over [AnnotationHolder] for checks that operate by constant-evaluating value nodes.
@@ -37,26 +38,65 @@ interface TableGenEvaluationHolder {
 /**
  * A check that inspects a [TableGenValueNode] and reports problems via [TableGenEvaluationHolder].
  */
-typealias TableGenEvaluationCheck = (element: TableGenValueNode, holder: TableGenEvaluationHolder) -> Unit
+class TableGenEvaluationCheck(
+    /**
+     * Whether [check] has anything to do for a value node at all. Answered without evaluating anything, which is what
+     * allows an [Annotator] to do nothing for the many value nodes no check is interested in.
+     */
+    val appliesTo: (TableGenValueNode) -> Boolean,
+    private val check: (TableGenValueNode, TableGenEvaluationHolder) -> Unit,
+) {
+    operator fun invoke(element: TableGenValueNode, holder: TableGenEvaluationHolder) {
+        if (appliesTo(element)) check(element, holder)
+    }
+}
 
 /**
- * Creates a [TableGenEvaluationCheck] that runs [check] whenever a value node of type [T] is encountered.
+ * Creates a [TableGenEvaluationCheck] that runs [check] whenever a value node of type [T] that [appliesTo] is
+ * encountered.
  */
-inline fun <reified T : TableGenValueNode> evaluationCheckFor(crossinline check: (T, TableGenEvaluationHolder) -> Unit): TableGenEvaluationCheck =
-    { element, holder ->
-        if (element is T) check(element, holder)
+inline fun <reified T : TableGenValueNode> evaluationCheckFor(
+    crossinline appliesTo: (T) -> Boolean = { true },
+    crossinline check: (T, TableGenEvaluationHolder) -> Unit,
+): TableGenEvaluationCheck = TableGenEvaluationCheck({ it is T && appliesTo(it) }) { element, holder ->
+    check(element as T, holder)
+}
+
+/**
+ * [TableGenEvaluationHolder] collecting the problems reported, to be turned into annotations by [flush]. Checks are
+ * thereby free to run wherever and whenever, while an [AnnotationHolder] may only be used from the thread and during
+ * the call the [Annotator] was handed it.
+ */
+internal abstract class TableGenCollectingEvaluationHolder(private val holder: AnnotationHolder) :
+    TableGenEvaluationHolder {
+
+    private val problems = ConcurrentLinkedQueue<Pair<PsiElement, String>>()
+
+    final override fun error(element: PsiElement, message: String) {
+        problems.add(element to message)
     }
+
+    /**
+     * Where the annotation for a problem reported on [element] goes.
+     */
+    protected abstract fun anchorOf(element: PsiElement): PsiElement
+
+    fun flush() {
+        while (true) {
+            val (element, message) = problems.poll() ?: return
+            holder.newAnnotation(HighlightSeverity.ERROR, message).range(anchorOf(element)).create()
+        }
+    }
+}
 
 /**
  * [TableGenEvaluationHolder] used by a regular [Annotator]: evaluates in the null context and surfaces problems
  * directly on the offending element.
  */
-internal class TableGenDirectEvaluationHolder(private val holder: AnnotationHolder) : TableGenEvaluationHolder {
+internal class TableGenDirectEvaluationHolder(holder: AnnotationHolder) : TableGenCollectingEvaluationHolder(holder) {
     override val context = TableGenEvaluationContext()
 
-    override fun error(element: PsiElement, message: String) {
-        holder.newAnnotation(HighlightSeverity.ERROR, message).range(element).create()
-    }
+    override fun anchorOf(element: PsiElement) = element
 }
 
 /**
@@ -67,13 +107,11 @@ internal class TableGenDirectEvaluationHolder(private val holder: AnnotationHold
 internal class TableGenInstantiationEvaluationHolder(
     def: TableGenDefStatement,
     private val anchor: PsiElement,
-    private val holder: AnnotationHolder,
-) : TableGenEvaluationHolder {
+    holder: AnnotationHolder,
+) : TableGenCollectingEvaluationHolder(holder) {
     override val context = TableGenEvaluationContext(def)
 
-    override fun error(element: PsiElement, message: String) {
-        holder.newAnnotation(HighlightSeverity.ERROR, message).range(anchor).create()
-    }
+    override fun anchorOf(element: PsiElement) = anchor
 }
 
 /**

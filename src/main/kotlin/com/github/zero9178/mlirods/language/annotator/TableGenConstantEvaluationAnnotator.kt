@@ -22,8 +22,6 @@ import com.intellij.util.takeWhileInclusive
  * does not fold and is therefore not reported.
  */
 private fun checkDivisionByZero(element: TableGenBangOperatorValueNode, holder: TableGenEvaluationHolder) {
-    if (element.operator != TableGenBangOperator.DIV) return
-
     // A well-formed '!div' has exactly two operands; a wrong operand count is reported by the syntax annotator.
     val operands = element.valueNodeList
     if (operands.size != 2) return
@@ -40,14 +38,16 @@ private fun checkDivisionByZero(element: TableGenBangOperatorValueNode, holder: 
  * Checks that work by constant-evaluating value nodes.
  */
 private val EVALUATION_CHECKS = arrayOf(
-    evaluationCheckFor { element: TableGenBangOperatorValueNode, holder -> checkDivisionByZero(element, holder) },
+    evaluationCheckFor<TableGenBangOperatorValueNode>({ it.operator == TableGenBangOperator.DIV }) { element, holder ->
+        checkDivisionByZero(element, holder)
+    },
 )
 
 /**
  * Returns the children of [element] that are evaluated in [context].
- * Specifically elements that are not evaluated due to conditional execution will not be part of the sequence.
+ * Specifically elements that are not evaluated due to conditional execution will not be part of the result.
  */
-private fun liveChildrenOf(element: PsiElement, context: TableGenEvaluationContext): Sequence<PsiElement> {
+private fun liveChildrenOf(element: PsiElement, context: TableGenEvaluationContext): List<PsiElement> {
     if (element is TableGenBangOperatorValueNode && element.operator == TableGenBangOperator.IF) {
         // Operands are '[condition, then, else]'. The condition is always evaluated.
         val operands = element.valueNodeList
@@ -58,19 +58,20 @@ private fun liveChildrenOf(element: PsiElement, context: TableGenEvaluationConte
                     false -> operands[2]
                     null -> null // Unknown condition: descend into neither branch.
                 }
-            return sequenceOf(operands[0], branch).filterNotNull()
+            return listOfNotNull(operands[0], branch)
         }
     }
 
-    return generateSequence(element.firstChild) { it.nextSibling }
+    // Leaves are neither value nodes nor do they contain any.
+    return generateSequence(element.firstChild) { it.nextSibling }.filter { it.firstChild != null }.toList()
 }
 
 /**
- * Yields [root] and its descendant value nodes, evaluated in [context], in post-order (a node after its children).
+ * Returns [root] and its descendant value nodes, evaluated in [context], in post-order (a node after its children).
  */
 private fun liveValuesPostOrder(
     root: TableGenValueNode, context: TableGenEvaluationContext
-): Sequence<TableGenValueNode> = sequence {
+): List<TableGenValueNode> = buildList {
     val stack = mutableListOf<Pair<PsiElement, Iterator<PsiElement>>>()
     stack.add(root to liveChildrenOf(root, context).iterator())
     while (stack.isNotEmpty()) {
@@ -80,7 +81,7 @@ private fun liveValuesPostOrder(
             stack.add(child to liveChildrenOf(child, context).iterator())
         } else {
             stack.removeLast()
-            if (node is TableGenValueNode) yield(node)
+            if (node is TableGenValueNode) add(node)
         }
     }
 }
@@ -91,6 +92,8 @@ private fun liveValuesPostOrder(
 private fun visitLiveValues(root: TableGenValueNode, holder: TableGenEvaluationHolder) {
     liveValuesPostOrder(root, holder.context).forEach { element ->
         EVALUATION_CHECKS.forEach { check ->
+            if (!check.appliesTo(element)) return@forEach
+
             // Only report a problem here if it does not already fail in the null context. Such constant problems are
             // reported by the direct pass, so reporting them again for every instantiation would duplicate the annotation.
             val probe = TableGenProbeEvaluationHolder()
@@ -123,6 +126,7 @@ private fun checkInstantiation(def: TableGenDefStatement, holder: AnnotationHold
     def.allFieldAssignments.values.asSequence().flatMap(::effectiveFieldValues).forEach {
         visitLiveValues(it, evaluationHolder)
     }
+    evaluationHolder.flush()
 }
 
 /**
@@ -174,8 +178,12 @@ private val ANNOTATIONS = arrayOf(
     // Run the evaluation-based checks directly on each value node, evaluated in the null context. A problem found here
     // is constant (e.g. '!div(6, 0)') and therefore wrong as written, so it is reported even inside a dead '!if' branch.
     addAnnotationFor { element: TableGenValueNode, holder: AnnotationHolder ->
+        val checks = EVALUATION_CHECKS.filter { it.appliesTo(element) }
+        if (checks.isEmpty()) return@addAnnotationFor
+
         val evaluationHolder = TableGenDirectEvaluationHolder(holder)
-        EVALUATION_CHECKS.forEach { it(element, evaluationHolder) }
+        checks.forEach { it(element, evaluationHolder) }
+        evaluationHolder.flush()
     },
     // Re-run them on every def, this time through the def's instantiation context.
     addAnnotationFor { element: TableGenDefStatement, holder -> checkInstantiation(element, holder) },
