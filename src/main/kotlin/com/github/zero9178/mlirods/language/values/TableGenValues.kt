@@ -45,7 +45,7 @@ class TableGenRecordValue(private val myStatement: TableGenDefStatement) : Table
      * Lazily evaluates the fields of the referenced record within its own context.
      */
     inner class FieldValueMap {
-        operator fun get(name: String): TableGenValue {
+        suspend operator fun get(name: String): TableGenValue {
             val context = TableGenEvaluationContext(myStatement)
             return context.evaluateFieldInContext(context, name)
         }
