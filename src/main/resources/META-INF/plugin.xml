@@ -6,6 +6,9 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends optional="true" config-file="com.github.zero9178.mlirods-clion.xml">com.intellij.clion.cmake</depends>
+    <dependencies>
+        <module name="intellij.platform.langInjection"/>
+    </dependencies>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
@@ -37,6 +40,13 @@
         <colorSettingsPage implementation="com.github.zero9178.mlirods.color.TableGenColorSettingsPage"/>
         <lang.foldingBuilder language="TableGen"
                              implementationClass="com.github.zero9178.mlirods.language.TableGenFoldingBuilder"/>
+        <lang.elementManipulator
+                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenBlockStringValue"
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenBlockStringValueManipulator"/>
+        <languageInjectionPerformer language="TableGen"
+                                    implementationClass="com.github.zero9178.mlirods.language.TableGenLanguageInjectionPerformer"/>
+        <typedHandler implementation="com.github.zero9178.mlirods.language.TableGenBlockStringTypedHandler"/>
+        <enterHandlerDelegate implementation="com.github.zero9178.mlirods.language.TableGenBlockStringEnterHandler"/>
         <lang.elementManipulator forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective"
                                  implementationClass="com.github.zero9178.mlirods.language.psi.TableGenIncludeManipulator"/>
         <lang.elementManipulator
@@ -132,6 +142,11 @@
         <postStartupActivity
                 implementation="com.github.zero9178.mlirods.model.TableGenWorkspaceModelStartup"/>
         <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="org.intellij.intelliLang">
+        <languageSupport implementation="com.github.zero9178.mlirods.language.TableGenLanguageInjectionSupport"/>
+        <injectionConfig config="injections.xml"/>
     </extensions>
 
     <extensionPoints>
