@@ -47,11 +47,16 @@ def main():
     mirror.mkdir(parents=True)
 
     count = 0
+    # Build directories within LLVM, of which there may be more than just <build directory>, are not sources of LLVM.
+    build_directories = {cache.parent for cache in source.rglob("CMakeCache.txt")} | {build}
     # A handful of TableGen files are generated when building LLVM, e.g. 'OmpCommon.td'. These are only part of the copy,
     # and includes of them only resolve, if the targets generating them have been built.
     for root, files in ((source, source.rglob("*.td")), (build, build.rglob("*.td"))):
         for file in sorted(files):
-            if not file.is_file() or (root == source and file.is_relative_to(build)):
+            if not file.is_file() or (root == source and any(file.is_relative_to(dir) for dir in build_directories)):
+                continue
+            # Running LLVM's tests leaves the TableGen files the tests split their inputs into in the build directory.
+            if root == build and "Output" in file.relative_to(build).parts:
                 continue
             target = mirror / relativize(str(file), source, build)
             target.parent.mkdir(parents=True, exist_ok=True)

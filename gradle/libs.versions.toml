@@ -1,9 +1,9 @@
 [versions]
 # libraries
 junit = "4.13.2"
-junitJupiter = "5.13.4"
+junitJupiter = "6.1.3"
 kodein = "7.26.1"
-kotlinxCoroutines = "1.10.2"
+kotlinxCoroutines = "1.11.0"
 teamcityServiceMessages = "2024.07"
 
 # plugins

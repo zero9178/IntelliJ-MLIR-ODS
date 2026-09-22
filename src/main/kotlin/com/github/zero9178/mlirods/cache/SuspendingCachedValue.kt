@@ -53,6 +53,14 @@ sealed interface SuspendingCachedValueScope : CoroutineScope {
 }
 
 /**
+ * Thrown into a computation requesting a [SuspendingCachedValue] that is – directly or through any number of other
+ * cached values – waiting for the value being computed, as neither could ever complete. Only values not saying what
+ * they are on a cycle are requested in vain, see [SuspendingCachedValue].
+ */
+class CyclicCachedValueDependencyException internal constructor(cycle: List<String>) :
+    IllegalStateException("Cyclic dependency between cached values: ${cycle.joinToString(" -> ")}")
+
+/**
  * A value cached until one of the dependencies it declared changes, or until memory runs low, computed by a suspending
  * function.
  *
@@ -66,6 +74,7 @@ sealed interface SuspendingCachedValueScope : CoroutineScope {
  *    that started it. Should that request be cancelled, one of those waiting computes the value instead.
  *  * **Dependencies are transitive.** A computation requesting another [SuspendingCachedValue] depends on everything
  *    the requested value depends on, without having to declare so.
+ *  * **Cycles do not deadlock**, see below.
  *  * **Computations can be parallel and deep**, see below.
  *
  * Exceptions thrown by the computation are rethrown to everyone waiting for it and are not cached.
@@ -90,12 +99,26 @@ sealed interface SuspendingCachedValueScope : CoroutineScope {
  * are several, while it is suspended and lives on the heap. Nothing this class does on top of calling the provider
  * recurses with the depth of such nesting.
  *
+ * ### Cycles
+ *
+ * Values requesting each other in a cycle could never complete. What happens instead is up to [onCycle], which is what
+ * the value is whenever it is part of a cycle: its provider is cancelled and whatever it came to discarded, no matter
+ * which of the values on the cycle was requested first, or which request was the one to close it. The values of a
+ * program containing a cycle are therefore the same every time. They are cached like any other, until a dependency
+ * declared by any of the values on the cycle changes, as the cycle might be gone then.
+ *
+ * Without [onCycle], a cycle is a failure: the request closing it throws [CyclicCachedValueDependencyException], unless
+ * the value requested is one with [onCycle], which it then gets.
+ *
+ * [onCycle] is called with no lock held but may be called more than once per cycle, and from any thread.
+ *
  * [name] identifies the value in diagnostics.
  *
  * @see getSuspendingCachedValue
  */
 class SuspendingCachedValue<T>(
-    private val name: String = "<anonymous>",
+    internal val name: String = "<anonymous>",
+    internal val onCycle: (() -> T)? = null,
     private val provider: suspend SuspendingCachedValueScope.() -> T,
 ) {
     private val lock = Any()
@@ -112,6 +135,13 @@ class SuspendingCachedValue<T>(
      * before it could. Guarded by [lock].
      */
     private var inFlight: CompletableDeferred<Result<Data<T>>?>? = null
+
+    /**
+     * The provider being run right now, if any, which is where [WaitForGraph] continues from a value to the values it
+     * is waiting for.
+     */
+    @Volatile
+    internal var computation: Computation? = null
 
     private val upToDateData: Data<T>?
         get() = data?.get()?.takeIf { it.isUpToDate }
@@ -140,7 +170,17 @@ class SuspendingCachedValue<T>(
             } ?: continue
 
             // No outcome means whoever was computing got cancelled. We were not.
-            val outcome = (if (isOurs) compute(pending) else pending.await()) ?: continue
+            val outcome = WaitForGraph.waiting(consumer, this, onCycle = { dependencies ->
+                assert(!isOurs) {
+                    "a value on a cycle is being computed already"
+                }
+                // Nothing to answer if the provider asking is one that was cancelled for the cycle.
+                currentCoroutineContext().ensureActive()
+                // Not waiting for the computation to come to the very same, which it may be us keeping from doing so.
+                Result.success(Data(checkNotNull(onCycle)(), dependencies))
+            }) {
+                if (isOurs) compute(pending) else pending.await()
+            } ?: continue
             val result = outcome.getOrThrow()
             consumer?.consume(result)
             return result.value
@@ -182,23 +222,41 @@ class SuspendingCachedValue<T>(
 
     private suspend fun compute(pending: CompletableDeferred<Result<Data<T>>?>): Result<Data<T>> {
         var outcome: Result<Data<T>>? = null
+        val computation = Computation(this)
         try {
-            val computation = Computation()
-            outcome = try {
+            this.computation = computation
+            val computed = try {
                 // The request may be running anywhere, while a provider wants to be where its coroutines are parallel.
                 val value = withContext(Dispatchers.Default + computation) {
                     computation.coroutineContext = coroutineContext
                     computation.provider()
                 }
-                Result.success(computation.seal(value))
+                Result.success(value)
             } catch (e: Throwable) {
+                Result.failure(e)
+            }
+
+            // Takes precedence over the request having been cancelled, which it is if made by a provider cancelled for
+            // being on the same cycle. The value would otherwise be computed from the others once requested again
+            // rather than be what it is on a cycle, making it depend on which of them was requested first.
+            outcome = computation.cycleDependencies?.let { dependencies ->
+                runCatching { Data(checkNotNull(onCycle)(), dependencies) }
+            }
+            if (outcome != null) {
+                currentCoroutineContext().ensureActive()
+                return outcome
+            }
+
+            outcome = computed.fold({ Result.success(computation.seal(it)) }) {
                 // A cancellation exception despite not being cancelled is a failure of the provider like any other,
                 // e.g. a timeout.
-                if (e is CancellationException && !currentCoroutineContext().isActive) throw e
-                Result.failure(e)
+                if (it is CancellationException && !currentCoroutineContext().isActive) throw it
+                Result.failure(it)
             }
             return outcome
         } finally {
+            // No longer waiting for anything by now, its coroutines being done.
+            this.computation = null
             synchronized(lock) {
                 assert(inFlight === pending) {
                     "this method should never have been called otherwise"
@@ -241,6 +299,99 @@ internal class Dependency(private val source: Any, private val currentStamp: () 
 }
 
 /**
+ * Which value is waiting for which, to keep values requesting each other in a cycle from deadlocking.
+ *
+ * A thread-local stack of what is being computed, which is how the platform guards against recursion, does not work
+ * here: a computation that is joined rather than started is not on the stack of whoever joins it. Two computations
+ * started independently and then requesting each other's value would each see a computation they know nothing about,
+ * and wait forever.
+ */
+private object WaitForGraph {
+
+    /**
+     * Runs [action], during which [from] is waiting for [to], whether by waiting for somebody else computing it or by
+     * computing it itself. [from] is `null` if the request is not made by the computation of a cached value, which
+     * nobody can be waiting for and hence is never part of a cycle.
+     *
+     * If [to] is, directly or through other values, already waiting for the value [from] computes, [action] is not run.
+     * Every computation on the cycle whose value says what it is on a cycle is cancelled to yield just that. The
+     * request is answered by [onCycle] if [to] is such a value, called with what the values on the cycle depend on,
+     * and fails with [CyclicCachedValueDependencyException] otherwise.
+     *
+     * A computation may wait for the same value any number of times at once, its coroutines being parallel, and is
+     * waiting for it until the last of them is done. Inlined for [action] to be able to suspend.
+     */
+    inline fun <R> waiting(
+        from: Computation?,
+        to: SuspendingCachedValue<*>,
+        onCycle: (Set<Dependency>) -> R,
+        action: () -> R,
+    ): R {
+        if (from == null) return action()
+
+        addEdge(from, to)?.let { return onCycle(it) }
+        try {
+            return action()
+        } finally {
+            removeEdge(from, to)
+        }
+    }
+
+    /**
+     * Returns `null` if the edge was added, and what the values on the cycle it would have closed depend on otherwise.
+     */
+    @Synchronized
+    fun addEdge(from: Computation, to: SuspendingCachedValue<*>): Set<Dependency>? {
+        // Checking and adding being atomic makes it impossible for a cycle to ever make it into the graph.
+        val path = pathBetween(to, from.owner)
+        if (path == null) {
+            from.waitingFor.merge(to, 1, Int::plus)
+            return null
+        }
+
+        // All of them requested the next one because of what they had depended on by then. These are the dependencies
+        // to change for the cycle to be gone, whatever else the computations would have come to depend on.
+        val computations = path.mapNotNull { if (it === from.owner) from else it.computation }
+        val dependencies = computations.flatMapTo(LinkedHashSet()) { it.dependenciesSoFar() }
+        computations.forEach { if (it.owner.onCycle != null) it.cancelForCycle(dependencies) }
+
+        if (to.onCycle != null) return dependencies
+        throw CyclicCachedValueDependencyException((listOf(from.owner) + path).map { it.name })
+    }
+
+    @Synchronized
+    fun removeEdge(from: Computation, to: SuspendingCachedValue<*>) {
+        from.waitingFor.computeIfPresent(to) { _, count -> if (count == 1) null else count - 1 }
+    }
+
+    /**
+     * Not recursive, as values waiting for each other is exactly where the stack may not be deep enough.
+     *
+     * Linear in the number of values and edges reachable from [from], which at worst is everything being computed.
+     * Usually O(1): [from] is the value requested, which is waiting for nothing unless it is being computed already.
+     */
+    private fun pathBetween(
+        from: SuspendingCachedValue<*>,
+        to: SuspendingCachedValue<*>,
+    ): List<SuspendingCachedValue<*>>? {
+        val reachedFrom = HashMap<SuspendingCachedValue<*>, SuspendingCachedValue<*>>()
+        val visited = hashSetOf(from)
+        val stack = mutableListOf(from)
+        while (stack.isNotEmpty()) {
+            val value = stack.removeLast()
+            if (value === to) return generateSequence(value) { reachedFrom[it] }.toList().asReversed()
+
+            value.computation?.waitingFor?.keys?.forEach {
+                if (!visited.add(it)) return@forEach
+                reachedFrom[it] = value
+                stack.add(it)
+            }
+        }
+        return null
+    }
+}
+
+/**
  * The [Computation] the current thread is running the provider of, for the benefit of code that cannot access the
  * coroutine context because it does not suspend. Maintained by [Computation] being a [ThreadContextElement].
  */
@@ -250,7 +401,8 @@ private val currentComputation = ThreadLocal<Computation?>()
  * A provider being run, collecting the dependencies it declares. Being part of the coroutine context of the provider is
  * what makes requesting other cached values from within it discoverable.
  */
-internal class Computation : SuspendingCachedValueScope, ThreadContextElement<Computation?> {
+internal class Computation(val owner: SuspendingCachedValue<*>) : SuspendingCachedValueScope,
+    ThreadContextElement<Computation?> {
 
     companion object Key : CoroutineContext.Key<Computation>
 
@@ -262,6 +414,19 @@ internal class Computation : SuspendingCachedValueScope, ThreadContextElement<Co
     override lateinit var coroutineContext: CoroutineContext
 
     private val dependencies = LinkedHashSet<Dependency>()
+
+    /**
+     * Values the provider is waiting for, and how many of its coroutines are. Guarded by [WaitForGraph].
+     */
+    val waitingFor = HashMap<SuspendingCachedValue<*>, Int>()
+
+    /**
+     * What the values of the cycles the provider was cancelled for depend on, or `null` if it was not. Written with
+     * [WaitForGraph] held.
+     */
+    @Volatile
+    var cycleDependencies: Set<Dependency>? = null
+        private set
 
     override fun updateThreadContext(context: CoroutineContext): Computation? =
         currentComputation.get().also { currentComputation.set(this) }
@@ -297,5 +462,16 @@ internal class Computation : SuspendingCachedValueScope, ThreadContextElement<Co
         synchronized(dependencies) { dependencies.addAll(data.dependencies) }
     }
 
-    fun <T> seal(value: T): Data<T> = Data(value, synchronized(dependencies) { LinkedHashSet(dependencies) })
+    fun dependenciesSoFar(): Set<Dependency> = synchronized(dependencies) { LinkedHashSet(dependencies) }
+
+    fun <T> seal(value: T): Data<T> = Data(value, dependenciesSoFar())
+
+    /**
+     * Cancels the provider for its value to be what it is on a cycle instead, depending on [dependencies]. Only ever
+     * called on a provider waiting for or requesting a value, and hence running.
+     */
+    fun cancelForCycle(dependencies: Set<Dependency>) {
+        cycleDependencies = cycleDependencies.orEmpty() + dependencies
+        coroutineContext.cancel()
+    }
 }

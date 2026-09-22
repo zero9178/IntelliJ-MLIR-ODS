@@ -3,6 +3,8 @@
 .intellijPlatform
 .qodana
 build
+# The TableGen files generated when building LLVM are part of the copy of LLVM.
+!/src/integrationTest/testData/llvm-project/build
 gen/
 src/main/lexer/
 src/main/parser/

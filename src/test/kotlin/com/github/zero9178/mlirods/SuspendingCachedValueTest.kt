@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods
 
+import com.github.zero9178.mlirods.cache.CyclicCachedValueDependencyException
 import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.cache.SuspendingCachedValueScope
 import com.github.zero9178.mlirods.cache.getSuspendingCachedValue
@@ -61,8 +62,11 @@ class SuspendingCachedValueTest : BasePlatformTestCase() {
         })
     }
 
-    private fun <T> cachedValue(name: String = "test", provider: suspend SuspendingCachedValueScope.() -> T) =
-        SuspendingCachedValue(name, provider)
+    private fun <T> cachedValue(
+        name: String = "test",
+        onCycle: (() -> T)? = null,
+        provider: suspend SuspendingCachedValueScope.() -> T,
+    ) = SuspendingCachedValue(name, onCycle, provider)
 
     /**
      * Requests [value] and only returns once the request is suspended waiting for the computation.
@@ -245,6 +249,153 @@ class SuspendingCachedValueTest : BasePlatformTestCase() {
         assertEquals(20, outer.await())
         assertEquals(2, outerRuns.get())
         assertEquals(2, innerRuns.get())
+    }
+
+    fun `test requesting oneself fails`() = test {
+        lateinit var value: SuspendingCachedValue<Int>
+        value = cachedValue("self") { value.await() }
+
+        val failure = runCatching { value.await() }.exceptionOrNull()
+        assertInstanceOf(failure, CyclicCachedValueDependencyException::class.java)
+        assertEquals("Cyclic dependency between cached values: self -> self", failure!!.message)
+    }
+
+    fun `test computations requesting each other fail`() = test {
+        // Both computations are started independently, so that neither is a request made by the other: the cycle only
+        // comes into being by each joining the computation of the other.
+        val gate = CompletableDeferred<Unit>()
+        lateinit var a: SuspendingCachedValue<Int>
+        lateinit var b: SuspendingCachedValue<Int>
+        a = cachedValue("a") {
+            gate.await()
+            b.await()
+        }
+        b = cachedValue("b") {
+            gate.await()
+            a.await()
+        }
+
+        supervisorScope {
+            val requests = listOf(request(a), request(b))
+            gate.complete(Unit)
+            requests.forEach {
+                val failure = runCatching { it.await() }.exceptionOrNull()
+                assertInstanceOf(failure, CyclicCachedValueDependencyException::class.java)
+            }
+        }
+    }
+
+    fun `test requesting oneself yields what the value is on a cycle`() = test {
+        val runs = AtomicInteger()
+        val resumed = AtomicInteger()
+        lateinit var value: SuspendingCachedValue<Int>
+        value = cachedValue("self", onCycle = { -1 }) {
+            runs.incrementAndGet()
+            value.await().also { resumed.incrementAndGet() } + 1
+        }
+
+        // Not what the provider makes of it, which it does not get to.
+        assertEquals(-1, value.await())
+        assertEquals(-1, value.await())
+        assertEquals(1, runs.get())
+        assertEquals(0, resumed.get())
+    }
+
+    /**
+     * Values requesting each other, neither of which makes what it is on a cycle out of the other being so.
+     */
+    private fun cyclicPair(): Pair<SuspendingCachedValue<Int>, SuspendingCachedValue<Int>> {
+        lateinit var a: SuspendingCachedValue<Int>
+        lateinit var b: SuspendingCachedValue<Int>
+        a = cachedValue("a", onCycle = { -1 }) { b.await() + 10 }
+        b = cachedValue("b", onCycle = { -2 }) { a.await() + 100 }
+        return a to b
+    }
+
+    fun `test values on a cycle do not depend on the one requested first`() = test {
+        cyclicPair().let { (a, b) ->
+            assertEquals(-1, a.await())
+            assertEquals(-2, b.await())
+        }
+        cyclicPair().let { (a, b) ->
+            assertEquals(-2, b.await())
+            assertEquals(-1, a.await())
+        }
+    }
+
+    fun `test values on a cycle do not depend on the request closing it`() = test {
+        val gate = CompletableDeferred<Unit>()
+        lateinit var a: SuspendingCachedValue<Int>
+        lateinit var b: SuspendingCachedValue<Int>
+        a = cachedValue("a", onCycle = { -1 }) {
+            gate.await()
+            b.await() + 10
+        }
+        b = cachedValue("b", onCycle = { -2 }) {
+            gate.await()
+            a.await() + 100
+        }
+
+        val requests = listOf(request(a), request(b))
+        gate.complete(Unit)
+        assertEquals(listOf(-1, -2), requests.awaitAll())
+    }
+
+    fun `test value computed from a cycle`() = test {
+        // Once with the cycle computed as part of it, and once with it computed already.
+        for (first in listOf(true, false)) {
+            val (a, b) = cyclicPair()
+            val outside = cachedValue("outside") { a.await() * 2 }
+
+            if (!first) assertEquals(-2, b.await())
+            assertEquals(-2, outside.await())
+            assertEquals(-2, b.await())
+        }
+    }
+
+    fun `test value on a cycle not saying what it is then`() = test {
+        for (failingFirst in listOf(true, false)) {
+            lateinit var failing: SuspendingCachedValue<Int>
+            lateinit var recovering: SuspendingCachedValue<Int>
+            failing = cachedValue("failing") { recovering.await() + 10 }
+            recovering = cachedValue("recovering", onCycle = { -1 }) { failing.await() + 100 }
+
+            if (failingFirst) assertEquals(9, failing.await())
+            assertEquals(-1, recovering.await())
+            assertEquals(9, failing.await())
+        }
+    }
+
+    fun `test value on a cycle depends on what every value on it depends on`() = test {
+        val tracker = SimpleModificationTracker()
+        var cyclic = true
+        lateinit var a: SuspendingCachedValue<Int>
+        lateinit var b: SuspendingCachedValue<Int>
+        a = cachedValue("a", onCycle = { -1 }) { b.await() + 10 }
+        b = cachedValue("b", onCycle = { -2 }) {
+            dependsOn(tracker)
+            if (cyclic) a.await() else 7
+        }
+
+        assertEquals(-1, a.await())
+
+        // 'a' was cancelled before it got anything from 'b', let alone its dependencies.
+        cyclic = false
+        tracker.incModificationCount()
+        assertEquals(17, a.await())
+    }
+
+    fun `test sharing a dependency is not a cycle`() = test {
+        val shared = cachedValue("shared") { 1 }
+        val left = cachedValue("left") { shared.await() }
+        val right = cachedValue("right") { shared.await() }
+        val top = cachedValue("top") {
+            val l = async { left.await() }
+            val r = async { right.await() }
+            l.await() + r.await() + shared.await()
+        }
+
+        assertEquals(3, top.await())
     }
 
     /**
