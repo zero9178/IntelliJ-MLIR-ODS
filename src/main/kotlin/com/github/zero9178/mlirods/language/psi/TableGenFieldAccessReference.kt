@@ -14,7 +14,7 @@ class TableGenFieldAccessReference(element: TableGenFieldAccessValueNode) :
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> {
         val fieldName = element.fieldName ?: return emptyArray()
-        val type = element.valueNode.type
+        val type = element.valueNode.typeBlocking()
         return when (type) {
             is TableGenRecordType -> {
                 type.record?.fields?.get(fieldName)?.let {

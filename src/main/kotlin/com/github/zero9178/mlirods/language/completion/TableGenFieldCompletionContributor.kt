@@ -52,7 +52,7 @@ internal class TableGenFieldCompletionContributor : CompletionContributor() {
                     val fieldAccess = parameters.position.parentOfType<TableGenFieldAccessValueNode>() ?: return
                     // References are resolved from the original file rather than its copy, which no index knows about.
                     val recordType =
-                        CompletionUtil.getOriginalOrSelf(fieldAccess.valueNode).type as? TableGenRecordType ?: return
+                        CompletionUtil.getOriginalOrSelf(fieldAccess.valueNode).typeBlocking() as? TableGenRecordType ?: return
                     recordType.record?.allFields?.forEach {
                         result.addElement(LookupElementBuilder.create(it))
                     }

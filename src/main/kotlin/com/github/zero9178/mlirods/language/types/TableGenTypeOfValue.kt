@@ -5,14 +5,22 @@ import com.github.zero9178.mlirods.language.psi.TableGenBangOperator.*
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAtomicValue
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.psi.impl.TableGenValueNodeEx
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import kotlin.math.abs
 
-private fun typeOf(node: TableGenValueNode?): TableGenType = node?.type ?: TableGenUnknownType
+private suspend fun typeOf(node: TableGenValueNode?): TableGenType = node?.type() ?: TableGenUnknownType
 
-private fun typesOf(nodes: List<TableGenValueNode?>): List<TableGenType> = nodes.map(::typeOf)
+/**
+ * Requests the types of all [nodes] in parallel.
+ */
+private suspend fun typesOf(nodes: List<TableGenValueNode?>): List<TableGenType> = coroutineScope {
+    nodes.map { async { it?.type() ?: TableGenUnknownType } }.awaitAll()
+}
 
-private fun elementTypeOf(iterable: TableGenValueNode?): TableGenType =
+private suspend fun elementTypeOf(iterable: TableGenValueNode?): TableGenType =
     (typeOf(iterable) as? TableGenListType)?.elementType ?: TableGenUnknownType
 
 /**
@@ -30,7 +38,7 @@ internal fun typeOfAtomic(element: TableGenAtomicValue): TableGenType = when (el
 /**
  * Implements the type computation logic. Callers should use [TableGenValueNodeEx.type] which adds caching on top.
  */
-internal fun computeTypeOf(element: TableGenValueNodeEx): TableGenType = when (element) {
+internal suspend fun computeTypeOf(element: TableGenValueNodeEx): TableGenType = when (element) {
     is TableGenAtomicValue -> typeOfAtomic(element)
 
     // A binary literal denotes one bit per digit written rather than an integer.
@@ -96,9 +104,12 @@ internal fun computeTypeOf(element: TableGenValueNodeEx): TableGenType = when (e
     else -> TableGenUnknownType
 }
 
-private fun typeOfIdentifier(element: TableGenIdentifierValueNode): TableGenType =
+private suspend fun typeOfIdentifier(element: TableGenIdentifierValueNode): TableGenType =
     when (val resolve = element.reference?.resolve()) {
-        is TableGenDefvarStatement -> typeOf(resolve.valueNode)
+        // The value may again be an identifier referring to another 'defvar', and so on, to any length no matter how
+        // deep the AST is. Launched, its type is computed from the bottom of the stack of some thread instead of on top
+        // of ours.
+        is TableGenDefvarStatement -> coroutineScope { async { typeOf(resolve.valueNode) }.await() }
         is TableGenFieldBodyItem -> resolve.typeNode.toType()
         is TableGenTemplateArgDecl -> resolve.typeNode.toType()
         is TableGenBangOperatorDefinition -> {
@@ -128,7 +139,7 @@ private fun typeOfIdentifier(element: TableGenIdentifierValueNode): TableGenType
         else -> TableGenUnknownType
     }
 
-private fun typeOfFieldAccess(element: TableGenFieldAccessValueNode): TableGenType {
+private suspend fun typeOfFieldAccess(element: TableGenFieldAccessValueNode): TableGenType {
     val identifier = element.fieldName ?: return TableGenUnknownType
     return when (val type = typeOf(element.valueNode)) {
         is TableGenRecordType -> {
@@ -140,7 +151,7 @@ private fun typeOfFieldAccess(element: TableGenFieldAccessValueNode): TableGenTy
     }
 }
 
-private fun typeOfBitsInit(element: TableGenBitsInitValueNode): TableGenType {
+private suspend fun typeOfBitsInit(element: TableGenBitsInitValueNode): TableGenType {
     var numberOfBits = 0L
     for (type in typesOf(element.valueNodeList)) {
         numberOfBits += when (type) {
@@ -155,7 +166,7 @@ private fun typeOfBitsInit(element: TableGenBitsInitValueNode): TableGenType {
     return TableGenBitsType(numberOfBits)
 }
 
-private fun typeOfBitAccess(element: TableGenBitAccessValueNode): TableGenType {
+private suspend fun typeOfBitAccess(element: TableGenBitAccessValueNode): TableGenType {
     // Selecting bits always yields a 'bits<n>' with one bit per selected bit, regardless of the operand type.
     val widths = element.rangePieceList.map { piece ->
         when (piece) {
@@ -174,7 +185,7 @@ private fun typeOfBitAccess(element: TableGenBitAccessValueNode): TableGenType {
     return TableGenBitsType(widths.fold<Long?, Long?>(0L) { sum, width -> if (sum == null || width == null) null else sum + width })
 }
 
-private fun typeOfBangOperator(element: TableGenBangOperatorValueNode): TableGenType {
+private suspend fun typeOfBangOperator(element: TableGenBangOperatorValueNode): TableGenType {
     val operands = element.valueNodeList
     // The optional type argument of e.g. '!getdagarg<int>'.
     val typeArgument = element.typeNode?.toType()
@@ -230,5 +241,5 @@ private fun typeOfBangOperator(element: TableGenBangOperatorValueNode): TableGen
  * without a current record, so a global 'defvar' folds while a template argument or field never does, even if it is an
  * integer. Evaluating in the null context yields exactly that behaviour.
  */
-private fun TableGenValueNode.constantInteger(): Long? =
-    (evaluateBlocking(TableGenEvaluationContext()) as? TableGenIntegerValue)?.value
+private suspend fun TableGenValueNode.constantInteger(): Long? =
+    (evaluate(TableGenEvaluationContext()) as? TableGenIntegerValue)?.value
