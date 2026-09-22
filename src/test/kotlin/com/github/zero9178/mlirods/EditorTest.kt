@@ -1,10 +1,36 @@
 package com.github.zero9178.mlirods
 
+import com.intellij.codeInsight.CodeInsightSettings
 import com.intellij.openapi.actionSystem.IdeActions
+import com.intellij.testFramework.AutoPopupParameterInfoTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.fixtures.EditorHintFixture
 
 
 class EditorTest : BasePlatformTestCase() {
+
+    private lateinit var hintFixture: EditorHintFixture
+    private var parameterInfoDelay = 0
+
+    override fun setUp() {
+        super.setUp()
+        hintFixture = EditorHintFixture(testRootDisposable)
+        val settings = CodeInsightSettings.getInstance()
+        parameterInfoDelay = settings.PARAMETER_INFO_DELAY
+        // Speed up the tests waiting for the parameter info popup.
+        settings.PARAMETER_INFO_DELAY = 100
+    }
+
+    override fun tearDown() {
+        try {
+            CodeInsightSettings.getInstance().PARAMETER_INFO_DELAY = parameterInfoDelay
+        } catch (e: Throwable) {
+            addSuppressedException(e)
+        } finally {
+            super.tearDown()
+        }
+    }
 
     fun `test brace matching`() {
         for (pair in arrayOf('{' to '}', '[' to ']', '(' to ')', '<' to '>')) {
@@ -80,6 +106,24 @@ class EditorTest : BasePlatformTestCase() {
         myFixture.checkResult("class Foo<><caret>")
     }
 
+    fun `test angle bracket shows parameter info of class`() {
+        myFixture.configureByText(
+            "test.td", """
+            class Foo<int x, string y>;
+            def : Foo<caret>
+        """.trimIndent()
+        )
+        myFixture.type('<')
+        myFixture.checkResult(
+            """
+            class Foo<int x, string y>;
+            def : Foo<<caret>>
+        """.trimIndent()
+        )
+        waitForParameterInfo()
+        assertEquals("<html><b>int x</b>, string y</html>", currentHintText())
+    }
+
     fun `test deleting angle bracket deletes its pair`() = doTestBackspace(
         "class Foo<<caret>>", "class Foo<caret>"
     )
@@ -103,4 +147,28 @@ class EditorTest : BasePlatformTestCase() {
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_BACKSPACE)
         myFixture.checkResult(expected)
     }
+
+    /**
+     * Waits for a parameter info popup scheduled by typing to be shown.
+     */
+    private fun waitForParameterInfo() {
+        // Showing the popup is a chain of non-blocking read actions handing over to the event queue and back, with the
+        // delay before the popup in between.
+        repeat(5) {
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            AutoPopupParameterInfoTestUtil.waitForParameterInfoUpdate(myFixture.editor)
+        }
+        AutoPopupParameterInfoTestUtil.waitForAutoPopup(project)
+        repeat(5) {
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            AutoPopupParameterInfoTestUtil.waitForParameterInfoUpdate(myFixture.editor)
+        }
+    }
+
+    /**
+     * Returns the text of the currently shown hint without its styling.
+     */
+    private fun currentHintText() = hintFixture.currentHintText
+        ?.replace(Regex("<style>[^<]*</style>\\s*"), "")
+        ?.replace(Regex("</?span[^>]*>"), "")
 }
