@@ -3,7 +3,6 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.language.TableGenFileType
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
@@ -76,26 +75,6 @@ class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, T
             )
         }[included]
 
-    private val myClassMap = resettableLazy {
-        val result = mutableMapOf<String, MutableList<TableGenClassStatement>>()
-        stubStream(TableGenStubElementTypes.CLASS_STATEMENT).forEach {
-            it.name?.let { name ->
-                result.getOrPut(name) {
-                    mutableListOf()
-                }.add(it)
-            }
-        }
-        result
-    }
-
-    /**
-     * Returns a map associating every class name to the corresponding class statements.
-     * Only class statements that are directly defined within this file are included.
-     * The list of class statements are ordered by lexical appearance.
-     */
-    val classMap: Map<String, List<TableGenClassStatement>> by myClassMap
-
-
     private var myDirectIdMap = resettableLazy {
         withGreenStubOrAst<(TokenSet, ArrayFactory<TableGenIdentifierElement>) -> Array<TableGenIdentifierElement>>({
             it::getChildrenByType
@@ -128,7 +107,6 @@ class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, T
     override fun clearCaches() {
         super.clearCaches()
         myIncludeDirectives.reset()
-        myClassMap.reset()
         myDirectIdMap.reset()
         myUsedMacros.reset()
     }

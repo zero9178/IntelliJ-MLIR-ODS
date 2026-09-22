@@ -1,12 +1,10 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
-import com.github.zero9178.mlirods.index.CLASS_INDEX
 import com.github.zero9178.mlirods.index.MAY_DERIVE_CLASS_INDEX
 import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
-import com.github.zero9178.mlirods.model.TableGenIncluderSearchScope
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.navigation.NavigationItem
 import com.intellij.openapi.util.RecursionManager
@@ -32,36 +30,25 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
      * closest to this statement.
      */
     val previousStatements: List<TableGenClassStatement>
-        get() = getProjectContextDependentCache(this as TableGenClassStatement) { self ->
+        get() = getProjectContextDependentCache(this) { self ->
             val name = self.name ?: return@getProjectContextDependentCache emptyList()
             TableGenClassReference.findVisibleClasses(name, self)
         }
 
     /**
-     * Returns all class statements that may be the definition of this class.
-     * Returns just 'this' if this statement is itself a definition and the empty list if the class is never defined.
-     */
-    val definitions: List<TableGenClassStatement>
-        get() = getProjectContextDependentCache(this as TableGenClassStatement) { self ->
-            if (!self.isDeclaration) return@getProjectContextDependentCache listOf(self)
-
-            val name = self.name ?: return@getProjectContextDependentCache emptyList()
-            CLASS_INDEX.getElements(
-                name, self.project, TableGenIncluderSearchScope(self, self.project)
-            ).filter { !it.isDeclaration }
-        }
-
-    /**
-     * Returns the class statement defining this class.
-     * As a class may first be declared and only later be defined, a reference is not guaranteed to resolve to the
-     * statement carrying the template arguments, base classes and body. All statements of a class denote the same
-     * class, making this the statement that should be used whenever class identity matters.
+     * Returns true if this statement and [other] denote the same class.
+     * A class may be declared any number of times before it is defined, leaving several statements of one and the same
+     * class. Which of them a reference resolves to depends on what is visible from it, so class identity must never be
+     * decided by comparing statements. Two statements rather denote the same class if they are of the same name: a
+     * compilation has exactly one class per name, and the two statements only ever get compared where both are pasted
+     * in, e.g. because a record deriving from one is used where the other is expected.
      *
-     * Returns 'this' if this statement is itself a definition and null if the definition cannot be determined, either
-     * because the class is never defined or because it is ambiguous which of several [definitions] is meant.
+     * Note that the statements need not see each other: a file derives its context from a single root, while the
+     * compilation the statements are compared for may be another one that pastes the file in from elsewhere. Even
+     * statements of files neither of which includes the other are one and the same class within a compilation
+     * including both.
      */
-    val definition: TableGenClassStatement?
-        get() = definitions.singleOrNull()
+    fun isSameClassAs(other: TableGenClassStatement): Boolean = this === other || name != null && name == other.name
 
     /**
      * Returns a list of all records that directly derive from this class.

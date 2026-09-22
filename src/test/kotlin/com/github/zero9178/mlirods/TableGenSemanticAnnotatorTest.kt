@@ -163,11 +163,9 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
     /**
      * Creates the files the forward-declaration tests share, mirroring LLVM: 'Target.td' includes
      * 'TargetInstrPredicate.td', which forward declares 'Instruction' and already uses it as a template argument type,
-     * and only then defines 'Instruction' itself. 'unrelated.td' stands for the files defining a class of the same name
-     * without taking part in the compilation, as those in LLVM's 'test/TableGen' do.
+     * and only then defines 'Instruction' itself.
      */
     private fun addForwardDeclaredInstruction() {
-        myFixture.addFileToProject("unrelated.td", "class Instruction { int unrelated = 1; }")
         myFixture.addFileToProject(
             "predicate.td", """
             class Instruction;
@@ -195,10 +193,22 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
-    fun `test an unrelated definition of the same name does not make a declaration ambiguous`() {
-        // A record that genuinely does not derive from 'Instruction'. The mismatch may only be reported because
-        // 'target.td' is the sole candidate for the definition of the declaration; if 'unrelated.td' counted as one as
-        // well it would be unknown which class the declaration denotes and the derivation could not be ruled out.
+    fun `test value typed with a forward declaration is not flagged`() {
+        // Mirrors 'Predicate' of LLVM's 'Target.td': the field is typed while only the declaration is visible, the
+        // template argument once the definition is. Both statements denote the same class.
+        doResolvingTest(
+            """
+            class Predicate;
+            class Instruction { list<Predicate> Predicates = []; }
+            class Predicate { int x = 0; }
+            class Requires<list<Predicate> preds>;
+            def I : Instruction;
+            def D : Requires<I.Predicates>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test argument not deriving from a forward declared class is flagged`() {
         addForwardDeclaredInstruction()
         doResolvingTest(
             """
@@ -209,22 +219,27 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
-    fun `test a declaration defined by several compilations is ambiguous`() {
-        // 'predicate.td' now takes part in two compilations that each define 'Instruction' themselves, as LLVM's
-        // per-target 'Target.td' files do. Which class the declaration denotes depends on the compilation, so the
-        // mismatch the test above reports may no longer be.
+    fun `test a declaration shared by several compilations denotes the class of each`() {
+        // 'predicate.td' takes part in two compilations that each define 'Instruction' themselves, as LLVM's
+        // per-target files do. The declaration denotes the class of whichever definition it precedes.
         addForwardDeclaredInstruction()
         val otherTarget = myFixture.addFileToProject(
             "other_target.td", """
             include "predicate.td"
             class Instruction { int width = 0; }
+            def RET : Instruction;
+            def NotAnInstruction;
+            def D : CheckOpcode<[RET]>;
+            def E : CheckOpcode<<error descr="Value of type 'list<NotAnInstruction>' cannot be assigned to template argument 'opcodes' of type 'list<Instruction>'">[NotAnInstruction]</error>>;
         """.trimIndent()
         )
         val main = myFixture.configureByText(
             "test.td", """
             include "target.td"
+            def BLR : Instruction;
             def NotAnInstruction;
-            def D : CheckOpcode<[NotAnInstruction]>;
+            def D : CheckOpcode<[BLR]>;
+            def E : CheckOpcode<<error descr="Value of type 'list<NotAnInstruction>' cannot be assigned to template argument 'opcodes' of type 'list<Instruction>'">[NotAnInstruction]</error>>;
         """.trimIndent()
         )
         val dir = main.virtualFile.parent
@@ -235,12 +250,48 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
             )
         )
         myFixture.checkHighlighting()
+
+        myFixture.configureFromExistingVirtualFile(otherTarget.virtualFile)
+        myFixture.checkHighlighting()
+    }
+
+    fun `test declarations of sibling files are the same class where both are pasted in`() {
+        // Neither file includes the other, so from within either one only its own declaration of 'Base' is visible.
+        // This file pastes both in, making them one and the same class, while 'other.td' is a higher-priority root
+        // pasting in only 'derived.td', from whose context 'sink.td' is not visible at all.
+        myFixture.addFileToProject(
+            "sink.td", """
+            class Base;
+            class Sink<Base b>;
+        """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "derived.td", """
+            class Base;
+            def D : Base;
+        """.trimIndent()
+        )
+        val other = myFixture.addFileToProject("other.td", "include \"derived.td\"")
+        val main = myFixture.configureByText(
+            "test.td", """
+            include "sink.td"
+            include "derived.td"
+            def U : Sink<D>;
+        """.trimIndent()
+        )
+        val dir = main.virtualFile.parent
+        installCompileCommands(
+            project, mapOf(
+                other.virtualFile to IncludePaths(listOf(dir)),
+                main.virtualFile to IncludePaths(listOf(dir)),
+            )
+        )
+        myFixture.checkHighlighting()
     }
 
     fun `test base class resolving to a forward declaration is not flagged`() {
         // 'derived.td' only sees the forward declaration of 'Base', making 'Derived' derive from the declaration,
-        // while 'Base' used as a type in this file resolves to the definition. Both denote the same class, so this
-        // must not be flagged even though the two statements cannot be matched up from the base class side.
+        // while 'Base' used as a type in this file resolves to the definition. Both denote the same class.
         myFixture.addFileToProject("decl.td", "class Base;")
         myFixture.addFileToProject(
             "derived.td", """
@@ -261,6 +312,39 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
             class Sink<Base b>;
             def D : Derived;
             def U : Sink<D>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test base class resolving to a forward declaration of another class is flagged`() {
+        // That 'Base' is defined later on does not make it any more related to 'Other'.
+        doResolvingTest(
+            """
+            class Base;
+            class Derived : Base;
+            class Base { int x = 0; }
+            class Other;
+            class Other { int y = 0; }
+            class Sink<Other o>;
+            def D : Derived;
+            def U : Sink<<error descr="Value of type 'D' cannot be assigned to template argument 'o' of type 'Other'">D</error>>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test classes only ever declared are told apart`() {
+        // 'Sink' only sees the first declaration of 'Base' while 'D' derives from the second one. Both denote the same
+        // class despite there not being a definition to tell.
+        doResolvingTest(
+            """
+            class Base;
+            class Other;
+            class Sink<Base b>;
+            class Base;
+            def D : Base;
+            def O : Other;
+            def U : Sink<D>;
+            def V : Sink<<error descr="Value of type 'O' cannot be assigned to template argument 'b' of type 'Base'">O</error>>;
         """.trimIndent()
         )
     }
