@@ -50,19 +50,19 @@ internal class TableGenTypedHandlerDelegate : TypedHandlerDelegate() {
 
         when (c) {
             '{' -> closeBlockStringLiteral(editor, file)
-            '<' -> insertMatchingRAngle(editor, file.fileType)
+            '<' -> handleLAngleTyped(project, editor, file.fileType)
         }
         return Result.CONTINUE
     }
 
     /**
-     * Inserts a '>' after a '<' just typed at the caret, unless a '>' following the caret already closes it.
+     * Inserts a '>' after a '<' just typed at the caret, unless a '>' following the caret already closes it, and shows
+     * the parameter info of the class the brackets now belong to, if any.
      *
-     * The platform only pairs '(', '[' and '{', so this replicates its behaviour for '<'.
+     * The platform only pairs '(', '[' and '{' and only shows parameter info after '(' and ',', so this replicates
+     * its behaviour for '<'.
      */
-    private fun insertMatchingRAngle(editor: Editor, fileType: FileType) {
-        if (!CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) return
-
+    private fun handleLAngleTyped(project: Project, editor: Editor, fileType: FileType) {
         val offset = editor.caretModel.offset
         val document = editor.document
         val text = document.charsSequence
@@ -72,14 +72,20 @@ internal class TableGenTypedHandlerDelegate : TypedHandlerDelegate() {
         if (offset != document.textLength) iterator.retreat()
         if (iterator.atEnd() || iterator.tokenType != LANGLE) return
 
-        // Like the platform, leave the brackets alone if the leftmost unclosed '<' before the caret is balanced by
-        // the '>'s following it.
-        val lAngleOffset = BraceMatchingUtil.findLeftmostLParen(iterator, LANGLE, text, fileType).coerceAtLeast(0)
-        iterator = editor.highlighter.createIterator(lAngleOffset)
-        if (BraceMatchingUtil.matchBrace(text, fileType, iterator, /*forward=*/true, /*isStrict=*/true)) return
+        if (CodeInsightSettings.getInstance().AUTOINSERT_PAIR_BRACKET) {
+            // Like the platform, leave the brackets alone if the leftmost unclosed '<' before the caret is balanced by
+            // the '>'s following it.
+            val lAngleOffset = BraceMatchingUtil.findLeftmostLParen(iterator, LANGLE, text, fileType).coerceAtLeast(0)
+            iterator = editor.highlighter.createIterator(lAngleOffset)
+            if (!BraceMatchingUtil.matchBrace(text, fileType, iterator, /*forward=*/true, /*isStrict=*/true)) {
+                document.insertString(offset, ">")
+                TabOutScopesTracker.getInstance().registerEmptyScope(editor, offset)
+            }
+        }
 
-        document.insertString(offset, ">")
-        TabOutScopesTracker.getInstance().registerEmptyScope(editor, offset)
+        // The parameter info handler determines whether the caret is now within the template arguments of a class
+        // reference and shows nothing otherwise.
+        AutoPopupController.getInstance(project).autoPopupParameterInfo(editor, null)
     }
 
     private fun closeBlockStringLiteral(editor: Editor, file: PsiFile) {
