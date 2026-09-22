@@ -659,9 +659,10 @@ field_access_value_node ::= value_node field_access_value_node_suffix {
         field_identifier="IDENTIFIER"
 
         getReference
-        evaluateInner
+        toString
     ]
     pin=2
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenFieldAccessValueNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldAccessValueNodeStubElementType"
 }
 
@@ -824,7 +825,6 @@ dag_arg ::= value_node (':' VAR_IDENTIFIER)? | VAR_IDENTIFIER {
 }
 identifier_value_node ::= IDENTIFIER {
     methods=[
-        evaluateInner
         getReference
         toString
     ]

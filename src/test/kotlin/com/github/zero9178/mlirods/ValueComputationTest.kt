@@ -5,7 +5,6 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatemen
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.values.*
-import com.intellij.openapi.util.RecursionManager
 import com.intellij.testFramework.assertInstanceOf
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
@@ -205,7 +204,6 @@ class ValueComputationTest : BasePlatformTestCase() {
     )
 
     fun `test cyclic field reference within record`() {
-        RecursionManager.disableMissedCacheAssertions(testRootDisposable)
         doTest(
             """
             def A {
@@ -230,20 +228,17 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenUnknownValue
     )
 
-    fun `test field referencing itself is unknown`() {
-        RecursionManager.disableMissedCacheAssertions(testRootDisposable)
-        doTest(
-            """
-            class C {
-                int a = 1;
-            }
-            def D : C {
-                let a = a;
-            }
-            defvar v = D.a;
-        """.trimIndent(), TableGenUnknownValue
-        )
-    }
+    fun `test field referencing itself is unknown`() = doTest(
+        """
+        class C {
+            int a = 1;
+        }
+        def D : C {
+            let a = a;
+        }
+        defvar v = D.a;
+    """.trimIndent(), TableGenUnknownValue
+    )
 
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
@@ -252,6 +247,6 @@ class ValueComputationTest : BasePlatformTestCase() {
     fun doTest(source: String, expectedCondition: (TableGenValue) -> Unit) {
         val file = assertInstanceOf<TableGenFile>(myFixture.configureByText("test.td", source))
         val statement = assertInstanceOf<TableGenDefvarStatement>(file.lastChild)
-        expectedCondition.invoke(requireNotNull(statement.valueNode?.evaluate(TableGenEvaluationContext())))
+        expectedCondition.invoke(requireNotNull(statement.valueNode?.evaluateBlocking(TableGenEvaluationContext())))
     }
 }

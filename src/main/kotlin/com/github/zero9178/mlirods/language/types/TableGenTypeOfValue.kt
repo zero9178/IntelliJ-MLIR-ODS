@@ -231,4 +231,4 @@ private fun typeOfBangOperator(element: TableGenBangOperatorValueNode): TableGen
  * integer. Evaluating in the null context yields exactly that behaviour.
  */
 private fun TableGenValueNode.constantInteger(): Long? =
-    (evaluate(TableGenEvaluationContext()) as? TableGenIntegerValue)?.value
+    (evaluateBlocking(TableGenEvaluationContext()) as? TableGenIntegerValue)?.value

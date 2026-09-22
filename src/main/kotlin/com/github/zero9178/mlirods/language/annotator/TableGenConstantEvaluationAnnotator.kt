@@ -15,19 +15,24 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.psi.PsiElement
 import com.intellij.util.takeWhileInclusive
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * Flags a `!div` whose divisor evaluates to the constant `0` within [holder]'s context. Mirroring TableGen, this only
  * fires once both operands fold to concrete integers; a divisor that depends on a (still unknown) template argument
  * does not fold and is therefore not reported.
  */
-private fun checkDivisionByZero(element: TableGenBangOperatorValueNode, holder: TableGenEvaluationHolder) {
+private suspend fun checkDivisionByZero(element: TableGenBangOperatorValueNode, holder: TableGenEvaluationHolder) {
     // A well-formed '!div' has exactly two operands; a wrong operand count is reported by the syntax annotator.
     val operands = element.valueNodeList
     if (operands.size != 2) return
 
-    val dividend = operands[0].evaluate(holder.context)
-    val divisor = operands[1].evaluate(holder.context)
+    val (dividend, divisor) = coroutineScope {
+        operands.map { async { it.evaluate(holder.context) } }.awaitAll()
+    }
     if (dividend !is TableGenIntegerValue || divisor !is TableGenIntegerValue) return
     if (divisor.value != 0L) return
 
@@ -47,7 +52,7 @@ private val EVALUATION_CHECKS = arrayOf(
  * Returns the children of [element] that are evaluated in [context].
  * Specifically elements that are not evaluated due to conditional execution will not be part of the result.
  */
-private fun liveChildrenOf(element: PsiElement, context: TableGenEvaluationContext): List<PsiElement> {
+private suspend fun liveChildrenOf(element: PsiElement, context: TableGenEvaluationContext): List<PsiElement> {
     if (element is TableGenBangOperatorValueNode && element.operator == TableGenBangOperator.IF) {
         // Operands are '[condition, then, else]'. The condition is always evaluated.
         val operands = element.valueNodeList
@@ -68,8 +73,10 @@ private fun liveChildrenOf(element: PsiElement, context: TableGenEvaluationConte
 
 /**
  * Returns [root] and its descendant value nodes, evaluated in [context], in post-order (a node after its children).
+ *
+ * The tree is walked by one coroutine: a coroutine per node costs far more than visiting the node does.
  */
-private fun liveValuesPostOrder(
+private suspend fun liveValuesPostOrder(
     root: TableGenValueNode, context: TableGenEvaluationContext
 ): List<TableGenValueNode> = buildList {
     val stack = mutableListOf<Pair<PsiElement, Iterator<PsiElement>>>()
@@ -89,7 +96,7 @@ private fun liveValuesPostOrder(
 /**
  * Runs the [EVALUATION_CHECKS] over [root] and its live descendant value nodes, evaluated in [holder]'s context.
  */
-private fun visitLiveValues(root: TableGenValueNode, holder: TableGenEvaluationHolder) {
+private suspend fun visitLiveValues(root: TableGenValueNode, holder: TableGenEvaluationHolder) {
     liveValuesPostOrder(root, holder.context).forEach { element ->
         EVALUATION_CHECKS.forEach { check ->
             if (!check.appliesTo(element)) return@forEach
@@ -123,8 +130,11 @@ private fun effectiveFieldValues(assignments: List<TableGenFieldAssignmentNode>)
 private fun checkInstantiation(def: TableGenDefStatement, holder: AnnotationHolder) {
     val anchor = def.nameIdentifier ?: return
     val evaluationHolder = TableGenInstantiationEvaluationHolder(def, anchor, holder)
-    def.allFieldAssignments.values.asSequence().flatMap(::effectiveFieldValues).forEach {
-        visitLiveValues(it, evaluationHolder)
+    val values = def.allFieldAssignments.values.asSequence().flatMap(::effectiveFieldValues).toList()
+    if (values.isEmpty()) return
+
+    runSuspendingChecks {
+        values.forEach { visitLiveValues(it, evaluationHolder) }
     }
     evaluationHolder.flush()
 }
@@ -154,12 +164,17 @@ private fun reachableFields(start: String, dependencies: Map<String, Set<String>
 private fun checkCyclicFields(def: TableGenDefStatement, holder: AnnotationHolder) {
     val anchor = def.nameIdentifier ?: return
     val context = TableGenEvaluationContext(def)
+    val assignments = def.allFieldAssignments
+    if (assignments.isEmpty()) return
+
     // Maps each field to the fields its value refers to.
-    val dependencies = def.allFieldAssignments.mapValues { (_, assignments) ->
-        effectiveFieldValues(assignments).flatMap { liveValuesPostOrder(it, context) }
-            .filterIsInstance<TableGenIdentifierValueNode>()
-            .mapNotNull { (it.reference?.resolve() as? TableGenFieldBodyItem)?.fieldName }
-            .toSet()
+    val dependencies = runSuspendingChecks {
+        assignments.mapValues { (_, assignments) ->
+            effectiveFieldValues(assignments).toList().flatMap { liveValuesPostOrder(it, context) }
+                .filterIsInstance<TableGenIdentifierValueNode>()
+                .mapNotNull { (it.reference?.resolve() as? TableGenFieldBodyItem)?.fieldName }
+                .toSet()
+        }
     }
     val reachable = dependencies.keys.associateWith { reachableFields(it, dependencies) }
 
@@ -182,7 +197,9 @@ private val ANNOTATIONS = arrayOf(
         if (checks.isEmpty()) return@addAnnotationFor
 
         val evaluationHolder = TableGenDirectEvaluationHolder(holder)
-        checks.forEach { it(element, evaluationHolder) }
+        runSuspendingChecks {
+            checks.forEach { launch { it(element, evaluationHolder) } }
+        }
         evaluationHolder.flush()
     },
     // Re-run them on every def, this time through the def's instantiation context.

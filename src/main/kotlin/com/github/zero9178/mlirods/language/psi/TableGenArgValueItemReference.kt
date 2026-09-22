@@ -38,7 +38,7 @@ class TableGenArgValueItemReference(element: TableGenArgValueItem) :
                     val nameNode = element.nameNode
                     val argumentName = when {
                         identifierName != null -> identifierName
-                        nameNode != null -> when (val result = nameNode.evaluate(TableGenEvaluationContext())) {
+                        nameNode != null -> when (val result = nameNode.evaluateBlocking(TableGenEvaluationContext())) {
                             is TableGenStringValue -> result.value
                             else -> return@disallowTreeLoading emptyArray<ResolveResult>()
                         }

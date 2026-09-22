@@ -31,6 +31,8 @@ interface TableGenEvaluationHolder {
     /**
      * Reports an error with the given [message]. [element] is the offending value node; implementations may use it to
      * position the annotation and/or to decide whether the problem is relevant.
+     *
+     * Checks are coroutines running in parallel, making this get called from any thread and at any time.
      */
     fun error(element: PsiElement, message: String)
 }
@@ -41,12 +43,12 @@ interface TableGenEvaluationHolder {
 class TableGenEvaluationCheck(
     /**
      * Whether [check] has anything to do for a value node at all. Answered without evaluating anything, which is what
-     * allows an [Annotator] to do nothing for the many value nodes no check is interested in.
+     * allows an [Annotator] to only enter suspending code for the few value nodes that need it.
      */
     val appliesTo: (TableGenValueNode) -> Boolean,
-    private val check: (TableGenValueNode, TableGenEvaluationHolder) -> Unit,
+    private val check: suspend (TableGenValueNode, TableGenEvaluationHolder) -> Unit,
 ) {
-    operator fun invoke(element: TableGenValueNode, holder: TableGenEvaluationHolder) {
+    suspend operator fun invoke(element: TableGenValueNode, holder: TableGenEvaluationHolder) {
         if (appliesTo(element)) check(element, holder)
     }
 }
@@ -57,15 +59,14 @@ class TableGenEvaluationCheck(
  */
 inline fun <reified T : TableGenValueNode> evaluationCheckFor(
     crossinline appliesTo: (T) -> Boolean = { true },
-    crossinline check: (T, TableGenEvaluationHolder) -> Unit,
+    crossinline check: suspend (T, TableGenEvaluationHolder) -> Unit,
 ): TableGenEvaluationCheck = TableGenEvaluationCheck({ it is T && appliesTo(it) }) { element, holder ->
     check(element as T, holder)
 }
 
 /**
- * [TableGenEvaluationHolder] collecting the problems reported, to be turned into annotations by [flush]. Checks are
- * thereby free to run wherever and whenever, while an [AnnotationHolder] may only be used from the thread and during
- * the call the [Annotator] was handed it.
+ * [TableGenEvaluationHolder] collecting the problems reported from whatever thread, to be turned into annotations by
+ * [flush] on the one thread an [AnnotationHolder] may be used from.
  */
 internal abstract class TableGenCollectingEvaluationHolder(private val holder: AnnotationHolder) :
     TableGenEvaluationHolder {
@@ -125,6 +126,7 @@ internal class TableGenInstantiationEvaluationHolder(
 internal class TableGenProbeEvaluationHolder : TableGenEvaluationHolder {
     override val context = TableGenEvaluationContext()
 
+    @Volatile
     var emittedError = false
         private set
 
