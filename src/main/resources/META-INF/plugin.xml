@@ -86,7 +86,7 @@
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenClassReferenceCompletionContributor"/>
         <completion.contributor language="TableGen"
-                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenInterFileIdentifierCompletionContributor"/>
+                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenIdentifierCompletionContributor"/>
         <completion.confidence language="TableGen"
                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenCompletionConfidence"/>
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>

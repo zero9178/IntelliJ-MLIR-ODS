@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.language.BANG_OPERATORS
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
+import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.intellij.codeInsight.lookup.impl.LookupImpl
@@ -252,6 +253,58 @@ class CompletionTest : BasePlatformTestCase() {
         assertEquals(1, collection.count { it == "Inner" })
         assertEquals(1, collection.count { it == "Outer" })
     }
+
+    fun `test shadowed declaration of same file is not suggested`() {
+        myFixture.configureByText(
+            "test.td", """
+            def x;
+            class C<int x> {
+                int y = <caret>;
+            }
+        """.trimIndent()
+        )
+
+        myFixture.completeBasic()
+        val elements = requireNotNull(myFixture.lookupElements).filter { it.lookupString == "x" }
+        // The template argument shadows the 'def' of the file.
+        assertInstanceOf(elements.single().psiElement, TableGenTemplateArgDecl::class.java)
+    }
+
+    fun `test shadowed declaration of included file is not suggested`() {
+        val otherTD = myFixture.addFileToProject(
+            "other.td", """
+            def x;
+        """.trimIndent()
+        )
+        val testTD = myFixture.addFileToProject(
+            "test.td", """
+            include "other.td"
+            class C<int x> {
+                int y = <caret>;
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                testTD.virtualFile to IncludePaths(listOf(otherTD.virtualFile.parent))
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(testTD.virtualFile)
+        myFixture.completeBasic()
+        val elements = requireNotNull(myFixture.lookupElements).filter { it.lookupString == "x" }
+        // The template argument shadows the 'def' of the included file.
+        assertInstanceOf(elements.single().psiElement, TableGenTemplateArgDecl::class.java)
+    }
+
+    fun `test dumb identifier completion suggests enclosing scopes`() = doDumbTest(
+        """
+            defvar before = 0;
+            class C<int x> {
+                int y = <caret>;
+            }
+        """.trimIndent(), "before", "x"
+    )
 
     fun `test field access lookup`() = doTest(
         """
