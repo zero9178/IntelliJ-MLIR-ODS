@@ -6,7 +6,8 @@
 
 ### Added
 
-- Typing `<` inserts the matching `>`. Typing `>` in front of it steps over it, and deleting the `<` deletes it.
+- Typing `<` inserts the matching `>` and shows the parameter info of the class being instantiated, if any. Typing `>`
+  in front of the inserted `>` steps over it, and deleting the `<` deletes it.
 - Fields of a `def` defined in terms of each other, e.g. `int g = f; let f = g;`, are reported as an error.
 - A class statement following a definition of the same class, be it in the same file or a file included before, is
   reported as an error. A quick fix navigates to the closest such definition.
