@@ -28,6 +28,8 @@
         <lang.quoteHandler language="TableGen"
                            implementationClass="com.github.zero9178.mlirods.language.insertion.TableGenQuoteHandler"/>
         <typedHandler implementation="com.github.zero9178.mlirods.language.insertion.TableGenTypedHandlerDelegate"/>
+        <backspaceHandlerDelegate
+                implementation="com.github.zero9178.mlirods.language.insertion.TableGenBackspaceHandlerDelegate"/>
         <highlightVisitor
                 implementation="com.github.zero9178.mlirods.language.highlighting.TableGenSemanticTokensAnnotator"/>
         <highlightVisitor
