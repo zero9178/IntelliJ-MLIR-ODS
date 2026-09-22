@@ -7,7 +7,8 @@ import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
 import com.github.zero9178.mlirods.language.types.TableGenType
-import com.github.zero9178.mlirods.language.types.TableGenTypeOfValueVisitor
+import com.github.zero9178.mlirods.language.types.computeTypeOf
+import com.github.zero9178.mlirods.language.types.typeOfAtomic
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
@@ -71,9 +72,7 @@ interface TableGenValueNodeEx : PsiElement {
      * Returns the type of this TableGen expression.
      */
     val type: TableGenType
-        get() = getProjectContextDependentCache(this) {
-            it.accept(TableGenTypeOfValueVisitor)
-        }
+        get() = getProjectContextDependentCache(this) { computeTypeOf(it) }
 
     /**
      * Performs constant evaluation of this value within the given context.
@@ -104,7 +103,7 @@ interface TableGenAtomicValue : TableGenValueNodeEx {
 
     override val type: TableGenType
         // No need to cache for atomics.
-        get() = accept(TableGenTypeOfValueVisitor)
+        get() = typeOfAtomic(this)
 
     /**
      * Atomic values do not depend on the [context] and are cheap to compute from their PSI subtree, so [evaluate]
