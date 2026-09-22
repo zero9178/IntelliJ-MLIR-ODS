@@ -30,6 +30,10 @@
 - A value typed with the forward declaration of a class is no longer reported as having the wrong type where the 
   definition of the class is expected. The same goes for a class declared in two files neither of which includes the
   other: the two declarations are one and the same class wherever both are pasted in.
+- Identifier completion no longer suggests a `def` or `defvar` of an included file whose name is shadowed by a template
+  argument, `defvar` or other declaration of an enclosing scope. Such a name can only refer to the shadowing
+  declaration, which is now the only suggestion offered for it.
+- Identifier completion suggests the declarations of the enclosing scopes while indexing is still in progress.
 
 ## [0.16.0] - 2026-09-10
 
