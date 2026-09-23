@@ -290,6 +290,16 @@ template_arg_decl ::= type_node IDENTIFIER equals_value? {
 private record_body ::= <<parent_class_list class_ref>>? body {pin=1}
 private meta parent_class_list ::= ':' <<class_ref>> (',' <<class_ref>>)* {pin(".*")=1}
 
+// Fake base class for references to classes and multiclasses, which may pass template arguments.
+fake abstract_ref ::= IDENTIFIER class_ref_suffix? {
+    methods=[
+        lAngle='LANGLE'
+        rAngle='RANGLE'
+        // Named differently by the references to classes and multiclasses.
+        IDENTIFIER=''
+    ]
+}
+
 fake abstract_class_ref ::= IDENTIFIER class_ref_suffix? {
     methods=[
         class_identifier='IDENTIFIER'
@@ -299,6 +309,7 @@ fake abstract_class_ref ::= IDENTIFIER class_ref_suffix? {
         getClassName
     ]
     implements=[
+        abstract_ref
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractClassRefEx"
     ]
 }
@@ -306,6 +317,7 @@ fake abstract_class_ref ::= IDENTIFIER class_ref_suffix? {
 multi_class_ref ::= IDENTIFIER class_ref_suffix? {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+        abstract_ref
         "com.github.zero9178.mlirods.language.psi.impl.TableGenMultiClassRefEx"
     ]
     methods = [

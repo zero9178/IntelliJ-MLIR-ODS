@@ -12,37 +12,38 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.startOffset
 
-internal class TableGenParameterInfoHandler :
-    ParameterInfoHandlerWithTabActionSupport<TableGenAbstractClassRef, TableGenClassStatement, TableGenArgValueItem> {
+internal class TableGenParameterInfoHandler : ParameterInfoHandlerWithTabActionSupport<
+        TableGenAbstractRef, TableGenAbstractClassStatement, TableGenArgValueItem> {
 
     /**
-     * Finds a class reference if the current offset is within the argument list of the class reference.
+     * Finds a class or multiclass reference if the current offset is within its argument list.
      */
-    private fun findElementForParameterInfoImpl(context: ParameterInfoContext): TableGenAbstractClassRef? {
+    private fun findElementForParameterInfoImpl(context: ParameterInfoContext): TableGenAbstractRef? {
         val file = context.file
-        val ref = file.findElementAt(context.offset)?.parentOfType<TableGenAbstractClassRef>() ?: return null
+        val ref = file.findElementAt(context.offset)?.parentOfType<TableGenAbstractRef>() ?: return null
         val parametersStart = ref.lAngle ?: return null
         if (context.offset <= parametersStart.startOffset) return null
 
         return ref
     }
 
-    override fun findElementForParameterInfo(context: CreateParameterInfoContext): TableGenAbstractClassRef? {
+    override fun findElementForParameterInfo(context: CreateParameterInfoContext): TableGenAbstractRef? {
         val ref = findElementForParameterInfoImpl(context) ?: return null
 
+        // A multiclass reference within a 'defm' may refer to a class instead.
         context.itemsToShow = ref.references.mapNotNull {
-            it.resolve() as? TableGenClassStatement
+            it.resolve() as? TableGenAbstractClassStatement
         }.toTypedArray()
         return ref
     }
 
     override fun showParameterInfo(
-        element: TableGenAbstractClassRef, context: CreateParameterInfoContext
+        element: TableGenAbstractRef, context: CreateParameterInfoContext
     ) {
         context.showHint(element, context.offset, this)
     }
 
-    override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): TableGenAbstractClassRef? {
+    override fun findElementForUpdatingParameterInfo(context: UpdateParameterInfoContext): TableGenAbstractRef? {
         val ref = findElementForParameterInfoImpl(context) ?: return null
         if (ref != context.parameterOwner) return null
 
@@ -54,7 +55,7 @@ internal class TableGenParameterInfoHandler :
     }
 
     override fun updateParameterInfo(
-        parameterOwner: TableGenAbstractClassRef, context: UpdateParameterInfoContext
+        parameterOwner: TableGenAbstractRef, context: UpdateParameterInfoContext
     ) {
         if (context.parameterOwner != parameterOwner) context.removeHint()
 
@@ -65,7 +66,7 @@ internal class TableGenParameterInfoHandler :
     }
 
     override fun updateUI(
-        p: TableGenClassStatement?, context: ParameterInfoUIContext
+        p: TableGenAbstractClassStatement?, context: ParameterInfoUIContext
     ) {
         if (p == null) return
 
@@ -90,7 +91,7 @@ internal class TableGenParameterInfoHandler :
         )
     }
 
-    override fun getActualParameters(o: TableGenAbstractClassRef): Array<out TableGenArgValueItem> {
+    override fun getActualParameters(o: TableGenAbstractRef): Array<out TableGenArgValueItem> {
         return o.argValueItemList.toTypedArray()
     }
 
@@ -103,8 +104,8 @@ internal class TableGenParameterInfoHandler :
     }
 
     override fun getArgumentListAllowedParentClasses(): Set<Class<*>?> {
-        // A class ref might occur in a record body (class or def statement) or anywhere a value may occur.
-        // Those are basically all the scope items and other values.
+        // A class ref might occur in a record body (class or def statement) or anywhere a value may occur, a multiclass
+        // ref in a 'defm' or 'multiclass' statement. Those are basically all the scope items and other values.
         return setOf(TableGenScopeItem::class.java, TableGenValueNode::class.java)
     }
 
@@ -112,7 +113,7 @@ internal class TableGenParameterInfoHandler :
         return setOf(TableGenScopeItem::class.java)
     }
 
-    override fun getArgumentListClass(): Class<TableGenAbstractClassRef> {
-        return TableGenAbstractClassRef::class.java
+    override fun getArgumentListClass(): Class<TableGenAbstractRef> {
+        return TableGenAbstractRef::class.java
     }
 }
