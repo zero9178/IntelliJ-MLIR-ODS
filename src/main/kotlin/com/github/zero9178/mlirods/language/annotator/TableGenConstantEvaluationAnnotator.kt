@@ -13,6 +13,7 @@ import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.psi.PsiElement
 import com.intellij.util.takeWhileInclusive
 import kotlinx.coroutines.async
@@ -133,7 +134,7 @@ private fun checkInstantiation(def: TableGenDefStatement, holder: AnnotationHold
     val values = def.allFieldAssignments.values.asSequence().flatMap(::effectiveFieldValues).toList()
     if (values.isEmpty()) return
 
-    runSuspendingChecks {
+    runBlockingCancellable {
         values.forEach { visitLiveValues(it, evaluationHolder) }
     }
     evaluationHolder.flush()
@@ -168,7 +169,7 @@ private fun checkCyclicFields(def: TableGenDefStatement, holder: AnnotationHolde
     if (assignments.isEmpty()) return
 
     // Maps each field to the fields its value refers to.
-    val dependencies = runSuspendingChecks {
+    val dependencies = runBlockingCancellable {
         assignments.mapValues { (_, assignments) ->
             effectiveFieldValues(assignments).toList().flatMap { liveValuesPostOrder(it, context) }
                 .filterIsInstance<TableGenIdentifierValueNode>()
@@ -197,7 +198,7 @@ private val ANNOTATIONS = arrayOf(
         if (checks.isEmpty()) return@addAnnotationFor
 
         val evaluationHolder = TableGenDirectEvaluationHolder(holder)
-        runSuspendingChecks {
+        runBlockingCancellable {
             checks.forEach { launch { it(element, evaluationHolder) } }
         }
         evaluationHolder.flush()

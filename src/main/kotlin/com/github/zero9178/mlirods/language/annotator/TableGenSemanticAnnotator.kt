@@ -8,15 +8,13 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.types.TableGenType
+import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.PsiBasedModCommandAction
 import com.intellij.openapi.progress.runBlockingCancellable
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 
 /**
  * Validates that the arguments passed to a class reference match its template argument declarations:
@@ -28,11 +26,10 @@ import kotlinx.coroutines.awaitAll
 private fun checkArguments(element: TableGenAbstractClassRef, holder: AnnotationHolder) {
     val targetClass = element.referencedClass ?: return
 
-    // The types of the arguments do not depend on each other and are therefore requested in parallel.
+    // Entered once per class reference, with the types requested one after the other: almost every argument is a
+    // literal or an identifier, whose type costs less than a coroutine of its own would.
     val items = element.argValueItemList
-    val valueTypes = runBlockingCancellable {
-        items.map { async(Dispatchers.Default) { it.valueNode?.type() } }.awaitAll()
-    }
+    val valueTypes = runBlockingCancellable { items.map { it.valueNode?.type() ?: TableGenUnknownType } }
 
     // Map each referenced declaration to the arguments assigning a value to it.
     val itemsByDecl = mutableMapOf<TableGenTemplateArgDecl, MutableList<TableGenArgValueItem>>()
@@ -82,10 +79,9 @@ private fun checkArguments(element: TableGenAbstractClassRef, holder: Annotation
  * indeterminate) no error is reported.
  */
 private fun checkArgumentType(
-    item: TableGenArgValueItem, valueType: TableGenType?, decl: TableGenTemplateArgDecl, holder: AnnotationHolder
+    item: TableGenArgValueItem, valueType: TableGenType, decl: TableGenTemplateArgDecl, holder: AnnotationHolder
 ) {
     val valueNode = item.valueNode ?: return
-    if (valueType == null) return
     val declaredType = decl.typeNode.toType()
 
     // Only report a definite mismatch; an indeterminate result (null) leaves the argument alone.

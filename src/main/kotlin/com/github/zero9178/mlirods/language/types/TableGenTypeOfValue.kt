@@ -14,7 +14,8 @@ import kotlin.math.abs
 private suspend fun typeOf(node: TableGenValueNode?): TableGenType = node?.type() ?: TableGenUnknownType
 
 /**
- * Requests the types of all [nodes] in parallel.
+ * Requests the types of all [nodes] at once: none depends on another, so they are computed in parallel where the
+ * dispatcher has the threads for it.
  */
 private suspend fun typesOf(nodes: List<TableGenValueNode?>): List<TableGenType> = coroutineScope {
     nodes.map { async { it?.type() ?: TableGenUnknownType } }.awaitAll()
