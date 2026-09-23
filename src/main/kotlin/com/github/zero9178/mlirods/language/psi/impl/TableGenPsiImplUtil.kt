@@ -71,6 +71,11 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
+        fun getReference(element: TableGenMultiClassRef): PsiReference? {
+            return TableGenMultiClassReference(element)
+        }
+
+        @JvmStatic
         fun getClassName(element: TableGenAbstractClassRef): String {
             return element.classIdentifier.text
         }

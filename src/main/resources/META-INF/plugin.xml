@@ -64,6 +64,9 @@
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenClassTypeNodeManipulator"/>
         <lang.elementManipulator
+                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenMultiClassRef"
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenMultiClassRefManipulator"/>
+        <lang.elementManipulator
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenLetBodyItemManipulator"/>
         <lang.elementManipulator
@@ -78,6 +81,7 @@
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllIdentifiersIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllClassesIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenMulticlassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenMayDeriveClassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefineIndex"/>
         <fileBasedIndex implementation="com.github.zero9178.mlirods.index.TableGenIncludeIndex"/>

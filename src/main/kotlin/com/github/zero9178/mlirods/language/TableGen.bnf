@@ -306,11 +306,17 @@ fake abstract_class_ref ::= IDENTIFIER class_ref_suffix? {
 multi_class_ref ::= IDENTIFIER class_ref_suffix? {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenMultiClassRefEx"
     ]
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
+
+        toString
+        getReference
     ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMultiClassRefStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMultiClassRefStubElementType"
 }
 
 class_ref ::= IDENTIFIER class_ref_suffix? {
@@ -409,7 +415,19 @@ def_statement ::= 'def' object_name? record_body {
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenDefStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStubElementType"
 }
-defm_statement ::= 'defm' object_name? <<parent_class_list multi_class_ref>>? ';' {pin=1}
+defm_statement ::= 'defm' object_name? <<parent_class_list multi_class_ref>>? ';' {
+    pin=1
+    implements=[
+        // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
+        "com.intellij.psi.PsiElement"
+        scope_item
+    ]
+    methods=[
+        toString
+    ]
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefmStatementStub"
+    elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefmStatementStubElementType"
+}
 defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {pin=1}
 deftype_statement ::= 'deftype' IDENTIFIER '=' type_node ';' {pin=1}
 defvar_statement ::= 'defvar' IDENTIFIER '=' value_node ';' {
@@ -539,7 +557,7 @@ multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_cla
         "com.intellij.psi.PsiNameIdentifierOwner"
     ]
     pin=1
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMulticlassStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenMulticlassStatementMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMulticlassStatementStubElementType"
 }

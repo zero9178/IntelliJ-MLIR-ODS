@@ -5,7 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStat
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode
 import com.github.zero9178.mlirods.language.psi.createIdentifier
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenMulticlassStatementStub
 import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
@@ -13,20 +13,20 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.util.resettableLazy
 
-abstract class TableGenMulticlassStatementMixin : StubBasedPsiElementBase<TableGenStatementStub>,
+abstract class TableGenMulticlassStatementMixin : StubBasedPsiElementBase<TableGenMulticlassStatementStub>,
     TableGenMulticlassStatement {
 
     constructor(node: ASTNode) : super(node)
 
-    constructor(stub: TableGenStatementStub, stubType: IStubElementType<*, *>) : super(stub, stubType)
+    constructor(stub: TableGenMulticlassStatementStub, stubType: IStubElementType<*, *>) : super(stub, stubType)
 
     override fun toString(): String = TableGenPsiImplUtil.toString(this)
 
-    /**
-     * The name of a multiclass is not stubbed as multiclasses live in a namespace of their own that is not part of
-     * any id map. It is therefore never required during resolution, only for presentation.
-     */
-    override fun getName(): String? = identifier?.text
+    override fun getName(): String? {
+        greenStub?.let { return it.name }
+
+        return identifier?.text
+    }
 
     override fun getNameIdentifier(): PsiElement? = identifier
 

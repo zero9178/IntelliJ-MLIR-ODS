@@ -492,14 +492,126 @@ class ReferenceTest : BasePlatformTestCase() {
     }
 
     fun `test ParentMultiClassListResolution`() {
-        val name = getTestName(false).trim()
-        val mainVF = myFixture.copyFileToProject("${name}.td")
-        myFixture.configureFromExistingVirtualFile(mainVF)
-
-        // For now ensure that the multiclass ref does not find a class statement.
-        // Multi class reference will be implemented later.
-        assertNull(myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve())
+        // The first name of a 'defm' refers to a multiclass, even if a class of the same name is visible.
+        val element = doTest<TableGenMulticlassStatement>()
+        assertEquals("F", element.name)
     }
+
+    fun `test defm name following a multiclass resolves to multiclass`() {
+        val element = doTestInline<TableGenMulticlassStatement>(
+            """
+            multiclass M { def a; }
+            multiclass N { def b; }
+            defm d : M, <caret>N;
+        """.trimIndent()
+        )
+        assertEquals("N", element.name)
+    }
+
+    fun `test defm name following a multiclass resolves to class of the same name`() {
+        // A name following the first one refers to a class if there is a class of that name, even if there is a
+        // multiclass of the same name as well.
+        val element = doTestInline<TableGenClassStatement>(
+            """
+            multiclass M { def a; }
+            class N;
+            multiclass N { def b; }
+            defm d : M, <caret>N;
+        """.trimIndent()
+        )
+        assertEquals("N", element.name)
+    }
+
+    fun `test defm names following a class refer to classes`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                multiclass M { def a; }
+                class C;
+                multiclass N { def b; }
+                defm d : M, C, <caret>N;
+            """
+        )
+    )
+
+    fun `test defm name only refers to class preceding it`() {
+        val element = doTestInline<TableGenMulticlassStatement>(
+            """
+            multiclass M { def a; }
+            multiclass N { def b; }
+            defm d : M, <caret>N;
+            class N;
+        """.trimIndent()
+        )
+        assertEquals("N", element.name)
+    }
+
+    fun `test multiclass parent resolves to multiclass despite class of the same name`() {
+        // Unlike in a 'defm', every name of a 'multiclass' statement refers to a multiclass.
+        val element = doTestInline<TableGenMulticlassStatement>(
+            """
+            multiclass M { def a; }
+            class C;
+            multiclass C { def c; }
+            multiclass N : M, <caret>C;
+        """.trimIndent()
+        )
+        assertEquals("C", element.name)
+    }
+
+    fun `test defm in multiclass resolves to multiclass`() {
+        val element = doTestInline<TableGenMulticlassStatement>(
+            """
+            multiclass M { def a; }
+            multiclass N {
+                defm b : <caret>M;
+            }
+        """.trimIndent()
+        )
+        assertEquals("M", element.name)
+    }
+
+    fun `test multiclass after reference`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                defm d : <caret>M;
+                multiclass M { def a; }
+            """
+        )
+    )
+
+    fun `test multiclass of include before reference`() = assertResolvesToFile(
+        "a.td", resolveAcrossFiles(
+            "a.td" to "multiclass M { def a; }",
+            "root.td" to """
+                include "a.td"
+                defm d : <caret>M;
+            """
+        )
+    )
+
+    fun `test multiclass of include after reference`() = assertNull(
+        resolveAcrossFiles(
+            "a.td" to "multiclass M { def a; }",
+            "root.td" to """
+                defm d : <caret>M;
+                include "a.td"
+            """
+        )
+    )
+
+    fun `test multiclass defined twice resolves to the last definition`() = assertResolvesToFile(
+        // TableGen rejects every definition of a multiclass following the first one, but the one closest to the
+        // reference is the one more likely to be meant.
+        "b.td", resolveAcrossFiles(
+            "a.td" to "multiclass M { def a; }",
+            "b.td" to "multiclass M { def b; }",
+            "root.td" to """
+                include "a.td"
+                include "b.td"
+                defm d : <caret>M;
+            """
+        )
+    )
 
     fun `test in let statement`() {
         val statement = doTestInline<TableGenDefStatement>(
