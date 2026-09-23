@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.psi.impl
 import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
@@ -16,6 +17,7 @@ import com.github.zero9178.mlirods.language.types.computeTypeOf
 import com.github.zero9178.mlirods.language.types.typeOfAtomic
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
+import com.github.zero9178.mlirods.language.values.TableGenUndefValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
@@ -113,10 +115,15 @@ class TableGenEvaluationContext private constructor(
         else -> "context of $source in $compilationContext"
     }
 
-    private suspend fun evaluateFieldAssignments(record: TableGenRecord?, fieldName: String) =
+    private suspend fun evaluateFieldAssignments(record: TableGenRecord?, fieldName: String): TableGenValue {
         // TODO: Implement append and prepend semantics.
-        record?.allFieldAssignments(compilationContext)[fieldName]?.lastOrNull()?.assignedValueNode?.evaluate(this)
-            ?: TableGenUnknownValue
+        val assignment = record?.allFieldAssignments(compilationContext)[fieldName]?.lastOrNull()
+            ?: return TableGenUnknownValue
+        val valueNode = assignment.assignedValueNode
+            // Like in TableGen, a field declared without a value is '?', even if it redefines an inherited field.
+            ?: return if (assignment is TableGenFieldBodyItem) TableGenUndefValue else TableGenUnknownValue
+        return valueNode.evaluate(this)
+    }
 }
 
 /**
