@@ -86,6 +86,12 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
+        fun getClassName(element: TableGenClassInstantiationValueNode): String {
+            return element.stub?.className
+                ?: getClassName(element as TableGenAbstractClassRef)
+        }
+
+        @JvmStatic
         fun getClassName(element: TableGenClassTypeNode): String {
             return element.stub?.className
                 ?: getClassName(element as TableGenAbstractClassRef)

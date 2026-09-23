@@ -872,6 +872,7 @@ identifier_value_node ::= IDENTIFIER {
 class_instantiation_value_node ::= IDENTIFIER '<' arg_value_list? '>' {
     pin=2
     implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenClassInstantiationValueNodeEx"
         "com.github.zero9178.mlirods.language.psi.TableGenAngledFoldingElement"
         abstract_class_ref
     ]
@@ -882,7 +883,9 @@ class_instantiation_value_node ::= IDENTIFIER '<' arg_value_list? '>' {
 
         getClassName
         getReference
+        toString
     ]
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenClassInstantiationValueNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenClassInstantiationValueNodeStubElementType"
 }
 // Note: This is a simplification from the official syntax that is easier to parse.
