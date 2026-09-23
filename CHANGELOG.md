@@ -17,6 +17,8 @@
   find usages and renaming of multiclasses. As in TableGen, a name only refers to a multiclass preceding it once all
   `include` directives are pasted in. The names of a `defm` refer to classes instead, starting with the first name
   after the first one that names a class. Names that refer to nothing are reported as an error.
+- The parameter info popup now shows the template arguments of the multiclass or class a name in the parent list of a
+  `defm` or `multiclass` statement refers to.
 
 ### Changed
 
