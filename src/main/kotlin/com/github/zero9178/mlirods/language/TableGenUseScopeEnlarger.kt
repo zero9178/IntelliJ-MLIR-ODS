@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefineDirective
+import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
@@ -22,7 +23,8 @@ import com.intellij.psi.search.UseScopeEnlarger
  */
 internal class TableGenUseScopeEnlarger : UseScopeEnlarger() {
     override fun getAdditionalUseScope(element: PsiElement): SearchScope? = when (element) {
-        is TableGenClassStatement, is TableGenIdentifierElement, is TableGenDefineDirective ->
+        is TableGenClassStatement, is TableGenMulticlassStatement, is TableGenIdentifierElement,
+        is TableGenDefineDirective ->
             GlobalSearchScope.getScopeRestrictedByFileTypes(
                 GlobalSearchScope.allScope(element.project), TableGenFileType.INSTANCE
             )

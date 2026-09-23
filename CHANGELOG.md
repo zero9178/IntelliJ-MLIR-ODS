@@ -11,6 +11,10 @@
 - Fields of a `def` defined in terms of each other, e.g. `int g = f; let f = g;`, are reported as an error.
 - A class statement following a definition of the same class, be it in the same file or a file included before, is
   reported as an error. A quick fix navigates to the closest such definition.
+- The names in the parent list of `defm` and `multiclass` statements now refer to multiclasses, enabling navigation,
+  find usages and renaming of multiclasses. As in TableGen, a name only refers to a multiclass preceding it once all
+  `include` directives are pasted in. The names of a `defm` refer to classes instead, starting with the first name
+  after the first one that names a class.
 
 ### Changed
 

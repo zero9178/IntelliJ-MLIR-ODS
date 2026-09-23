@@ -1,15 +1,15 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefmStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIfBody
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIfStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
+import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefmStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenForeachStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIfBodyImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenIfStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenLetStatementImpl
-import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenMulticlassStatementImpl
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.intellij.psi.PsiElement
@@ -56,7 +56,21 @@ class TableGenLetStatementStubElementType(debugName: String) :
         debugName, ::TableGenLetStatementImpl
     )
 
-class TableGenMulticlassStatementStubElementType(debugName: String) :
-    TableGenAbstractStatementStubElementType<TableGenMulticlassStatement>(
-        debugName, ::TableGenMulticlassStatementImpl
-    )
+/**
+ * Stub interface for [TableGenDefmStatement].
+ */
+sealed interface TableGenDefmStatementStub : StubElement<TableGenDefmStatement>
+
+private class TableGenDefmStatementStubImpl(
+    parent: StubElement<out PsiElement>?,
+    elementType: IStubElementType<*, *>,
+) : StubBase<TableGenDefmStatement>(
+    parent, elementType
+), TableGenDefmStatementStub
+
+class TableGenDefmStatementStubElementType(debugName: String) :
+    TableGenSingletonStubElementType<TableGenDefmStatementStub, TableGenDefmStatement>(
+        debugName, ::TableGenDefmStatementImpl, ::TableGenDefmStatementStubImpl
+    ) {
+    override fun isAlwaysLeaf(root: StubBase<*>) = false
+}

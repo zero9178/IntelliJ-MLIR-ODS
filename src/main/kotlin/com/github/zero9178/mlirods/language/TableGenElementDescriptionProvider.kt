@@ -32,6 +32,7 @@ internal class TableGenElementDescriptionProvider : ElementDescriptionProvider {
             is TableGenDefStatement -> "record"
             is TableGenDefvarStatement -> "variable"
             is TableGenClassStatement -> "class"
+            is TableGenMulticlassStatement -> "multiclass"
             is TableGenDefineDirective -> "macro"
             is TableGenBangOperatorDefinition -> {
                 when (val parent = element.parent) {

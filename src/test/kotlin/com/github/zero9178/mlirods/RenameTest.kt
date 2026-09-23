@@ -103,6 +103,31 @@ class RenameTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test rename multiclass`() {
+        // Renaming a multiclass must update the names referring to it via the manipulator, leaving their arguments be.
+        doTestInline(
+            "P",
+            """
+            multiclass <caret>M<int i> {
+                def a;
+            }
+
+            multiclass N : M<0>;
+
+            defm d : M<1>;
+        """.trimIndent(),
+            """
+            multiclass P<int i> {
+                def a;
+            }
+
+            multiclass N : P<0>;
+
+            defm d : P<1>;
+        """.trimIndent()
+        )
+    }
+
     private fun doTestInline(newName: String, source: String, expected: String) {
         val mainVF = myFixture.createFile("test.td", source)
         installCompileCommands(

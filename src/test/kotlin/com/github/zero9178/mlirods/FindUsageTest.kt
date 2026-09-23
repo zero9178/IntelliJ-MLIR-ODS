@@ -28,6 +28,19 @@ class FindUsageTest : BasePlatformTestCase() {
             })
     }
 
+    fun `test multiclass`() {
+        val actual = myFixture.testFindUsagesUsingAction("Multiclass.td").filterIsInstance<PsiElementUsage>()
+        assertUnorderedCollection(
+            actual, {
+                val element = assertInstanceOf<TableGenMultiClassRef>(it.element)
+                assertInstanceOf<TableGenMulticlassStatement>(element.parent)
+            },
+            {
+                val element = assertInstanceOf<TableGenMultiClassRef>(it.element)
+                assertInstanceOf<TableGenDefmStatement>(element.parent)
+            })
+    }
+
     fun `test def`() {
         val actual = myFixture.testFindUsagesUsingAction("Def.td").filterIsInstance<PsiElementUsage>()
         assertUnorderedCollection(
