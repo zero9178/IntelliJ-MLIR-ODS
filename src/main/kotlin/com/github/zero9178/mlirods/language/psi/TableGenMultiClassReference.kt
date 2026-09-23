@@ -42,7 +42,7 @@ private fun findVisibleMulticlass(name: String, element: PsiElement): TableGenMu
  * as does every name of a 'multiclass' statement.
  */
 @RequiresReadLock
-private fun refersToClass(ref: TableGenMultiClassRef): Boolean {
+fun refersToClass(ref: TableGenMultiClassRef): Boolean {
     val defm = ref.parent as? TableGenDefmStatement ?: return false
 
     val names = defm.multiClassRefList

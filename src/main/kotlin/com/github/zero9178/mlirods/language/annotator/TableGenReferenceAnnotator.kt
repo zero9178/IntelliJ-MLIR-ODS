@@ -4,7 +4,10 @@ import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
+import com.github.zero9178.mlirods.language.generated.psi.TableGenMultiClassRef
 import com.github.zero9178.mlirods.language.psi.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenMultiClassReference
+import com.github.zero9178.mlirods.language.psi.refersToClass
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.intellij.lang.annotation.AnnotationHolder
@@ -38,6 +41,21 @@ private fun checkClassReference(element: TableGenAbstractClassRef, holder: Annot
 }
 
 /**
+ * Flags a name in the parent list of a 'defm' or 'multiclass' statement that does not resolve to anything. The name is
+ * reported as an unresolved class if it is one of the trailing class names of a 'defm', and as an unresolved
+ * multiclass otherwise.
+ */
+private fun checkMultiClassReference(element: TableGenMultiClassRef, holder: AnnotationHolder) {
+    val reference = element.reference as? TableGenMultiClassReference ?: return
+    if (reference.multiResolve(false).isNotEmpty()) return
+
+    val message =
+        if (refersToClass(element)) MyBundle.message("tableGen.reference.unresolvedClass", element.className)
+        else MyBundle.message("tableGen.reference.unresolvedMulticlass", element.className)
+    holder.newAnnotation(HighlightSeverity.ERROR, message).range(element.identifier).create()
+}
+
+/**
  * Flags a field access `x.field` whose left-hand side is a record that does not contain (nor inherit) a field named
  * `field`. Field accesses on a non-record value, or on a record whose class reference is itself unresolved, are left
  * alone: the former is not a reference problem and the latter is already reported as an unresolved class.
@@ -58,6 +76,7 @@ private fun checkFieldAccess(element: TableGenFieldAccessValueNode, holder: Anno
 private val ANNOTATIONS = arrayOf(
     addAnnotationFor { element: TableGenIncludeDirective, holder -> checkInclude(element, holder) },
     addAnnotationFor { element: TableGenAbstractClassRef, holder -> checkClassReference(element, holder) },
+    addAnnotationFor { element: TableGenMultiClassRef, holder -> checkMultiClassReference(element, holder) },
     addAnnotationFor { element: TableGenFieldAccessValueNode, holder -> checkFieldAccess(element, holder) },
 )
 
