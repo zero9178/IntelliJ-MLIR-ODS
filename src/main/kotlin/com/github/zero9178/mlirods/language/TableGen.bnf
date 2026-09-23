@@ -844,6 +844,10 @@ bits_init_value_node ::= '{' <<value_node_list '}' value_node_follows>>? '}' {
 
 list_init_value_node ::= '[' <<value_node_list ']' (value_node_follows | '<')>>? ']' ('<' type_node '>')? {
     pin=1
+    methods=[
+        toString
+    ]
+    mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenListInitValueNodeMixin"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenListInitValueNodeStubElementType"
 }
 

@@ -4,6 +4,8 @@ package com.github.zero9178.mlirods
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
+import com.github.zero9178.mlirods.language.types.TableGenIntType
+import com.github.zero9178.mlirods.language.types.TableGenStringType
 import com.github.zero9178.mlirods.language.values.*
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
@@ -392,6 +394,50 @@ class ValueComputationTest : BasePlatformTestCase() {
         def D : C<5>;
         defvar v = D.z;
     """.trimIndent(), TableGenIntegerValue(5)
+    )
+
+    fun `test list init`() = doTest(
+        """
+        defvar v = [1, 2];
+    """.trimIndent(), TableGenListValue(listOf(TableGenIntegerValue(1), TableGenIntegerValue(2)), TableGenIntType)
+    )
+
+    fun `test list init with explicit element type`() = doTest(
+        """
+        defvar v = []<string>;
+    """.trimIndent(), TableGenListValue(emptyList(), TableGenStringType)
+    )
+
+    fun `test list init with undef element`() = doTest(
+        """
+        defvar v = [?, 1];
+    """.trimIndent(), TableGenListValue(listOf(TableGenUndefValue, TableGenIntegerValue(1)), TableGenIntType)
+    )
+
+    fun `test list init keeps unknown elements`() = doTest(
+        """
+        defvar v = [0b10, 1];
+    """.trimIndent(), TableGenListValue(listOf(TableGenUnknownValue, TableGenIntegerValue(1)), TableGenIntType)
+    )
+
+    fun `test list init yields common element type`() = doTest(
+        """
+        class Foo;
+        class Derived : Foo;
+        defvar v = [Derived<>, Derived<>];
+    """.trimIndent()
+    ) {
+        assertEquals("list<Derived>", it.type.toString())
+    }
+
+    fun `test list init element evaluated with template argument`() = doTest(
+        """
+        class C<int x> {
+            list<int> l = [x, 2];
+        }
+        def D : C<1>;
+        defvar v = D.l;
+    """.trimIndent(), TableGenListValue(listOf(TableGenIntegerValue(1), TableGenIntegerValue(2)), TableGenIntType)
     )
 
     fun `test cyclic field reference within record`() {
