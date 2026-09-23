@@ -1,14 +1,9 @@
 package com.github.zero9178.mlirods.language.values
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
-import com.github.zero9178.mlirods.language.types.TableGenIntType
-import com.github.zero9178.mlirods.language.types.TableGenRecordType
-import com.github.zero9178.mlirods.language.types.TableGenStringType
-import com.github.zero9178.mlirods.language.types.TableGenType
-import com.github.zero9178.mlirods.language.types.TableGenUndefType
-import com.github.zero9178.mlirods.language.types.TableGenUnknownType
-import com.intellij.psi.util.CachedValuesManager
+import com.github.zero9178.mlirods.language.types.*
 
 /**
  * Base class for all possible TableGen values.
@@ -37,24 +32,34 @@ data class TableGenStringValue(val value: String) : TableGenValue {
 }
 
 /**
- * A reference to a record ('def') instance, exposing its fields for further evaluation.
+ * A record, exposing its fields for further evaluation. Either a 'def' or the anonymous record created by a class
+ * instantiation.
  */
-class TableGenRecordValue(private val myStatement: TableGenDefStatement) : TableGenValue {
+class TableGenRecordValue private constructor(
+    private val myContext: TableGenEvaluationContext,
+    override val type: TableGenRecordType,
+) : TableGenValue {
+
+    constructor(defStatement: TableGenDefStatement) : this(
+        TableGenEvaluationContext(defStatement), TableGenRecordType.create(defStatement)
+    )
+
+    /**
+     * The anonymous record created by [instantiation] when evaluated in [context].
+     */
+    constructor(instantiation: TableGenClassInstantiationValueNode, context: TableGenEvaluationContext) : this(
+        TableGenEvaluationContext(instantiation, context), TableGenRecordType.create(instantiation)
+    )
 
     /**
      * Lazily evaluates the fields of the referenced record within its own context.
      */
     inner class FieldValueMap {
-        suspend operator fun get(name: String): TableGenValue {
-            val context = TableGenEvaluationContext(myStatement)
-            return context.evaluateFieldInContext(context, name)
-        }
+        suspend operator fun get(name: String): TableGenValue = myContext.evaluateFieldInContext(myContext, name)
     }
 
     val fields: FieldValueMap
         get() = FieldValueMap()
-
-    override val type = TableGenRecordType.create(myStatement)
 }
 
 /**

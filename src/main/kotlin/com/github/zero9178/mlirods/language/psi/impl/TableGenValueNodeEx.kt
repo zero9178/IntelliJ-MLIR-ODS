@@ -1,12 +1,17 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
-import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.cache.SuspendingCachedValue
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
+import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenBinaryIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
+import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassInstantiationValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
-import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.github.zero9178.mlirods.language.types.computeTypeOf
@@ -53,12 +58,32 @@ class TableGenEvaluationContext private constructor(
     constructor(defStatement: TableGenDefStatement) : this(defStatement, {
         defStatement.allArgToTemplateArgMapping[it]?.evaluate(this) ?: TableGenUnknownValue
     }, { fieldName ->
-        // Fields may be defined in terms of each other (e.g. 'int g = f; let f = g;'). TableGen rejects such cycles,
-        // and so do the cached values: every value on the cycle is unknown, see 'evaluate'.
-        // TODO: Implement append and prepend semantics.
-        defStatement.allFieldAssignments[fieldName]?.lastOrNull()?.assignedValueNode
-            ?.evaluate(this) ?: TableGenUnknownValue
+        evaluateFieldAssignments(defStatement, fieldName)
     })
+
+    /**
+     * Context of the anonymous record created by [instantiation] where it is written, i.e. in [outer]. The arguments of
+     * the instantiation are evaluated in [outer], everything within the instantiated class in this context.
+     */
+    constructor(instantiation: TableGenClassInstantiationValueNode, outer: TableGenEvaluationContext) : this(
+        InstantiationSource(instantiation, outer),
+        { decl ->
+            val argument = instantiation.argValueItemList.firstOrNull { it.referencedTemplateArgDecl == decl }
+            argument?.valueNode?.evaluate(outer)
+                ?: instantiation.referencedClass?.allArgToTemplateArgMapping[decl]?.evaluate(this)
+                ?: TableGenUnknownValue
+        },
+        { fieldName ->
+            evaluateFieldAssignments(instantiation.referencedClass, fieldName)
+        })
+
+    /**
+     * An instantiation yields a different record in every context its arguments may be evaluated in.
+     */
+    private data class InstantiationSource(
+        val instantiation: TableGenClassInstantiationValueNode,
+        val outer: TableGenEvaluationContext,
+    )
 
     override fun equals(other: Any?): Boolean =
         this === other || (other is TableGenEvaluationContext && source == other.source)
@@ -68,8 +93,17 @@ class TableGenEvaluationContext private constructor(
     override fun toString() = when (source) {
         null -> "null context"
         is TableGenDefStatement -> "context of 'def ${source.name}'"
+        // The identity tells apart instantiations of the same class.
+        is InstantiationSource -> with(source.instantiation) {
+            "context of '$className<...>'@${System.identityHashCode(this)} in ${source.outer}"
+        }
+
         else -> "context of $source"
     }
+
+    private suspend fun evaluateFieldAssignments(record: TableGenRecord?, fieldName: String) =
+        // TODO: Implement append and prepend semantics.
+        record?.allFieldAssignments[fieldName]?.lastOrNull()?.assignedValueNode?.evaluate(this) ?: TableGenUnknownValue
 }
 
 /**
@@ -176,6 +210,10 @@ interface TableGenIntegerValueNodeEx : TableGenAtomicValue {
     override fun evaluateAtomic(): TableGenIntegerValue?
 
     val stub: TableGenIntegerValueNodeStub?
+}
+
+interface TableGenClassInstantiationValueNodeEx : TableGenValueNodeEx {
+    val stub: TableGenClassInstantiationValueNodeStub?
 }
 
 /**

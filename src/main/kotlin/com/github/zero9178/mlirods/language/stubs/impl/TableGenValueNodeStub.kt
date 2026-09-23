@@ -323,11 +323,49 @@ private class TableGenIdentifierValueNodeStubImpl(
     parent, elementType
 ), TableGenIdentifierValueNodeStub
 
-// TODO: Needs proper stub.
-class TableGenClassInstantiationValueNodeStubElementType(debugName: String) :
-    TableGenAbstractValueNodeStubElementType<TableGenClassInstantiationValueNode>(
-        debugName, ::TableGenClassInstantiationValueNodeImpl
-    )
+/**
+ * Stub interface for [TableGenClassInstantiationValueNode].
+ */
+interface TableGenClassInstantiationValueNodeStub : TableGenValueNodeStub {
+    val className: String
+}
+
+class TableGenClassInstantiationValueNodeStubElementType(
+    debugName: String
+) : TableGenStubElementType<TableGenClassInstantiationValueNodeStub, TableGenClassInstantiationValueNode>(
+    debugName, ::TableGenClassInstantiationValueNodeImpl,
+) {
+    override fun createStub(
+        psi: TableGenClassInstantiationValueNode, parentStub: StubElement<out PsiElement?>?
+    ): TableGenClassInstantiationValueNodeStub {
+        return TableGenClassInstantiationValueNodeStubImpl(psi.className, parentStub, this)
+    }
+
+    override fun serialize(
+        stub: TableGenClassInstantiationValueNodeStub, dataStream: StubOutputStream
+    ) {
+        dataStream.writeName(stub.className)
+    }
+
+    override fun deserialize(
+        dataStream: StubInputStream, parentStub: StubElement<*>?
+    ): TableGenClassInstantiationValueNodeStub {
+        return TableGenClassInstantiationValueNodeStubImpl(
+            dataStream.readRequiredName("class instantiation value node"), parentStub, this
+        )
+    }
+
+    // The arguments of the instantiation are stubbed.
+    override fun isAlwaysLeaf(root: StubBase<*>) = false
+}
+
+private class TableGenClassInstantiationValueNodeStubImpl(
+    override val className: String,
+    parent: StubElement<out PsiElement>?,
+    elementType: IStubElementType<*, *>,
+) : StubBase<TableGenValueNode>(
+    parent, elementType
+), TableGenClassInstantiationValueNodeStub
 
 class TableGenForeachOperatorValueNodeStubElementType(debugName: String) :
     TableGenAbstractValueNodeStubElementType<TableGenForeachOperatorValueNode>(

@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatemen
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.values.*
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.assertInstanceOf
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
@@ -202,6 +203,88 @@ class ValueComputationTest : BasePlatformTestCase() {
         defvar v = O.inner.a;
     """.trimIndent(), TableGenIntegerValue(9)
     )
+
+    fun `test class instantiation yields record value`() = doTest(
+        """
+        class C;
+        defvar v = C<>;
+    """.trimIndent()
+    ) {
+        assertEquals("C", assertInstanceOf<TableGenRecordValue>(it).type.toString())
+    }
+
+    fun `test field access on class instantiation`() = doTest(
+        """
+        class C {
+            int a = 5;
+        }
+        defvar v = C<>.a;
+    """.trimIndent(), TableGenIntegerValue(5)
+    )
+
+    fun `test class instantiation field evaluated with template argument`() = doTest(
+        """
+        class C<int x> {
+            int y = x;
+        }
+        defvar v = C<3>.y;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    fun `test class instantiation field evaluated with template argument of base class`() = doTest(
+        """
+        class Base<int x> {
+            int y = x;
+        }
+        class C<int z> : Base<z>;
+        defvar v = C<4>.y;
+    """.trimIndent(), TableGenIntegerValue(4)
+    )
+
+    fun `test class instantiation field overridden by let`() = doTest(
+        """
+        class Base {
+            int a = 1;
+        }
+        class C : Base {
+            let a = 2;
+        }
+        defvar v = C<>.a;
+    """.trimIndent(), TableGenIntegerValue(2)
+    )
+
+    fun `test class instantiation in def field`() = doTest(
+        """
+        class Inner<int x> {
+            int a = x;
+        }
+        def D {
+            Inner inner = Inner<6>;
+        }
+        defvar v = D.inner.a;
+    """.trimIndent(), TableGenIntegerValue(6)
+    )
+
+    // The argument of the instantiation is evaluated where the instantiation is written, i.e. in the context of the
+    // 'def' deriving from the class containing it. Each 'def' yields a record of its own.
+    fun `test class instantiation argument evaluated in outer context`() = doTest(
+        """
+        class Inner<int x> {
+            int a = x;
+        }
+        class Outer<int y> {
+            Inner inner = Inner<y>;
+        }
+        def D1 : Outer<1>;
+        def D2 : Outer<2>;
+        defvar v1 = D1.inner.a;
+        defvar v = D2.inner.a;
+    """.trimIndent()
+    ) {
+        assertEquals(TableGenIntegerValue(2), it)
+        val v1 = PsiTreeUtil.findChildrenOfType(myFixture.file, TableGenDefvarStatement::class.java).first()
+        assertEquals(TableGenIntegerValue(1), v1.valueNode?.evaluateBlocking(TableGenEvaluationContext()))
+    }
 
     fun `test cyclic field reference within record`() {
         doTest(
