@@ -39,6 +39,16 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test list init yields common element type`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            defvar <caret>v = [?, Derived<>, Foo<>];
+        """.trimIndent(), "list<Foo>"
+        )
+    }
+
     fun `test concat`() {
         doTest(
             """
