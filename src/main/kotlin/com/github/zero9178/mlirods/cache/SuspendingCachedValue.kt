@@ -92,12 +92,14 @@ class CyclicCachedValueDependencyException internal constructor(cycle: List<Stri
  *
  * ### Recursion and parallelism
  *
- * A provider is an ordinary coroutine. Requesting another value from it that has to be computed is an ordinary call
- * on the stack of the thread, and recursing deep enough overflows it just like it would without coroutines. What
- * coroutines add is the ability to do something about it where it matters: a provider launching the requests it makes,
- * as in `async { other.await() }`, has them computed from the bottom of the stack of some thread, in parallel if there
- * are several, while it is suspended and lives on the heap. Nothing this class does on top of calling the provider
- * recurses with the depth of such nesting.
+ * A provider is an ordinary coroutine, run in the context of the request computing it: on the dispatcher of the
+ * requesting coroutine, or on the event loop of the thread calling [getBlocking]. Nothing here moves it to another
+ * dispatcher, as which one is right depends on where the request is made from, and a hop per computation costs more
+ * than most computations.
+ *
+ * Regardless of the dispatcher, using `async { other.await() }` continues execution on the bottom of the stack allowing
+ * a worklist like workflow without boilerplate.
+ * Actual parallelism is dependent on the dispatcher.
  *
  * ### Cycles
  *
@@ -226,8 +228,7 @@ class SuspendingCachedValue<T>(
         try {
             this.computation = computation
             val computed = try {
-                // The request may be running anywhere, while a provider wants to be where its coroutines are parallel.
-                val value = withContext(Dispatchers.Default + computation) {
+                val value = withContext(computation) {
                     computation.coroutineContext = coroutineContext
                     computation.provider()
                 }

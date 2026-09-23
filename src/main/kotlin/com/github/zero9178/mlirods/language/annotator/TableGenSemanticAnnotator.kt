@@ -7,11 +7,14 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantia
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.types.TableGenType
+import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.PsiBasedModCommandAction
+import com.intellij.openapi.progress.runBlockingCancellable
 
 /**
  * Validates that the arguments passed to a class reference match its template argument declarations:
@@ -23,13 +26,18 @@ import com.intellij.modcommand.PsiBasedModCommandAction
 private fun checkArguments(element: TableGenAbstractClassRef, holder: AnnotationHolder) {
     val targetClass = element.referencedClass ?: return
 
+    // Entered once per class reference, with the types requested one after the other: almost every argument is a
+    // literal or an identifier, whose type costs less than a coroutine of its own would.
+    val items = element.argValueItemList
+    val valueTypes = runBlockingCancellable { items.map { it.valueNode?.type() ?: TableGenUnknownType } }
+
     // Map each referenced declaration to the arguments assigning a value to it.
     val itemsByDecl = mutableMapOf<TableGenTemplateArgDecl, MutableList<TableGenArgValueItem>>()
-    for (item in element.argValueItemList) {
+    for ((item, valueType) in items.zip(valueTypes)) {
         val decl = item.referencedTemplateArgDecl
         if (decl != null) {
             itemsByDecl.getOrPut(decl) { mutableListOf() }.add(item)
-            checkArgumentType(item, decl, holder)
+            checkArgumentType(item, valueType, decl, holder)
             continue
         }
 
@@ -66,16 +74,15 @@ private fun checkArguments(element: TableGenAbstractClassRef, holder: Annotation
 }
 
 /**
- * Flags an argument [item] whose value is of a type that cannot be assigned to its resolved template argument
- * declaration [decl]. Mirroring TableGen, the check uses type convertibility; if either type is unknown (or otherwise
+ * Flags an argument [item] whose value is of [valueType], a type that cannot be assigned to its resolved template
+ * argument declaration [decl]. Mirroring TableGen, the check uses type convertibility; if either type is unknown (or otherwise
  * indeterminate) no error is reported.
  */
 private fun checkArgumentType(
-    item: TableGenArgValueItem, decl: TableGenTemplateArgDecl, holder: AnnotationHolder
+    item: TableGenArgValueItem, valueType: TableGenType, decl: TableGenTemplateArgDecl, holder: AnnotationHolder
 ) {
     val valueNode = item.valueNode ?: return
     val declaredType = decl.typeNode.toType()
-    val valueType = valueNode.type
 
     // Only report a definite mismatch; an indeterminate result (null) leaves the argument alone.
     if (valueType.isConvertibleTo(declaredType) != false) return

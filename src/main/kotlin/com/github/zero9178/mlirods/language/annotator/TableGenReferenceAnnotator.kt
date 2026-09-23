@@ -46,7 +46,7 @@ private fun checkFieldAccess(element: TableGenFieldAccessValueNode, holder: Anno
     val fieldIdentifier = element.fieldIdentifier ?: return
     val fieldName = element.fieldName ?: return
 
-    val type = element.valueNode.type as? TableGenRecordType ?: return
+    val type = element.valueNode.typeBlocking() as? TableGenRecordType ?: return
     val record = type.record ?: return
     if (record.fields[fieldName] != null) return
 

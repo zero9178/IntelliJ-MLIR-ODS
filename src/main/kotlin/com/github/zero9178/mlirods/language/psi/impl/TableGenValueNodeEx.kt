@@ -8,6 +8,7 @@ import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeS
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
 import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.types.TableGenType
+import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.github.zero9178.mlirods.language.types.computeTypeOf
 import com.github.zero9178.mlirods.language.types.typeOfAtomic
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
@@ -15,7 +16,6 @@ import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
 import com.github.zero9178.mlirods.model.dependsOnProjectContext
-import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -73,6 +73,12 @@ class TableGenEvaluationContext private constructor(
 }
 
 /**
+ * The cached type of [element], see [TableGenValueNodeEx.type].
+ */
+private fun cachedTypeOf(element: TableGenValueNodeEx): SuspendingCachedValue<TableGenType> =
+    projectContextDependentSuspendingCachedValue(element, onCycle = { TableGenUnknownType }) { computeTypeOf(it) }
+
+/**
  * The cached values of [element], one per context it was evaluated in so far. The map is what is dropped when anything
  * changes, and with it the contexts, which would otherwise keep the PSI they originate from alive.
  */
@@ -102,10 +108,18 @@ interface TableGenValueNodeEx : PsiElement {
     fun <R> accept(visitor: TableGenVisitor<R>): R
 
     /**
-     * Returns the type of this TableGen expression.
+     * Returns the type of this TableGen expression. A type that depends on itself is unknown.
+     *
+     * Like [evaluate], this is for code that is a coroutine, with [typeBlocking] for everything else.
      */
-    val type: TableGenType
-        get() = getProjectContextDependentCache(this) { computeTypeOf(it) }
+    suspend fun type(): TableGenType = cachedTypeOf(this).await()
+
+    /**
+     * [type] for callers that cannot suspend, see [evaluateBlocking].
+     */
+    @RequiresReadLock
+    @RequiresBlockingContext
+    fun typeBlocking(): TableGenType = cachedTypeOf(this).getBlocking()
 
     /**
      * Performs constant evaluation of this value within the given context. A value that depends on itself is unknown.
@@ -140,9 +154,10 @@ interface TableGenValueNodeEx : PsiElement {
 interface TableGenAtomicValue : TableGenValueNodeEx {
     fun evaluateAtomic(): TableGenValue?
 
-    override val type: TableGenType
-        // No need to cache for atomics.
-        get() = typeOfAtomic(this)
+    // No need to cache for atomics.
+    override suspend fun type(): TableGenType = typeOfAtomic(this)
+
+    override fun typeBlocking(): TableGenType = typeOfAtomic(this)
 
     /**
      * Atomic values do not depend on the [context] and are cheap to compute from their PSI subtree, so [evaluate]

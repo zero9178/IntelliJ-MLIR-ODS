@@ -476,10 +476,22 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    // Every type is computed from the previous one. Requests are launched rather than called, making the depth a
+    // matter of the heap rather than the stack.
+    fun `test deep chain of types does not overflow the stack`() {
+        doTest(
+            buildString {
+                appendLine("defvar v0 = [1];")
+                for (i in 1..<5_000) appendLine("defvar v$i = v${i - 1};")
+                appendLine("defvar <caret>v = v4999;")
+            }.trim(), TableGenListType(TableGenIntType)
+        )
+    }
+
     private fun typeAtCaret(source: String): TableGenType? {
         myFixture.configureByText("test.td", source)
         val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))
-        return statement.valueNode?.type
+        return statement.valueNode?.typeBlocking()
     }
 
     fun doTest(source: String, expectedType: TableGenType) {
