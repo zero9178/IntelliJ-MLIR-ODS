@@ -106,23 +106,34 @@ class EditorTest : BasePlatformTestCase() {
         myFixture.checkResult("class Foo<><caret>")
     }
 
-    fun `test angle bracket shows parameter info of class`() {
-        myFixture.configureByText(
-            "test.td", """
-            class Foo<int x, string y>;
-            def : Foo<caret>
-        """.trimIndent()
-        )
-        myFixture.type('<')
-        myFixture.checkResult(
-            """
-            class Foo<int x, string y>;
-            def : Foo<<caret>>
-        """.trimIndent()
-        )
-        waitForParameterInfo()
-        assertEquals("<html><b>int x</b>, string y</html>", currentHintText())
-    }
+    fun `test angle bracket shows parameter info of class`() = doTestParameterInfo(
+        """
+        class Foo<int x, string y>;
+        def : Foo<caret>
+    """.trimIndent(), "<html><b>int x</b>, string y</html>"
+    )
+
+    fun `test angle bracket shows parameter info of multiclass in defm`() = doTestParameterInfo(
+        """
+        multiclass Foo<int x, string y> { def a; }
+        defm : Foo<caret>
+    """.trimIndent(), "<html><b>int x</b>, string y</html>"
+    )
+
+    fun `test angle bracket shows parameter info of class in defm`() = doTestParameterInfo(
+        """
+        multiclass M { def a; }
+        class Foo<int x, string y>;
+        defm : M, Foo<caret>
+    """.trimIndent(), "<html><b>int x</b>, string y</html>"
+    )
+
+    fun `test angle bracket shows parameter info of multiclass in multiclass`() = doTestParameterInfo(
+        """
+        multiclass Foo<int x, string y> { def a; }
+        multiclass Bar : Foo<caret>
+    """.trimIndent(), "<html><b>int x</b>, string y</html>"
+    )
 
     fun `test deleting angle bracket deletes its pair`() = doTestBackspace(
         "class Foo<<caret>>", "class Foo<caret>"
@@ -146,6 +157,16 @@ class EditorTest : BasePlatformTestCase() {
         myFixture.configureByText("test.td", source)
         myFixture.performEditorAction(IdeActions.ACTION_EDITOR_BACKSPACE)
         myFixture.checkResult(expected)
+    }
+
+    /**
+     * Types a '<' at the caret in [source], which must pair it with a '>', and checks that the parameter info popup
+     * shows [expectedHint].
+     */
+    private fun doTestParameterInfo(source: String, expectedHint: String) {
+        doTestTyping(source, '<', source.replace("<caret>", "<<caret>>"))
+        waitForParameterInfo()
+        assertEquals(expectedHint, currentHintText())
     }
 
     /**
