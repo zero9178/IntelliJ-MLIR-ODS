@@ -14,7 +14,7 @@
 - The names in the parent list of `defm` and `multiclass` statements now refer to multiclasses, enabling navigation,
   find usages and renaming of multiclasses. As in TableGen, a name only refers to a multiclass preceding it once all
   `include` directives are pasted in. The names of a `defm` refer to classes instead, starting with the first name
-  after the first one that names a class.
+  after the first one that names a class. Names that refer to nothing are reported as an error.
 
 ### Changed
 

@@ -89,6 +89,86 @@ class TableGenReferenceAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
+    fun `test unresolved multiclass is flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            defm d : <error descr="Cannot resolve multiclass 'Missing'">Missing</error>;
+            multiclass N : <error descr="Cannot resolve multiclass 'Missing'">Missing</error>;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test resolved multiclass and class are not flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            multiclass M { def a; }
+            class C;
+            defm d : M, C;
+            multiclass N : M;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test unresolved name of a defm is flagged as multiclass or class depending on its position`() {
+        // The names of a 'defm' refer to classes starting with the first name after the first one that names a class.
+        val main = myFixture.configureByText(
+            "test.td", """
+            multiclass M { def a; }
+            class C;
+            defm d : M, <error descr="Cannot resolve multiclass 'Missing'">Missing</error>, C, <error descr="Cannot resolve class 'Missing'">Missing</error>;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test class as first name of a defm is flagged`() {
+        // The first name of a 'defm' always refers to a multiclass.
+        val main = myFixture.configureByText(
+            "test.td", """
+            class C;
+            defm d : <error descr="Cannot resolve multiclass 'C'">C</error>;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test multiclass following the reference is flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            defm d : <error descr="Cannot resolve multiclass 'M'">M</error>;
+            multiclass M { def a; }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test unresolved multiclass without a context is suppressed`() {
+        // Without a context, references cannot be resolved, so the annotator does not run there.
+        myFixture.configureByText(
+            "test.td", """
+            defm d : Missing;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
     fun `test access to a non-existent field is flagged`() {
         val main = myFixture.configureByText(
             "test.td", """
