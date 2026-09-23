@@ -18,7 +18,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 /**
  * Returns the multiclass called [name] that is visible from [element], i.e. precedes it once every 'include' directive
- * is pasted in.
+ * is pasted in. [element] itself is never the result.
  *
  * A multiclass cannot be defined more than once: TableGen rejects every definition following the first one. The last
  * definition, i.e. the one closest to [element], is returned nonetheless, as it is the one more likely to be meant.
@@ -26,12 +26,13 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
  * Does not require the syntax tree of any file.
  */
 @RequiresReadLock
-private fun findVisibleMulticlass(name: String, element: PsiElement): TableGenMulticlassStatement? {
-    if (DumbService.isDumb(element.project)) throw IndexNotReadyException.create()
+fun findVisibleMulticlass(name: String, element: PsiElement): TableGenMulticlassStatement? =
+    getProjectContextDependentCache(element, name) {
+        if (DumbService.isDumb(it.project)) throw IndexNotReadyException.create()
 
-    val visibility = TableGenVisibility(element)
-    return MULTICLASS_INDEX.getVisibleElements(name, visibility).maxWithOrNull(visibility.textOrder)
-}
+        val visibility = TableGenVisibility(it)
+        MULTICLASS_INDEX.getVisibleElements(name, visibility).maxWithOrNull(visibility.textOrder)
+    }
 
 /**
  * Returns true if [ref] refers to a class rather than a multiclass.
@@ -70,14 +71,10 @@ class TableGenMultiClassReference(element: TableGenMultiClassRef) :
     }
 
     @RequiresReadLock
-    override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
-        getProjectContextDependentCache(element) {
-            disallowTreeLoading {
-                val name = it.className
-                val targets: List<PsiElement> =
-                    if (refersToClass(it)) TableGenClassReference.findVisibleClasses(name, it)
-                    else listOfNotNull(findVisibleMulticlass(name, it))
-                targets.map(::PsiElementResolveResult).toTypedArray()
-            }
-        }
+    override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> = disallowTreeLoading {
+        val targets: List<PsiElement> =
+            if (refersToClass(element)) TableGenClassReference.findVisibleClasses(element.className, element)
+            else listOfNotNull(findVisibleMulticlass(element.className, element))
+        targets.map(::PsiElementResolveResult).toTypedArray()
+    }
 }

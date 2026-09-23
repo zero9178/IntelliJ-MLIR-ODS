@@ -9,6 +9,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.ParameterizedCachedValue
@@ -20,6 +21,21 @@ import java.util.concurrent.ConcurrentHashMap
  * how [CachedValuesManager.getProjectPsiDependentCache] derives its key from the provider class.
  */
 private val keyForProviderClass = ConcurrentHashMap<Class<*>, Key<ParameterizedCachedValue<*, *>>>()
+
+@Suppress("UNCHECKED_CAST")
+private fun <T, P> cacheKeyFor(providerClass: Class<*>): Key<ParameterizedCachedValue<T, P>> =
+    keyForProviderClass.computeIfAbsent(providerClass) {
+        Key.create("TableGenContextDependentCache#${it.name}")
+    } as Key<ParameterizedCachedValue<T, P>>
+
+/**
+ * What everything cached by [getProjectContextDependentCache] depends on: the TableGen PSI and the include graph of
+ * [project].
+ */
+private fun projectContextDependencies(project: Project): Array<Any> = arrayOf(
+    PsiModificationTracker.getInstance(project).forLanguage(TableGenLanguage.INSTANCE),
+    project.service<TableGenIncludeGraphService>().graphChangedModificationTracker,
+)
 
 /**
  * Context-aware replacement for [CachedValuesManager.getProjectPsiDependentCache].
@@ -33,29 +49,46 @@ private val keyForProviderClass = ConcurrentHashMap<Class<*>, Key<ParameterizedC
  * a file (which files it includes, which defines are active, ...), and that context may change without any PSI edit —
  * e.g. because the compile commands changed, or a TableGen file was added or removed. A plain
  * [CachedValuesManager.getProjectPsiDependentCache] would keep serving stale results in those cases.
+ *
+ * Anything whose result depends on more than [element] must use the overload taking a key instead.
  */
-fun <T, P : PsiElement> getProjectContextDependentCache(element: P, provider: (P) -> T): T {
-    @Suppress("UNCHECKED_CAST")
-    val key = keyForProviderClass.computeIfAbsent(provider.javaClass) {
-        Key.create("TableGenContextDependentCache#${it.name}")
-    } as Key<ParameterizedCachedValue<T, P>>
-
-    return CachedValuesManager.getManager(element.project).getParameterizedCachedValue(
+fun <T, P : PsiElement> getProjectContextDependentCache(element: P, provider: (P) -> T): T =
+    CachedValuesManager.getManager(element.project).getParameterizedCachedValue(
         element,
-        key,
+        cacheKeyFor<T, P>(provider.javaClass),
         { param: P ->
-            val service = param.project.service<TableGenIncludeGraphService>()
-            val tableGenPsiTracker =
-                PsiModificationTracker.getInstance(param.project).forLanguage(TableGenLanguage.INSTANCE)
+            CachedValueProvider.Result.create(provider(param), *projectContextDependencies(param.project))
+        },
+        false,
+        element,
+    )
+
+/**
+ * Same as [getProjectContextDependentCache], but for a value that depends on a [key] besides [element]: the value is
+ * cached per [element] and [key], so that a computation for another key neither finds nor overwrites it. Keys must have
+ * value equality, as it is what lets a key obtained anew hit what was cached under an equal one. [provider] is only ever
+ * run for [key] and may therefore capture it.
+ */
+fun <T, P : PsiElement, K : Any> getProjectContextDependentCache(element: P, key: K, provider: (P) -> T): T {
+    val manager = CachedValuesManager.getManager(element.project)
+    val slots = manager.getParameterizedCachedValue(
+        element,
+        cacheKeyFor<ConcurrentHashMap<K, CachedValue<T>>, P>(provider.javaClass),
+        { param: P ->
             CachedValueProvider.Result.create(
-                provider(param),
-                tableGenPsiTracker,
-                service.graphChangedModificationTracker,
+                ConcurrentHashMap<K, CachedValue<T>>(), *projectContextDependencies(param.project)
             )
         },
         false,
         element,
     )
+    // Only the slot is created here, never the value: 'computeIfAbsent' must not re-enter the map, which a computation
+    // reaching the same element and key through a cycle would do.
+    return slots.computeIfAbsent(key) {
+        manager.createCachedValue {
+            CachedValueProvider.Result.create(provider(element), *projectContextDependencies(element.project))
+        }
+    }.value
 }
 
 /**

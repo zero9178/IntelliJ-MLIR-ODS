@@ -513,12 +513,91 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
         assertNavigatesTo("c.td", "C { int a")
     }
 
+    fun `test multiclass defined twice`() {
+        doResolvingTest(
+            """
+            multiclass M { def a; }
+            multiclass <error descr="Multiclass 'M' is already defined">M</error> { def b; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test multiclass without a body is a definition`() {
+        // Unlike a class, a multiclass cannot be declared ahead of its definition.
+        doResolvingTest(
+            """
+            multiclass B { def a; }
+            multiclass M : B;
+            multiclass <error descr="Multiclass 'M' is already defined">M</error> : B;
+        """.trimIndent()
+        )
+    }
+
+    fun `test multiclass and class of the same name`() {
+        doResolvingTest(
+            """
+            class C;
+            multiclass C { def a; }
+            class C { int a = 0; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test multiclass defined by include before`() {
+        myFixture.addFileToProject("m.td", "multiclass M { def a; }")
+        doResolvingTest(
+            """
+            include "m.td"
+            multiclass <error descr="Multiclass 'M' is already defined">M</error> { def b; }
+        """.trimIndent()
+        )
+    }
+
+    fun `test multiclass defined by include after`() {
+        myFixture.addFileToProject("m.td", "multiclass M { def a; }")
+        doResolvingTest(
+            """
+            multiclass M { def b; }
+            include "m.td"
+        """.trimIndent()
+        )
+    }
+
+    fun `test multiclass defined by file not included`() {
+        myFixture.addFileToProject("m.td", "multiclass M { def a; }")
+        doResolvingTest("multiclass M { def b; }")
+    }
+
+    fun `test navigates to the closest multiclass definition in the same file`() {
+        myFixture.addFileToProject("c.td", "multiclass C { def a; }")
+        doResolvingTest(
+            """
+            include "c.td"
+            multiclass <error descr="Multiclass 'C' is already defined">C</error> { def b; }
+            multiclass <error descr="Multiclass 'C' is already defined">C</error> { def c; }
+        """.trimIndent()
+        )
+        assertNavigatesTo("test.td", "C { def b", keyword = "multiclass")
+    }
+
+    fun `test navigates to the closest multiclass definition in an include`() {
+        myFixture.addFileToProject("c.td", "multiclass C { def a; }")
+        doResolvingTest(
+            """
+            multiclass C { def b; }
+            include "c.td"
+            multiclass <error descr="Multiclass 'C' is already defined">C</error> { def c; }
+        """.trimIndent()
+        )
+        assertNavigatesTo("c.td", "C { def a", keyword = "multiclass")
+    }
+
     /**
-     * Asserts that the quick fix of the last class redefinition of the file navigates to the occurrence of [text] within
-     * [file].
+     * Asserts that the quick fix of the last redefinition of `C` by a [keyword] statement navigates to the occurrence of
+     * [text] within [file].
      */
-    private fun assertNavigatesTo(file: String, text: String) {
-        myFixture.editor.caretModel.moveToOffset(myFixture.file.text.lastIndexOf("class C") + "class ".length)
+    private fun assertNavigatesTo(file: String, text: String, keyword: String = "class") {
+        myFixture.editor.caretModel.moveToOffset(myFixture.file.text.lastIndexOf("$keyword C") + "$keyword ".length)
         myFixture.launchAction(myFixture.findSingleIntention("Navigate to previous definition"))
 
         val editor = FileEditorManager.getInstance(project).selectedTextEditor!!

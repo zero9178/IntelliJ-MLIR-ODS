@@ -6,7 +6,9 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.psi.findVisibleMulticlass
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.intellij.lang.annotation.AnnotationHolder
@@ -15,6 +17,7 @@ import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.PsiBasedModCommandAction
 import com.intellij.openapi.progress.runBlockingCancellable
+import com.intellij.psi.PsiNameIdentifierOwner
 
 /**
  * Validates that the arguments passed to a class reference match its template argument declarations:
@@ -96,14 +99,14 @@ private fun checkArgumentType(
 }
 
 /**
- * Navigates to the definition a class statement clashes with.
+ * Navigates to the definition a class or multiclass statement clashes with.
  */
-private class NavigateToPreviousDefinitionFix(definition: TableGenClassStatement) :
-    PsiBasedModCommandAction<TableGenClassStatement>(definition) {
+private class NavigateToPreviousDefinitionFix(definition: PsiNameIdentifierOwner) :
+    PsiBasedModCommandAction<PsiNameIdentifierOwner>(definition) {
 
     override fun getFamilyName() = MyBundle.message("tableGen.syntax.classRedefinition.navigate")
 
-    override fun perform(context: ActionContext, element: TableGenClassStatement): ModCommand =
+    override fun perform(context: ActionContext, element: PsiNameIdentifierOwner): ModCommand =
         ModCommand.select(element.nameIdentifier ?: element)
 }
 
@@ -121,12 +124,28 @@ private fun checkRedefinition(element: TableGenClassStatement, holder: Annotatio
     ).range(identifier).withFix(NavigateToPreviousDefinitionFix(previous)).create()
 }
 
+/**
+ * Flags a multiclass statement if the multiclass has already been defined by a statement preceding it. Unlike a class,
+ * a multiclass cannot be declared: every statement of it defines it, making every statement following the first one an
+ * error in TableGen. The definition reported is the one closest to [element].
+ */
+private fun checkRedefinition(element: TableGenMulticlassStatement, holder: AnnotationHolder) {
+    val identifier = element.nameIdentifier ?: return
+    val name = element.name ?: return
+    val previous = findVisibleMulticlass(name, element) ?: return
+
+    holder.newAnnotation(
+        HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.multiclassRedefinition", name)
+    ).range(identifier).withFix(NavigateToPreviousDefinitionFix(previous)).create()
+}
+
 private val ANNOTATIONS = arrayOf(
     // Only validate arguments for class references in an inheritance list and for class instantiations; other
     // references (such as a class used as a type) do not pass template arguments.
     addAnnotationFor { element: TableGenClassRef, holder -> checkArguments(element, holder) },
     addAnnotationFor { element: TableGenClassInstantiationValueNode, holder -> checkArguments(element, holder) },
     addAnnotationFor { element: TableGenClassStatement, holder -> checkRedefinition(element, holder) },
+    addAnnotationFor { element: TableGenMulticlassStatement, holder -> checkRedefinition(element, holder) },
 )
 
 internal class TableGenSemanticAnnotator : TableGenAnnotator(ANNOTATIONS.asIterable())
