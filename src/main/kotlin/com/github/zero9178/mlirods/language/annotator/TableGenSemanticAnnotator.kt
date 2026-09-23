@@ -32,15 +32,17 @@ private fun checkArguments(
 ) {
     val targetClass = element.referencedClass(context) ?: return
 
-    // Entered once per class reference, with the types requested one after the other: almost every argument is a
-    // literal or an identifier, whose type costs less than a coroutine of its own would.
+    // Entered once per class reference, with the types and declarations requested one after the other: almost every
+    // argument is a literal or an identifier, whose type costs less than a coroutine of its own would.
     val items = element.argValueItemList
-    val valueTypes = runBlockingCancellable { items.map { it.valueNode?.type(context) ?: TableGenUnknownType } }
+    val resolved = runBlockingCancellable {
+        items.map { (it.valueNode?.type(context) ?: TableGenUnknownType) to it.referencedTemplateArgDecl(context) }
+    }
 
     // Map each referenced declaration to the arguments assigning a value to it.
     val itemsByDecl = mutableMapOf<TableGenTemplateArgDecl, MutableList<TableGenArgValueItem>>()
-    for ((item, valueType) in items.zip(valueTypes)) {
-        val decl = item.referencedTemplateArgDecl(context)
+    for ((item, typeAndDecl) in items.zip(resolved)) {
+        val (valueType, decl) = typeAndDecl
         if (decl != null) {
             itemsByDecl.getOrPut(decl) { mutableListOf() }.add(item)
             checkArgumentType(item, valueType, decl, holder, context)

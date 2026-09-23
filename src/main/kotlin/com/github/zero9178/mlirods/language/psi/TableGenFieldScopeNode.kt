@@ -8,6 +8,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiElement
 import com.intellij.util.concurrency.annotations.RequiresReadLock
@@ -168,38 +169,40 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * what the same class reference binds it to.
      */
     @RequiresReadLock
-    fun directArgToTemplateArgMapping(
+    suspend fun directArgToTemplateArgMapping(
         context: TableGenCompilationContext,
-    ): Map<TableGenTemplateArgDecl, TableGenValueNode> =
-        getProjectContextDependentCache(this, context) {
-            baseClassRefs.flatMap { ref ->
-                val defaults = ref.referencedClass(context)?.templateArgDeclList.orEmpty().mapNotNull { decl ->
-                    decl.valueNode?.let { decl to it }
-                }
-                val arguments = ref.argValueItemList.flatMap {
-                    val referencedTemplateArgDecl =
-                        it.referencedTemplateArgDecl(context) ?: return@flatMap emptyList()
-                    val valueNode = it.valueNode ?: return@flatMap emptyList()
-                    listOf(referencedTemplateArgDecl to valueNode)
-                }
-                // Arguments take precedence over defaults.
-                defaults + arguments
-            }.toMap()
-        }
+    ): Map<TableGenTemplateArgDecl, TableGenValueNode> = projectContextDependentSuspendingCachedValue(
+        this, context, "direct template argument mapping", onCycle = { emptyMap() }
+    ) {
+        baseClassRefs.toList().flatMap { ref ->
+            val defaults = ref.referencedClass(context)?.templateArgDeclList.orEmpty().mapNotNull { decl ->
+                decl.valueNode?.let { decl to it }
+            }
+            val arguments = ref.argValueItemList.flatMap {
+                val referencedTemplateArgDecl =
+                    it.referencedTemplateArgDecl(context) ?: return@flatMap emptyList()
+                val valueNode = it.valueNode ?: return@flatMap emptyList()
+                listOf(referencedTemplateArgDecl to valueNode)
+            }
+            // Arguments take precedence over defaults.
+            defaults + arguments
+        }.toMap()
+    }.await()
 
     @RequiresReadLock
-    fun allArgToTemplateArgMapping(
+    suspend fun allArgToTemplateArgMapping(
         context: TableGenCompilationContext,
-    ): Map<TableGenTemplateArgDecl, TableGenValueNode> =
-        getProjectContextDependentCache(this, context) {
-            val result = directArgToTemplateArgMapping(context).toMutableMap()
-            baseClassRefs.mapNotNull { it.referencedClass(context)?.allArgToTemplateArgMapping(context) }.forEach {
-                it.forEach { (decl, node) ->
-                    result[decl] = node
-                }
+    ): Map<TableGenTemplateArgDecl, TableGenValueNode> = projectContextDependentSuspendingCachedValue(
+        this, context, "template argument mapping", onCycle = { emptyMap() }
+    ) {
+        val result = directArgToTemplateArgMapping(context).toMutableMap()
+        baseClassRefs.toList().mapNotNull { it.referencedClass(context)?.allArgToTemplateArgMapping(context) }.forEach {
+            it.forEach { (decl, node) ->
+                result[decl] = node
             }
-            result
         }
+        result
+    }.await()
 
     /**
      * Returns a map for field lookup within [context].

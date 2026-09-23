@@ -477,6 +477,17 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenUnknownValue
     )
 
+    // The name of the argument to 'C' can only be evaluated knowing which template arguments the base classes of 'E'
+    // bind, which is what that very argument is part of. TableGen rejects this as 'E' has no fields yet.
+    fun `test argument name instantiating the class being defined is unknown`() = doTest(
+        """
+        class C<string n = "d"> { string f = n; }
+        class E<string m> : C<E<"q">.f = "x">;
+        def D : E<"z">;
+        defvar v = D.f;
+    """.trimIndent(), TableGenUnknownValue
+    )
+
     fun `test record field evaluates within the root asked for`() {
         // A file pasted in by two roots derives from a different 'A' in each of them, so the same field has a
         // different value per root.

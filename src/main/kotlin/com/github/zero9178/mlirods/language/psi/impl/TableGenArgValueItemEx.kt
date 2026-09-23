@@ -44,5 +44,5 @@ interface TableGenArgValueItemEx : PsiElement, NavigatablePsiElement {
      * Returns the [TableGenTemplateArgDecl] that this item assigns a value to within [context] if possible.
      */
     @RequiresReadLock
-    fun referencedTemplateArgDecl(context: TableGenCompilationContext): TableGenTemplateArgDecl?
+    suspend fun referencedTemplateArgDecl(context: TableGenCompilationContext): TableGenTemplateArgDecl?
 }
