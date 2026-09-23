@@ -56,6 +56,9 @@ interface TableGenStubElementTypes {
         val LET_BODY_ITEM = TableGenTypes.LET_BODY_ITEM!!
 
         @JvmField
+        val LET_ITEM = TableGenTypes.LET_ITEM!!
+
+        @JvmField
         val CLASS_REF = TableGenTypes.CLASS_REF!!
 
         @JvmField
