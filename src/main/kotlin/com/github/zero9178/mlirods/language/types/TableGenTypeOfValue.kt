@@ -45,8 +45,11 @@ internal suspend fun computeTypeOf(element: TableGenValueNodeEx): TableGenType =
     // A binary literal denotes one bit per digit written rather than an integer.
     is TableGenBinaryIntegerValueNode -> TableGenBitsType(element.numberOfBits.toLong())
 
+    // Without an explicit element type, the element type is the one all elements can be used as.
+    // Like '?', an empty list adopts the element type expected by its context, making undef the neutral start.
     is TableGenListInitValueNode -> TableGenListType(
-        element.typeNode?.toType() ?: typeOf(element.valueNodeList.firstOrNull())
+        element.typeNode?.toType()
+            ?: typesOf(element.valueNodeList).fold<_, TableGenType>(TableGenUndefType, ::commonType)
     )
 
     is TableGenDagInitValueNode -> TableGenDagType
