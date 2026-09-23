@@ -152,14 +152,25 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         return false
     }
 
+    /**
+     * Returns what every template argument of the classes directly derived from is bound to: the argument given in the
+     * class reference or else the default value of the template argument. Like in TableGen, both are values of the
+     * record deriving from this: a default referring to another template argument of its class sees what the same
+     * class reference binds it to.
+     */
     val directArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
         get() = getProjectContextDependentCache(this) {
             baseClassRefs.flatMap { ref ->
-                ref.argValueItemList.flatMap {
+                val defaults = ref.referencedClass?.templateArgDeclList.orEmpty().mapNotNull { decl ->
+                    decl.valueNode?.let { decl to it }
+                }
+                val arguments = ref.argValueItemList.flatMap {
                     val referencedTemplateArgDecl = it.referencedTemplateArgDecl ?: return@flatMap emptyList()
                     val valueNode = it.valueNode ?: return@flatMap emptyList()
                     listOf(referencedTemplateArgDecl to valueNode)
                 }
+                // Arguments take precedence over defaults.
+                defaults + arguments
             }.toMap()
         }
 

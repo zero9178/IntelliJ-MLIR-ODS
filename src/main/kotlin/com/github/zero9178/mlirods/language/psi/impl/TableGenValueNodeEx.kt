@@ -63,14 +63,18 @@ class TableGenEvaluationContext private constructor(
 
     /**
      * Context of the anonymous record created by [instantiation] where it is written, i.e. in [outer]. The arguments of
-     * the instantiation are evaluated in [outer], everything within the instantiated class in this context.
+     * the instantiation are evaluated in [outer], everything within the instantiated class in this context. This
+     * includes the defaults of its template arguments not given an argument, which may refer to the arguments given.
      */
     constructor(instantiation: TableGenClassInstantiationValueNode, outer: TableGenEvaluationContext) : this(
         InstantiationSource(instantiation, outer),
         { decl ->
             val argument = instantiation.argValueItemList.firstOrNull { it.referencedTemplateArgDecl == decl }
             argument?.valueNode?.evaluate(outer)
-                ?: instantiation.referencedClass?.allArgToTemplateArgMapping[decl]?.evaluate(this)
+                // 'allArgToTemplateArgMapping' only binds the template arguments of the base classes of the
+                // instantiated class. Its own are bound by this instantiation alone and default to values of the
+                // instantiated class.
+                ?: (instantiation.referencedClass?.allArgToTemplateArgMapping[decl] ?: decl.valueNode)?.evaluate(this)
                 ?: TableGenUnknownValue
         },
         { fieldName ->
