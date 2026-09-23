@@ -180,6 +180,62 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenIntegerValue(3)
     )
 
+    fun `test record field evaluated with default template argument`() = doTest(
+        """
+        class C<int x = 5> {
+            int y = x;
+        }
+        def D : C;
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(5)
+    )
+
+    fun `test default template argument overridden by argument`() = doTest(
+        """
+        class C<int x, int y = x> {
+            int z = y;
+        }
+        def D : C<1, 2>;
+        defvar v = D.z;
+    """.trimIndent(), TableGenIntegerValue(2)
+    )
+
+    // A default may refer to the template arguments of its class declared before it, which are bound by the same class
+    // reference.
+    fun `test default template argument referring to template argument`() = doTest(
+        """
+        class C<int x, int y = x> {
+            int z = y;
+        }
+        def D : C<4>;
+        defvar v = D.z;
+    """.trimIndent(), TableGenIntegerValue(4)
+    )
+
+    fun `test default template argument of base class`() = doTest(
+        """
+        class Base<int x, int y = x> {
+            int z = y;
+        }
+        class Derived<int w> : Base<w>;
+        def D : Derived<3>;
+        defvar v = D.z;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    // Name lookup within the default happens in its class, not where the default is used.
+    fun `test default template argument referring to defvar shadowed by deriving class`() = doTest(
+        """
+        defvar x = 1;
+        class C<int y = x> {
+            int z = y;
+        }
+        class Derived<int x> : C;
+        def D : Derived<2>;
+        defvar v = D.z;
+    """.trimIndent(), TableGenIntegerValue(1)
+    )
+
     fun `test field access on record`() = doTest(
         """
         class C {
@@ -285,6 +341,52 @@ class ValueComputationTest : BasePlatformTestCase() {
         val v1 = PsiTreeUtil.findChildrenOfType(myFixture.file, TableGenDefvarStatement::class.java).first()
         assertEquals(TableGenIntegerValue(1), v1.valueNode?.evaluateBlocking(TableGenEvaluationContext()))
     }
+
+    fun `test class instantiation field evaluated with default template argument`() = doTest(
+        """
+        class C<int x, int y = x> {
+            int z = y;
+        }
+        defvar v = C<3>.z;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    fun `test class instantiation field evaluated with default template argument of base class`() = doTest(
+        """
+        class Base<int x, int y = x> {
+            int z = y;
+        }
+        class C<int w> : Base<w>;
+        defvar v = C<4>.z;
+    """.trimIndent(), TableGenIntegerValue(4)
+    )
+
+    // Unlike the arguments, the defaults of an instantiation are values of the instantiated class. Evaluated where the
+    // instantiation is written, 'x' would be the one of 'D' instead.
+    fun `test class instantiation default template argument evaluated in instantiated class`() = doTest(
+        """
+        class C<int x, int y = x> {
+            int z = y;
+        }
+        def D : C<1> {
+            C inner = C<2>;
+        }
+        defvar v = D.inner.z;
+    """.trimIndent(), TableGenIntegerValue(2)
+    )
+
+    fun `test default template argument instantiating class`() = doTest(
+        """
+        class Inner<int x> {
+            int y = x;
+        }
+        class C<int x, Inner i = Inner<x>> {
+            int z = i.y;
+        }
+        def D : C<5>;
+        defvar v = D.z;
+    """.trimIndent(), TableGenIntegerValue(5)
+    )
 
     fun `test cyclic field reference within record`() {
         doTest(
