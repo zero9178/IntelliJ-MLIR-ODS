@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantia
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.types.*
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 
 /**
  * Base class for all possible TableGen values.
@@ -33,15 +34,19 @@ data class TableGenStringValue(val value: String) : TableGenValue {
 
 /**
  * A record, exposing its fields for further evaluation. Either a 'def' or the anonymous record created by a class
- * instantiation.
+ * instantiation. The fields are evaluated within [myContext], which carries the compilation context the value was
+ * produced under.
  */
 class TableGenRecordValue private constructor(
     private val myContext: TableGenEvaluationContext,
     override val type: TableGenRecordType,
 ) : TableGenValue {
 
-    constructor(defStatement: TableGenDefStatement) : this(
-        TableGenEvaluationContext(defStatement), TableGenRecordType.create(defStatement)
+    /**
+     * The record [defStatement] defines as seen within [compilationContext].
+     */
+    constructor(defStatement: TableGenDefStatement, compilationContext: TableGenCompilationContext) : this(
+        TableGenEvaluationContext(defStatement, compilationContext), TableGenRecordType.create(defStatement)
     )
 
     /**

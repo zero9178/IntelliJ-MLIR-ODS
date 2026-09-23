@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.psi.createLetBodyItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
@@ -21,10 +22,13 @@ import com.intellij.psi.util.parentOfType
  */
 internal class TableGenRedefinedFieldInspection : LocalInspectionTool() {
 
-    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
-        object : TableGenVisitor<Unit>() {
+    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+        // An inspection is where the IDE enters: the lookup happens in the context the file derives from the include
+        // graph.
+        val context = TableGenCompilationContext.activeFor(holder.file)
+        return object : TableGenVisitor<Unit>() {
             override fun visitFieldBodyItem(element: TableGenFieldBodyItem) = disallowTreeLoading {
-                val definingField = element.definingFieldBodyItem
+                val definingField = element.definingFieldBodyItem(context)
                 if (definingField == element)
                     return@disallowTreeLoading
 
@@ -42,6 +46,7 @@ internal class TableGenRedefinedFieldInspection : LocalInspectionTool() {
                 )
             }
         }
+    }
 }
 
 /**

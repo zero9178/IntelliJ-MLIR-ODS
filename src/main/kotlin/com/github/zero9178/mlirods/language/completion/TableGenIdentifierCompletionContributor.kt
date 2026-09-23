@@ -5,7 +5,7 @@ import com.github.zero9178.mlirods.index.processVisibleElements
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
-import com.github.zero9178.mlirods.model.TableGenVisibility
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -34,8 +34,12 @@ internal class TableGenIdentifierCompletionContributor : CompletionContributor()
                     val position = parameters.position
                     val node = position.parent as TableGenIdentifierValueNode
 
+                    // Completion is where the IDE enters: everything below resolves in the context the file derives
+                    // from the include graph.
+                    val compilationContext = TableGenCompilationContext.activeFor(parameters.originalFile)
+
                     val shadowed = HashSet<String>()
-                    for (element in TableGenIdentifierReference.findLocalElements(node)) {
+                    for (element in TableGenIdentifierReference.findLocalElements(node, compilationContext)) {
                         shadowed += element.name ?: continue
                         result.addElement(createLookupElement(element, position))
                     }
@@ -43,7 +47,7 @@ internal class TableGenIdentifierCompletionContributor : CompletionContributor()
                     // The enclosing scopes are all that is known without the index.
                     if (DumbService.isDumb(position.project)) return
 
-                    ALL_IDENTIFIERS_INDEX.processVisibleElements(0, TableGenVisibility(position)) {
+                    ALL_IDENTIFIERS_INDEX.processVisibleElements(0, compilationContext.at(position)) {
                         if (it.name !in shadowed) result.addElement(createLookupElement(it, position))
                         !result.isStopped
                     }

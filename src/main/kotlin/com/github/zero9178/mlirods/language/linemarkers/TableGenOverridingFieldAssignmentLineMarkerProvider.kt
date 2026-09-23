@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.codeInsight.daemon.GutterName
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
@@ -43,8 +44,11 @@ internal class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerP
 
         val scope = parent.parentOfType<TableGenFieldScopeNode>() ?: return null
         val fieldName = parent.fieldName
+        // A line marker provider is where the IDE enters: the lookup happens in the context the file derives from the
+        // include graph.
+        val context = TableGenCompilationContext.activeFor(element)
         val overwriting =
-            scope.allFieldAssignments[fieldName ?: return null].orEmpty().asReversed().asSequence().dropWhile {
+            scope.allFieldAssignments(context)[fieldName ?: return null].orEmpty().asReversed().asSequence().dropWhile {
                 it != parent
             }.drop(1).firstOrNull() ?: return null
 
@@ -91,10 +95,11 @@ internal class TableGenOverriddenFieldAssignmentLineMarkerProvider : LineMarkerP
 
         val scope = parent.parentOfType<TableGenRecord>() ?: return null
         val fieldName = parent.fieldName
+        val context = TableGenCompilationContext.activeFor(element)
         // Collect all fields and 'let' items from the most derived classes of the containing class that come after
         // the field- or let-body item.
-        val seq = scope.mostDerivedRecords.flatMap { record ->
-            record.allFieldAssignments[fieldName].orEmpty().asSequence().dropWhile {
+        val seq = scope.mostDerivedRecords(context).flatMap { record ->
+            record.allFieldAssignments(context)[fieldName].orEmpty().asSequence().dropWhile {
                 it != parent
             }.drop(1)
         }.distinct().toList().ifEmpty {

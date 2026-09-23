@@ -5,14 +5,13 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassR
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMultiClassRef
-import com.github.zero9178.mlirods.language.psi.TableGenFile
+import com.github.zero9178.mlirods.language.psi.TableGenFieldAccessReference
 import com.github.zero9178.mlirods.language.psi.TableGenMultiClassReference
 import com.github.zero9178.mlirods.language.psi.refersToClass
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
-import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
-import com.intellij.openapi.components.serviceOrNull
 import com.intellij.psi.PsiElement
 
 /**
@@ -32,8 +31,10 @@ private fun checkInclude(element: TableGenIncludeDirective, holder: AnnotationHo
  * Flags a class reference (in an inheritance list, a `def`'s parent class, a value's type or a class instantiation)
  * that does not resolve to any class.
  */
-private fun checkClassReference(element: TableGenAbstractClassRef, holder: AnnotationHolder) {
-    if (element.referencedClass != null) return
+private fun checkClassReference(
+    element: TableGenAbstractClassRef, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
+    if (element.referencedClass(context) != null) return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unresolvedClass", element.className)
@@ -45,12 +46,13 @@ private fun checkClassReference(element: TableGenAbstractClassRef, holder: Annot
  * reported as an unresolved class if it is one of the trailing class names of a 'defm', and as an unresolved
  * multiclass otherwise.
  */
-private fun checkMultiClassReference(element: TableGenMultiClassRef, holder: AnnotationHolder) {
-    val reference = element.reference as? TableGenMultiClassReference ?: return
-    if (reference.multiResolve(false).isNotEmpty()) return
+private fun checkMultiClassReference(
+    element: TableGenMultiClassRef, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
+    if (TableGenMultiClassReference.findTargets(element, context).isNotEmpty()) return
 
     val message =
-        if (refersToClass(element)) MyBundle.message("tableGen.reference.unresolvedClass", element.className)
+        if (refersToClass(element, context)) MyBundle.message("tableGen.reference.unresolvedClass", element.className)
         else MyBundle.message("tableGen.reference.unresolvedMulticlass", element.className)
     holder.newAnnotation(HighlightSeverity.ERROR, message).range(element.identifier).create()
 }
@@ -60,13 +62,15 @@ private fun checkMultiClassReference(element: TableGenMultiClassRef, holder: Ann
  * `field`. Field accesses on a non-record value, or on a record whose class reference is itself unresolved, are left
  * alone: the former is not a reference problem and the latter is already reported as an unresolved class.
  */
-private fun checkFieldAccess(element: TableGenFieldAccessValueNode, holder: AnnotationHolder) {
+private fun checkFieldAccess(
+    element: TableGenFieldAccessValueNode, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
     val fieldIdentifier = element.fieldIdentifier ?: return
     val fieldName = element.fieldName ?: return
+    if (TableGenFieldAccessReference.findField(element, context) != null) return
 
-    val type = element.valueNode.typeBlocking() as? TableGenRecordType ?: return
-    val record = type.record ?: return
-    if (record.fields[fieldName] != null) return
+    val type = element.valueNode.typeBlocking(context) as? TableGenRecordType ?: return
+    if (type.record(context) == null) return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unknownField", type.recordName, fieldName)
@@ -75,9 +79,15 @@ private fun checkFieldAccess(element: TableGenFieldAccessValueNode, holder: Anno
 
 private val ANNOTATIONS = arrayOf(
     addAnnotationFor { element: TableGenIncludeDirective, holder -> checkInclude(element, holder) },
-    addAnnotationFor { element: TableGenAbstractClassRef, holder -> checkClassReference(element, holder) },
-    addAnnotationFor { element: TableGenMultiClassRef, holder -> checkMultiClassReference(element, holder) },
-    addAnnotationFor { element: TableGenFieldAccessValueNode, holder -> checkFieldAccess(element, holder) },
+    addAnnotationFor { element: TableGenAbstractClassRef, holder, context ->
+        checkClassReference(element, holder, context)
+    },
+    addAnnotationFor { element: TableGenMultiClassRef, holder, context ->
+        checkMultiClassReference(element, holder, context)
+    },
+    addAnnotationFor { element: TableGenFieldAccessValueNode, holder, context ->
+        checkFieldAccess(element, holder, context)
+    },
 )
 
 /**
@@ -87,9 +97,7 @@ internal class TableGenReferenceAnnotator : TableGenAnnotator(ANNOTATIONS.asIter
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         // References cannot be resolved in a file without an active context (i.e. one not reachable from any compile
         // commands). The no-context banner already explains this, so skip annotating to avoid flagging every reference.
-        val file = element.containingFile as? TableGenFile ?: return
-        val virtualFile = file.originalFile.virtualFile ?: return
-        if (file.project.serviceOrNull<TableGenIncludeGraphService>()?.getContextOf(virtualFile) == null) return
+        if (holder.currentAnnotationSession.compilationContext !is TableGenCompilationContext.Rooted) return
 
         super.annotate(element, holder)
     }

@@ -6,6 +6,8 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenBinaryIntegerValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
@@ -20,22 +22,23 @@ import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
-import com.github.zero9178.mlirods.model.dependsOnProjectContext
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.util.concurrency.annotations.RequiresBlockingContext
 import com.intellij.util.concurrency.annotations.RequiresReadLock
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Class passed around as context during a constant evaluation.
- * This is used to keep track of things such as template parameter to argument mapping or field mappings.
+ * This is used to keep track of things such as template parameter to argument mapping or field mappings, and of the
+ * [compilationContext] every reference met along the way is resolved in.
  *
- * Two contexts are considered equal if they originate from the same [source]. This allows evaluation results
- * to be cached per context (see [TableGenValueNodeEx.evaluate]).
+ * Two contexts are considered equal if they originate from the same [source] and [compilationContext]. This allows
+ * evaluation results to be cached per context (see [TableGenValueNodeEx.evaluate]).
  */
 class TableGenEvaluationContext private constructor(
+    val compilationContext: TableGenCompilationContext,
     private val source: Any?,
     val evaluateTemplateArgDeclInContext: suspend TableGenEvaluationContext.(TableGenTemplateArgDecl) -> TableGenValue,
     val evaluateFieldInContext: suspend TableGenEvaluationContext.(String) -> TableGenValue,
@@ -45,7 +48,8 @@ class TableGenEvaluationContext private constructor(
      * Null-context. Template arguments and implicit field definitions yield unknown values.
      * This is the context that should be used for top-level evaluation and class-statements.
      */
-    constructor() : this(
+    constructor(compilationContext: TableGenCompilationContext) : this(
+        compilationContext,
         null,
         {
             TableGenUnknownValue
@@ -55,8 +59,11 @@ class TableGenEvaluationContext private constructor(
         },
     )
 
-    constructor(defStatement: TableGenDefStatement) : this(defStatement, {
-        defStatement.allArgToTemplateArgMapping[it]?.evaluate(this) ?: TableGenUnknownValue
+    constructor(
+        defStatement: TableGenDefStatement,
+        compilationContext: TableGenCompilationContext,
+    ) : this(compilationContext, defStatement, {
+        defStatement.allArgToTemplateArgMapping(compilationContext)[it]?.evaluate(this) ?: TableGenUnknownValue
     }, { fieldName ->
         evaluateFieldAssignments(defStatement, fieldName)
     })
@@ -65,20 +72,25 @@ class TableGenEvaluationContext private constructor(
      * Context of the anonymous record created by [instantiation] where it is written, i.e. in [outer]. The arguments of
      * the instantiation are evaluated in [outer], everything within the instantiated class in this context. This
      * includes the defaults of its template arguments not given an argument, which may refer to the arguments given.
+     * The instantiation resolves in the compilation context of [outer].
      */
     constructor(instantiation: TableGenClassInstantiationValueNode, outer: TableGenEvaluationContext) : this(
+        outer.compilationContext,
         InstantiationSource(instantiation, outer),
         { decl ->
-            val argument = instantiation.argValueItemList.firstOrNull { it.referencedTemplateArgDecl == decl }
+            val argument = instantiation.argValueItemList.firstOrNull {
+                it.referencedTemplateArgDecl(compilationContext) == decl
+            }
             argument?.valueNode?.evaluate(outer)
                 // 'allArgToTemplateArgMapping' only binds the template arguments of the base classes of the
                 // instantiated class. Its own are bound by this instantiation alone and default to values of the
                 // instantiated class.
-                ?: (instantiation.referencedClass?.allArgToTemplateArgMapping[decl] ?: decl.valueNode)?.evaluate(this)
+                ?: (instantiation.referencedClass(compilationContext)?.allArgToTemplateArgMapping(compilationContext)
+                    ?.get(decl) ?: decl.valueNode)?.evaluate(this)
                 ?: TableGenUnknownValue
         },
         { fieldName ->
-            evaluateFieldAssignments(instantiation.referencedClass, fieldName)
+            evaluateFieldAssignments(instantiation.referencedClass(compilationContext), fieldName)
         })
 
     /**
@@ -89,55 +101,51 @@ class TableGenEvaluationContext private constructor(
         val outer: TableGenEvaluationContext,
     )
 
-    override fun equals(other: Any?): Boolean =
-        this === other || (other is TableGenEvaluationContext && source == other.source)
+    override fun equals(other: Any?): Boolean = this === other || (other is TableGenEvaluationContext
+            && source == other.source && compilationContext == other.compilationContext)
 
-    override fun hashCode(): Int = source.hashCode()
+    override fun hashCode(): Int = 31 * source.hashCode() + compilationContext.hashCode()
 
     override fun toString() = when (source) {
-        null -> "null context"
-        is TableGenDefStatement -> "context of 'def ${source.name}'"
+        null -> "null context in $compilationContext"
+        is TableGenDefStatement -> "context of 'def ${source.name}' in $compilationContext"
         // The identity tells apart instantiations of the same class.
         is InstantiationSource -> with(source.instantiation) {
             "context of '$className<...>'@${System.identityHashCode(this)} in ${source.outer}"
         }
 
-        else -> "context of $source"
+        else -> "context of $source in $compilationContext"
     }
 
     private suspend fun evaluateFieldAssignments(record: TableGenRecord?, fieldName: String) =
         // TODO: Implement append and prepend semantics.
-        record?.allFieldAssignments[fieldName]?.lastOrNull()?.assignedValueNode?.evaluate(this) ?: TableGenUnknownValue
+        record?.allFieldAssignments(compilationContext)[fieldName]?.lastOrNull()?.assignedValueNode?.evaluate(this)
+            ?: TableGenUnknownValue
 }
 
 /**
- * The cached type of [element], see [TableGenValueNodeEx.type].
+ * The cached type of [element] in [context], see [TableGenValueNodeEx.type].
  */
-private fun cachedTypeOf(element: TableGenValueNodeEx): SuspendingCachedValue<TableGenType> =
-    projectContextDependentSuspendingCachedValue(element, onCycle = { TableGenUnknownType }) { computeTypeOf(it) }
+private fun cachedTypeOf(
+    element: TableGenValueNodeEx,
+    context: TableGenCompilationContext,
+): SuspendingCachedValue<TableGenType> =
+    projectContextDependentSuspendingCachedValue(element, context, "type", onCycle = { TableGenUnknownType }) {
+        computeTypeOf(it, context)
+    }
 
 /**
- * The cached values of [element], one per context it was evaluated in so far. The map is what is dropped when anything
- * changes, and with it the contexts, which would otherwise keep the PSI they originate from alive.
+ * The cached value of [element] in [context], see [TableGenValueNodeEx.evaluate]. It is dropped along with the values of
+ * every other context when anything changes, and with it [context], which would otherwise keep the PSI it originates
+ * from alive.
  */
-private fun cachedValuesOf(
-    element: TableGenValueNodeEx,
-): SuspendingCachedValue<ConcurrentHashMap<TableGenEvaluationContext, SuspendingCachedValue<TableGenValue>>> =
-    projectContextDependentSuspendingCachedValue(element) { ConcurrentHashMap() }
-
-private fun ConcurrentHashMap<TableGenEvaluationContext, SuspendingCachedValue<TableGenValue>>.cachedValueOf(
+private fun cachedValueOf(
     element: TableGenValueNodeEx,
     context: TableGenEvaluationContext,
-): SuspendingCachedValue<TableGenValue> = computeIfAbsent(context) {
-    // Identified by what is at hand without loading the tree of a stubbed element.
-    SuspendingCachedValue(
-        "value of ${element.javaClass.simpleName}@${System.identityHashCode(element)} in $context",
-        onCycle = { TableGenUnknownValue },
-    ) {
-        dependsOnProjectContext(element.project)
-        element.evaluateInner(context)
+): SuspendingCachedValue<TableGenValue> =
+    projectContextDependentSuspendingCachedValue(element, context, "value", onCycle = { TableGenUnknownValue }) {
+        it.evaluateInner(context)
     }
-}
 
 interface TableGenValueNodeEx : PsiElement {
     /**
@@ -146,18 +154,21 @@ interface TableGenValueNodeEx : PsiElement {
     fun <R> accept(visitor: TableGenVisitor<R>): R
 
     /**
-     * Returns the type of this TableGen expression. A type that depends on itself is unknown.
+     * Returns the type of this TableGen expression, resolving whatever it refers to within [context]. A type that
+     * depends on itself is unknown.
      *
      * Like [evaluate], this is for code that is a coroutine, with [typeBlocking] for everything else.
      */
-    suspend fun type(): TableGenType = cachedTypeOf(this).await()
+    suspend fun type(context: TableGenCompilationContext): TableGenType =
+        cachedTypeOf(this, context).await()
 
     /**
      * [type] for callers that cannot suspend, see [evaluateBlocking].
      */
     @RequiresReadLock
     @RequiresBlockingContext
-    fun typeBlocking(): TableGenType = cachedTypeOf(this).getBlocking()
+    fun typeBlocking(context: TableGenCompilationContext): TableGenType =
+        cachedTypeOf(this, context).getBlocking()
 
     /**
      * Performs constant evaluation of this value within the given context. A value that depends on itself is unknown.
@@ -167,7 +178,7 @@ interface TableGenValueNodeEx : PsiElement {
      * else has [evaluateBlocking]. Implementations should not override this method but [evaluateInner] instead.
      */
     suspend fun evaluate(context: TableGenEvaluationContext): TableGenValue =
-        cachedValuesOf(this).await().cachedValueOf(this, context).await()
+        cachedValueOf(this, context).await()
 
     /**
      * [evaluate] for callers that cannot suspend, i.e. the platform. See [SuspendingCachedValue.getBlocking] for what
@@ -176,7 +187,7 @@ interface TableGenValueNodeEx : PsiElement {
     @RequiresReadLock
     @RequiresBlockingContext
     fun evaluateBlocking(context: TableGenEvaluationContext): TableGenValue =
-        cachedValuesOf(this).getBlocking().cachedValueOf(this, context).getBlocking()
+        cachedValueOf(this, context).getBlocking()
 
     /**
      * Performs the actual constant evaluation of this value within the given context. Implemented per value node kind;
@@ -193,9 +204,9 @@ interface TableGenAtomicValue : TableGenValueNodeEx {
     fun evaluateAtomic(): TableGenValue?
 
     // No need to cache for atomics.
-    override suspend fun type(): TableGenType = typeOfAtomic(this)
+    override suspend fun type(context: TableGenCompilationContext): TableGenType = typeOfAtomic(this)
 
-    override fun typeBlocking(): TableGenType = typeOfAtomic(this)
+    override fun typeBlocking(context: TableGenCompilationContext): TableGenType = typeOfAtomic(this)
 
     /**
      * Atomic values do not depend on the [context] and are cheap to compute from their PSI subtree, so [evaluate]
@@ -241,6 +252,14 @@ internal const val BINARY_PREFIX = "0b"
 
 interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
     val identifierText: String
+
+    /**
+     * Returns the one declaration the identifier refers to within [context], or `null` if it refers to none or to
+     * several, mirroring [TableGenIdentifierReference.resolve]. See
+     * [TableGenIdentifierReference.findVisibleDeclarations].
+     */
+    @RequiresReadLock
+    fun referencedDeclaration(context: TableGenCompilationContext): TableGenIdentifierElement?
 }
 
 interface TableGenBangOperatorValueNodeEx : TableGenValueNodeEx {

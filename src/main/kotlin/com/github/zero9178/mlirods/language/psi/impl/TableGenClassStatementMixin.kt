@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMa
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassStatementStub
 import com.github.zero9178.mlirods.language.stubs.stubbedChildren
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -47,11 +48,11 @@ abstract class TableGenClassStatementMixin : TableGenRecordStatementMixin<TableG
         return super.classStatementsBefore(withSelf)
     }
 
-    // Note: [bodyIdEntries] resolves base classes and must therefore be cached per resolution context, not just per
+    // Note: [bodyIdEntries] resolves base classes and must therefore be cached per compilation context, not just per
     // subtree.
-    override val directIdMap
-        get() = getProjectContextDependentCache(this) { klass ->
-            (klass.templateArgDeclList.asSequence().map(::IdMapEntry) + klass.bodyIdEntries).mapNotNull {
+    override fun directIdMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> =
+        getProjectContextDependentCache(this, context) { klass ->
+            (klass.templateArgDeclList.asSequence().map(::IdMapEntry) + klass.bodyIdEntries(context)).mapNotNull {
                 val name = it.element.name ?: return@mapNotNull null
                 name to it
             }.groupBy({

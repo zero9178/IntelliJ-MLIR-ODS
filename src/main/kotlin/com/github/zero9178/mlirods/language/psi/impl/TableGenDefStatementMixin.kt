@@ -2,8 +2,10 @@ package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStub
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -20,11 +22,11 @@ abstract class TableGenDefStatementMixin : TableGenRecordStatementMixin<TableGen
         return valueNode as? TableGenIdentifierValueNode
     }
 
-    // Note: [bodyIdEntries] resolves base classes and must therefore be cached per resolution context, not just per
+    // Note: [bodyIdEntries] resolves base classes and must therefore be cached per compilation context, not just per
     // subtree.
-    override val directIdMap
-        get() = getProjectContextDependentCache(this) { record ->
-            record.bodyIdEntries.mapNotNull {
+    override fun directIdMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> =
+        getProjectContextDependentCache(this, context) { record ->
+            record.bodyIdEntries(context).mapNotNull {
                 val name = it.element.name ?: return@mapNotNull null
                 name to it
             }.groupBy({
@@ -34,6 +36,5 @@ abstract class TableGenDefStatementMixin : TableGenRecordStatementMixin<TableGen
             }
         }
 
-    override val mostDerivedRecords: Sequence<TableGenRecord>
-        get() = sequenceOf(this)
+    override fun mostDerivedRecords(context: TableGenCompilationContext): Sequence<TableGenRecord> = sequenceOf(this)
 }

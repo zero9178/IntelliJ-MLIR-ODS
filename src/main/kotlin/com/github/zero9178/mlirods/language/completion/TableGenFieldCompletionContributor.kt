@@ -2,18 +2,13 @@ package com.github.zero9178.mlirods.language.completion
 
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
-import com.intellij.codeInsight.completion.CompletionContributor
-import com.intellij.codeInsight.completion.CompletionParameters
-import com.intellij.codeInsight.completion.CompletionProvider
-import com.intellij.codeInsight.completion.CompletionResultSet
-import com.intellij.codeInsight.completion.CompletionUtil
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
+import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.patterns.StandardPatterns
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
 
@@ -32,8 +27,9 @@ internal class TableGenFieldCompletionContributor : CompletionContributor() {
                     result: CompletionResultSet
                 ) {
                     val scope = parameters.position.parentOfType<TableGenFieldScopeNode>() ?: return
+                    val compilationContext = TableGenCompilationContext.activeFor(parameters.originalFile)
                     // References are resolved from the original file rather than its copy, which no index knows about.
-                    CompletionUtil.getOriginalOrSelf(scope).allFields.forEach {
+                    CompletionUtil.getOriginalOrSelf(scope).allFields(compilationContext).forEach {
                         result.addElement(LookupElementBuilder.create(it))
                     }
                 }
@@ -50,10 +46,11 @@ internal class TableGenFieldCompletionContributor : CompletionContributor() {
                     result: CompletionResultSet
                 ) {
                     val fieldAccess = parameters.position.parentOfType<TableGenFieldAccessValueNode>() ?: return
+                    val compilationContext = TableGenCompilationContext.activeFor(parameters.originalFile)
                     // References are resolved from the original file rather than its copy, which no index knows about.
-                    val recordType =
-                        CompletionUtil.getOriginalOrSelf(fieldAccess.valueNode).typeBlocking() as? TableGenRecordType ?: return
-                    recordType.record?.allFields?.forEach {
+                    val recordType = CompletionUtil.getOriginalOrSelf(fieldAccess.valueNode)
+                        .typeBlocking(compilationContext) as? TableGenRecordType ?: return
+                    recordType.record(compilationContext)?.allFields(compilationContext)?.forEach {
                         result.addElement(LookupElementBuilder.create(it))
                     }
                 }

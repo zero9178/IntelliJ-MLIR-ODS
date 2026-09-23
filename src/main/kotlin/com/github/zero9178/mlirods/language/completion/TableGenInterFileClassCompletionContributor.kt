@@ -4,7 +4,7 @@ import com.github.zero9178.mlirods.index.ALL_CLASSES_INDEX
 import com.github.zero9178.mlirods.index.processVisibleElements
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
-import com.github.zero9178.mlirods.model.TableGenVisibility
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -34,11 +34,13 @@ internal class TableGenInterFileCompletionContributor : CompletionContributor() 
                     context: ProcessingContext,
                     result: CompletionResultSet
                 ) {
-                    val visibility = TableGenVisibility(parameters.position)
+                    // Completion is where the IDE enters: everything below resolves in the context the file derives
+                    // from the include graph.
+                    val seenFrom = TableGenCompilationContext.activeFor(parameters.originalFile).at(parameters.position)
 
-                    ALL_CLASSES_INDEX.processVisibleElements(0, visibility) {
+                    ALL_CLASSES_INDEX.processVisibleElements(0, seenFrom) {
                         // The classes of the file itself are suggested by the reference already.
-                        if (!visibility.isInSameFile(it)) result.addElement(createLookupElement(it, parameters.position))
+                        if (!seenFrom.isInSameFile(it)) result.addElement(createLookupElement(it, parameters.position))
                         !result.isStopped
                     }
                 }

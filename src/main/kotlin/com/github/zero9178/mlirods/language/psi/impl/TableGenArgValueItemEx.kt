@@ -2,8 +2,10 @@ package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiElement
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 /**
  * Interface used to inject methods into [com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem].
@@ -39,7 +41,8 @@ interface TableGenArgValueItemEx : PsiElement, NavigatablePsiElement {
     val identifierName: String?
 
     /**
-     * Returns the [TableGenTemplateArgDecl] that this item assigns a value to if possible.
+     * Returns the [TableGenTemplateArgDecl] that this item assigns a value to within [context] if possible.
      */
-    val referencedTemplateArgDecl: TableGenTemplateArgDecl?
+    @RequiresReadLock
+    fun referencedTemplateArgDecl(context: TableGenCompilationContext): TableGenTemplateArgDecl?
 }

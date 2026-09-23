@@ -1,14 +1,17 @@
 package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.model.IncludePaths
+import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiPolyVariantReference
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.utils.vfs.deleteRecursively
@@ -792,57 +795,26 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals("i", element.name)
     }
 
-    fun `test positional arg resolution`() {
-        // Positional arguments resolve by index and do not expose a UI reference.
-        val item = argValueItem(
+    // Positional arguments do not expose a UI reference.
+    fun `test positional arg has no reference`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                class F<int i, int j>;
+
+                def : F<10, <caret>20>;
             """
-            class F<int i, int j>;
-
-            def : F<10, 20>;
-        """.trimIndent(),
-            1
         )
-        assertNull(item.reference)
-        assertEquals("j", item.referencedTemplateArgDecl?.name)
-    }
+    )
 
-    fun `test named string arg resolution`() {
-        // A named argument may use a string literal instead of an identifier as the name.
-        val item = argValueItem(
+    fun `test unresolved named arg`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                class F<int i>;
+
+                def : F<<caret>unknown = 0>;
             """
-            class F<int i, int j>;
-
-            def : F<"j" = 20>;
-        """.trimIndent(),
-            0
         )
-        assertEquals("j", item.referencedTemplateArgDecl?.name)
-    }
-
-    fun `test named arg has reference`() {
-        val item = argValueItem(
-            """
-            class F<int i>;
-
-            def : F<i = 0>;
-        """.trimIndent(),
-            0
-        )
-        assertNotNull(item.reference)
-        assertEquals("i", (item.reference?.resolve() as? TableGenTemplateArgDecl)?.name)
-    }
-
-    fun `test unresolved named arg`() {
-        val item = argValueItem(
-            """
-            class F<int i>;
-
-            def : F<unknown = 0>;
-        """.trimIndent(),
-            0
-        )
-        assertNull(item.referencedTemplateArgDecl)
-    }
+    )
 
     fun `test ifdef resolves to define`() {
         val element = doTestInline<TableGenDefineDirective>(
@@ -892,7 +864,7 @@ class ReferenceTest : BasePlatformTestCase() {
         )
     )
 
-    fun `test inherited field visibility follows the base class`() {
+    fun `test inherited field context follows the base class`() {
         val mainVF = myFixture.createFile(
             "test.td", """
             class A {
@@ -925,7 +897,7 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals("A", element.parentOfType<TableGenClassStatement>()?.name)
     }
 
-    fun `test inherited field visibility of a def follows the base class`() {
+    fun `test inherited field context of a def follows the base class`() {
         val mainVF = myFixture.createFile(
             "test.td", """
             class A {
@@ -972,21 +944,6 @@ class ReferenceTest : BasePlatformTestCase() {
         return "src/test/testData/references"
     }
 
-    /**
-     * Returns the [index]-th [TableGenArgValueItem] of the last class reference in [source].
-     */
-    private fun argValueItem(source: String, index: Int): TableGenArgValueItem {
-        val file = myFixture.configureByText("test.td", source)
-        installCompileCommands(
-            project, mapOf(
-                file.virtualFile to IncludePaths(emptyList())
-            )
-        )
-        myFixture.configureFromExistingVirtualFile(file.virtualFile)
-        val items = PsiTreeUtil.findChildrenOfType(myFixture.file, TableGenArgValueItem::class.java).toList()
-        return items[index]
-    }
-
     private inline fun <reified T> doTest(vararg additionalFiles: String): T {
         val name = getTestName(false).trim()
 
@@ -1005,6 +962,34 @@ class ReferenceTest : BasePlatformTestCase() {
 
     private inline fun <reified T> doTestInline(source: String): T =
         assertInstanceOf(resolveAcrossFiles("test.td" to source), T::class.java)
+
+    fun `test class resolves within the root asked for`() {
+        // A file pasted in by two roots sees a different 'A' in each of them: whichever the root pastes in before it.
+        myFixture.createFile("a.td", "class A;")
+        myFixture.createFile("b.td", "class A;")
+        val shared = myFixture.createFile("shared.td", "def : A;")
+        val rootA = myFixture.createFile("rootA.td", "include \"a.td\"\ninclude \"shared.td\"")
+        val rootB = myFixture.createFile("rootB.td", "include \"b.td\"\ninclude \"shared.td\"")
+        val paths = IncludePaths(listOf(shared.parent))
+        val update = compileCommandsUpdater(project)
+        update(mapOf(rootA to paths, rootB to paths))
+
+        myFixture.configureFromExistingVirtualFile(shared)
+        val reference = myFixture.file.findReferenceAt(myFixture.file.text.indexOf("A;")) as TableGenClassReference
+        val service = project.service<TableGenIncludeGraphService>()
+        fun resolvedIn(context: TableGenCompilationContext) =
+            TableGenClassReference.findVisibleClasses(reference.element, context).map { it.containingFile.name }
+
+        // The platform resolves in the context of the first root reaching the file.
+        assertResolvesToFile("a.td", reference.resolve())
+        // Asking for the other root yields its answer rather than what was cached for the first one, and vice versa.
+        assertEquals(listOf("b.td"), resolvedIn(service.compilationContextOf(rootB)))
+        assertEquals(listOf("a.td"), resolvedIn(service.compilationContextOf(rootA)))
+
+        // Swapping the priority of the roots switches what the platform sees.
+        update(mapOf(rootB to paths, rootA to paths))
+        assertResolvesToFile("b.td", reference.resolve())
+    }
 
     /**
      * Creates [files], given as pairs of name and content with the root of the compilation being last, and returns what

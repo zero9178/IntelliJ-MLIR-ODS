@@ -6,8 +6,9 @@ import com.github.zero9178.mlirods.language.completion.createLookupElement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenScopeItem
+import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractClassRefEx
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
-import com.github.zero9178.mlirods.model.TableGenVisibility
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
@@ -51,20 +52,30 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
         }
 
         /**
-         * Returns all statements of the class called [name] that are visible from [element], i.e. precede it once every
-         * 'include' directive is pasted in, be they declarations or definitions. The statements are in the order they
-         * have within that text, making the last one the closest to [element]. [element] itself is never part of the
-         * result.
+         * Returns all statements of the class called [name] that are visible from [element] within [context], i.e.
+         * precede it once every 'include' directive is pasted in, be they declarations or definitions. The statements
+         * are in the order they have within that text, making the last one the closest to [element]. [element] itself
+         * is never part of the result. Results are cached per [element], [name] and [context].
          *
          * Does not require the syntax tree of any file.
          */
         @RequiresReadLock
-        fun findVisibleClasses(name: String, element: PsiElement): List<TableGenClassStatement> {
+        fun findVisibleClasses(
+            name: String, element: PsiElement, context: TableGenCompilationContext
+        ): List<TableGenClassStatement> = getProjectContextDependentCache(element, name to context) { element ->
             if (DumbService.isDumb(element.project)) throw IndexNotReadyException.create()
 
-            val visibility = TableGenVisibility(element)
-            return CLASS_INDEX.getVisibleElements(name, visibility).sortedWith(visibility.textOrder)
+            val seenFrom = context.at(element)
+            CLASS_INDEX.getVisibleElements(name, seenFrom).sortedWith(seenFrom.textOrder)
         }
+
+        /**
+         * Returns all statements of the class [element] refers to that are visible from it within [context], see the
+         * overload above. This is what resolving the reference and every lookup on the PSI itself are built on.
+         */
+        @RequiresReadLock
+        fun findVisibleClasses(element: TableGenAbstractClassRefEx, context: TableGenCompilationContext) =
+            disallowTreeLoading { findVisibleClasses(element.className, element, context) }
 
         /**
          * Returns all completion variants at the given [positionToken].
@@ -77,11 +88,13 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
 
     override fun getVariants() = getVariants(element.classIdentifier).toList().toTypedArray()
 
+    /**
+     * Resolves the reference in the context the platform sees the file in, i.e. the one it derives from the include
+     * graph. Anything that already has a context in hand should use [findVisibleClasses] instead.
+     */
     @RequiresReadLock
-    override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> =
-        getProjectContextDependentCache(element) {
-            disallowTreeLoading {
-                findVisibleClasses(it.className, it).map(::PsiElementResolveResult).toTypedArray()
-            }
-        }
+    override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> {
+        val context = TableGenCompilationContext.activeFor(element)
+        return PsiElementResolveResult.createResults(findVisibleClasses(element, context))
+    }
 }

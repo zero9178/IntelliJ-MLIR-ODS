@@ -9,20 +9,24 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import kotlin.math.abs
 
-private suspend fun typeOf(node: TableGenValueNode?): TableGenType = node?.type() ?: TableGenUnknownType
+private suspend fun typeOf(node: TableGenValueNode?, context: TableGenCompilationContext): TableGenType =
+    node?.type(context) ?: TableGenUnknownType
 
 /**
  * Requests the types of all [nodes] at once: none depends on another, so they are computed in parallel where the
  * dispatcher has the threads for it.
  */
-private suspend fun typesOf(nodes: List<TableGenValueNode?>): List<TableGenType> = coroutineScope {
-    nodes.map { async { it?.type() ?: TableGenUnknownType } }.awaitAll()
+private suspend fun typesOf(
+    nodes: List<TableGenValueNode?>, context: TableGenCompilationContext,
+): List<TableGenType> = coroutineScope {
+    nodes.map { async { it?.type(context) ?: TableGenUnknownType } }.awaitAll()
 }
 
-private suspend fun elementTypeOf(iterable: TableGenValueNode?): TableGenType =
-    (typeOf(iterable) as? TableGenListType)?.elementType ?: TableGenUnknownType
+private suspend fun elementTypeOf(iterable: TableGenValueNode?, context: TableGenCompilationContext): TableGenType =
+    (typeOf(iterable, context) as? TableGenListType)?.elementType ?: TableGenUnknownType
 
 /**
  * Returns the type of values whose type does not depend on any other.
@@ -37,9 +41,12 @@ internal fun typeOfAtomic(element: TableGenAtomicValue): TableGenType = when (el
 }
 
 /**
- * Implements the type computation logic. Callers should use [TableGenValueNodeEx.type] which adds caching on top.
+ * Implements the type computation logic, resolving whatever a value refers to within [context]. Callers should use
+ * [TableGenValueNodeEx.type] which adds caching on top.
  */
-internal suspend fun computeTypeOf(element: TableGenValueNodeEx): TableGenType = when (element) {
+internal suspend fun computeTypeOf(
+    element: TableGenValueNodeEx, context: TableGenCompilationContext,
+): TableGenType = when (element) {
     is TableGenAtomicValue -> typeOfAtomic(element)
 
     // A binary literal denotes one bit per digit written rather than an integer.
@@ -49,18 +56,19 @@ internal suspend fun computeTypeOf(element: TableGenValueNodeEx): TableGenType =
     // Like '?', an empty list adopts the element type expected by its context, making undef the neutral start.
     is TableGenListInitValueNode -> TableGenListType(
         element.typeNode?.toType()
-            ?: typesOf(element.valueNodeList).fold<_, TableGenType>(TableGenUndefType, ::commonType)
+            ?: typesOf(element.valueNodeList, context)
+                .fold<_, TableGenType>(TableGenUndefType) { t1, t2 -> commonType(t1, t2, context) }
     )
 
     is TableGenDagInitValueNode -> TableGenDagType
 
-    is TableGenIdentifierValueNode -> typeOfIdentifier(element)
+    is TableGenIdentifierValueNode -> typeOfIdentifier(element, context)
 
-    is TableGenFieldAccessValueNode -> typeOfFieldAccess(element)
+    is TableGenFieldAccessValueNode -> typeOfFieldAccess(element, context)
 
     is TableGenClassInstantiationValueNode -> TableGenRecordType.create(element)
 
-    is TableGenSliceAccessValueNode -> when (val listType = typeOf(element.valueNode)) {
+    is TableGenSliceAccessValueNode -> when (val listType = typeOf(element.valueNode, context)) {
         is TableGenListType -> when (element.sliceElementList.singleOrNull()) {
             is TableGenSingleSliceElement -> listType.elementType
             else -> listType
@@ -71,13 +79,13 @@ internal suspend fun computeTypeOf(element: TableGenValueNodeEx): TableGenType =
 
     // Note: This ignores a lot of error cases for the sake of trying to guess user intent regarding the actual
     // intent.
-    is TableGenConcatValueNode -> when (val lhsType = typeOf(element.leftOperand)) {
+    is TableGenConcatValueNode -> when (val lhsType = typeOf(element.leftOperand, context)) {
         is TableGenListType -> lhsType
         else -> TableGenStringType
     }
 
     is TableGenForeachOperatorValueNode -> {
-        val (iterableType, bodyType) = typesOf(listOf(element.iterable, element.body))
+        val (iterableType, bodyType) = typesOf(listOf(element.iterable, element.body), context)
         when (iterableType) {
             // Iterating a dag rebuilds the dag rather than collecting the body values into a list, making the body type
             // irrelevant for the result type.
@@ -86,39 +94,41 @@ internal suspend fun computeTypeOf(element: TableGenValueNodeEx): TableGenType =
         }
     }
 
-    is TableGenFoldlOperatorValueNode -> typeOf(element.start)
+    is TableGenFoldlOperatorValueNode -> typeOf(element.start, context)
 
-    is TableGenSortOperatorValueNode -> typeOf(element.iterable)
+    is TableGenSortOperatorValueNode -> typeOf(element.iterable, context)
 
-    is TableGenFilterOperatorValueNode -> typeOf(element.iterable)
+    is TableGenFilterOperatorValueNode -> typeOf(element.iterable, context)
 
-    is TableGenBitsInitValueNode -> typeOfBitsInit(element)
+    is TableGenBitsInitValueNode -> typeOfBitsInit(element, context)
 
-    is TableGenBitAccessValueNode -> typeOfBitAccess(element)
+    is TableGenBitAccessValueNode -> typeOfBitAccess(element, context)
 
-    is TableGenCondOperatorValueNode -> typesOf(element.condClauseList.map { it.thenValue }).commonType()
+    is TableGenCondOperatorValueNode -> typesOf(element.condClauseList.map { it.thenValue }, context).commonType(context)
 
     is TableGenSwitchOperatorValueNode -> typesOf(element.switchClauseList.map {
         // The trailing clause without a ':' is the default value rather than a 'case: value' pair.
         if (it.hasColon) it.caseValue else it.caseKey
-    }).commonType()
+    }, context).commonType(context)
 
-    is TableGenBangOperatorValueNode -> typeOfBangOperator(element)
+    is TableGenBangOperatorValueNode -> typeOfBangOperator(element, context)
 
     else -> TableGenUnknownType
 }
 
-private suspend fun typeOfIdentifier(element: TableGenIdentifierValueNode): TableGenType =
-    when (val resolve = element.reference?.resolve()) {
+private suspend fun typeOfIdentifier(
+    element: TableGenIdentifierValueNode, context: TableGenCompilationContext,
+): TableGenType =
+    when (val resolve = element.referencedDeclaration(context)) {
         // The value may again be an identifier referring to another 'defvar', and so on, to any length no matter how
         // deep the AST is. Launched, its type is computed from the bottom of the stack of some thread instead of on top
         // of ours.
-        is TableGenDefvarStatement -> coroutineScope { async { typeOf(resolve.valueNode) }.await() }
+        is TableGenDefvarStatement -> coroutineScope { async { typeOf(resolve.valueNode, context) }.await() }
         is TableGenFieldBodyItem -> resolve.typeNode.toType()
         is TableGenTemplateArgDecl -> resolve.typeNode.toType()
         is TableGenBangOperatorDefinition -> {
             when (val parent = resolve.parent) {
-                is TableGenForeachOperatorValueNode -> when (val iterableType = typeOf(parent.iterable)) {
+                is TableGenForeachOperatorValueNode -> when (val iterableType = typeOf(parent.iterable, context)) {
                     is TableGenDagType -> TableGenDagType
                     is TableGenListType -> iterableType.elementType
                     else -> TableGenUnknownType
@@ -126,14 +136,14 @@ private suspend fun typeOfIdentifier(element: TableGenIdentifierValueNode): Tabl
 
                 is TableGenFoldlOperatorValueNode ->
                     when (resolve) {
-                        parent.accmulator -> typeOf(parent)
-                        parent.iterator -> elementTypeOf(parent.iterable)
+                        parent.accmulator -> typeOf(parent, context)
+                        parent.iterator -> elementTypeOf(parent.iterable, context)
                         else -> TableGenUnknownType
                     }
 
-                is TableGenSortOperatorValueNode -> elementTypeOf(parent.iterable)
+                is TableGenSortOperatorValueNode -> elementTypeOf(parent.iterable, context)
 
-                is TableGenFilterOperatorValueNode -> elementTypeOf(parent.iterable)
+                is TableGenFilterOperatorValueNode -> elementTypeOf(parent.iterable, context)
 
                 else -> TableGenUnknownType
             }
@@ -143,11 +153,13 @@ private suspend fun typeOfIdentifier(element: TableGenIdentifierValueNode): Tabl
         else -> TableGenUnknownType
     }
 
-private suspend fun typeOfFieldAccess(element: TableGenFieldAccessValueNode): TableGenType {
+private suspend fun typeOfFieldAccess(
+    element: TableGenFieldAccessValueNode, context: TableGenCompilationContext,
+): TableGenType {
     val identifier = element.fieldName ?: return TableGenUnknownType
-    return when (val type = typeOf(element.valueNode)) {
+    return when (val type = typeOf(element.valueNode, context)) {
         is TableGenRecordType -> {
-            val field = type.record?.fields?.get(identifier) ?: return TableGenUnknownType
+            val field = type.record(context)?.fields(context)?.get(identifier) ?: return TableGenUnknownType
             field.typeNode.toType()
         }
 
@@ -155,9 +167,9 @@ private suspend fun typeOfFieldAccess(element: TableGenFieldAccessValueNode): Ta
     }
 }
 
-private suspend fun typeOfBitsInit(element: TableGenBitsInitValueNode): TableGenType {
+private suspend fun typeOfBitsInit(element: TableGenBitsInitValueNode, context: TableGenCompilationContext): TableGenType {
     var numberOfBits = 0L
-    for (type in typesOf(element.valueNodeList)) {
+    for (type in typesOf(element.valueNodeList, context)) {
         numberOfBits += when (type) {
             // A 'bits<n>' operand contributes all of its bits at once.
             is TableGenBitsType -> type.numberOfBits ?: return TableGenBitsType(null)
@@ -170,14 +182,14 @@ private suspend fun typeOfBitsInit(element: TableGenBitsInitValueNode): TableGen
     return TableGenBitsType(numberOfBits)
 }
 
-private suspend fun typeOfBitAccess(element: TableGenBitAccessValueNode): TableGenType {
+private suspend fun typeOfBitAccess(element: TableGenBitAccessValueNode, context: TableGenCompilationContext): TableGenType {
     // Selecting bits always yields a 'bits<n>' with one bit per selected bit, regardless of the operand type.
     val widths = element.rangePieceList.map { piece ->
         when (piece) {
             is TableGenSingleBit -> 1L
             is TableGenBitRange -> {
-                val start = piece.start.constantInteger()
-                val end = piece.end?.constantInteger()
+                val start = piece.start.constantInteger(context)
+                val end = piece.end?.constantInteger(context)
                 // Both bounds are inclusive and may be given in either order.
                 abs((end ?: return@map null) - (start ?: return@map null)) + 1
             }
@@ -189,7 +201,9 @@ private suspend fun typeOfBitAccess(element: TableGenBitAccessValueNode): TableG
     return TableGenBitsType(widths.fold<Long?, Long?>(0L) { sum, width -> if (sum == null || width == null) null else sum + width })
 }
 
-private suspend fun typeOfBangOperator(element: TableGenBangOperatorValueNode): TableGenType {
+private suspend fun typeOfBangOperator(
+    element: TableGenBangOperatorValueNode, context: TableGenCompilationContext,
+): TableGenType {
     val operands = element.valueNodeList
     // The optional type argument of e.g. '!getdagarg<int>'.
     val typeArgument = element.typeNode?.toType()
@@ -212,25 +226,25 @@ private suspend fun typeOfBangOperator(element: TableGenBangOperatorValueNode): 
         // of any class, which is not modelled as a type.
         CAST, GETDAGOP, GETDAGARG -> typeArgument ?: TableGenUnknownType
 
-        IF -> typesOf(listOf(operands.getOrNull(1), operands.getOrNull(2))).commonType()
+        IF -> typesOf(listOf(operands.getOrNull(1), operands.getOrNull(2)), context).commonType(context)
 
         // '!subst' yields whatever its third operand is.
-        SUBST -> typeOf(operands.getOrNull(2))
+        SUBST -> typeOf(operands.getOrNull(2), context)
 
         // '!head' yields the element type of its operand, while '!tail' yields the list itself.
-        HEAD -> elementTypeOf(operands.firstOrNull())
-        TAIL -> typeOf(operands.firstOrNull()) as? TableGenListType ?: TableGenUnknownType
+        HEAD -> elementTypeOf(operands.firstOrNull(), context)
+        TAIL -> typeOf(operands.firstOrNull(), context) as? TableGenListType ?: TableGenUnknownType
 
-        LISTSPLAT -> TableGenListType(typeOf(operands.firstOrNull()))
+        LISTSPLAT -> TableGenListType(typeOf(operands.firstOrNull(), context))
 
         // Both yield a list that all operand lists are compatible with.
-        LISTCONCAT, LISTREMOVE -> typesOf(operands).commonType() as? TableGenListType ?: TableGenUnknownType
+        LISTCONCAT, LISTREMOVE -> typesOf(operands, context).commonType(context) as? TableGenListType ?: TableGenUnknownType
 
         // These are parsed into their own Psi node and have their type computed by their own branch.
         COND, SWITCH, FOREACH, FOLDL, FILTER, SORT -> TableGenUnknownType
 
         LISTFLATTEN -> {
-            val elementType = (typeOf(operands.firstOrNull()) as? TableGenListType)?.elementType
+            val elementType = (typeOf(operands.firstOrNull(), context) as? TableGenListType)?.elementType
                 ?: return TableGenUnknownType
             // 'list<list<x>>' is flattened to 'list<x>', while a list of non-lists is left as-is.
             elementType as? TableGenListType ?: TableGenListType(elementType)
@@ -245,5 +259,5 @@ private suspend fun typeOfBangOperator(element: TableGenBangOperatorValueNode): 
  * without a current record, so a global 'defvar' folds while a template argument or field never does, even if it is an
  * integer. Evaluating in the null context yields exactly that behaviour.
  */
-private suspend fun TableGenValueNode.constantInteger(): Long? =
-    (evaluate(TableGenEvaluationContext()) as? TableGenIntegerValue)?.value
+private suspend fun TableGenValueNode.constantInteger(context: TableGenCompilationContext): Long? =
+    (evaluate(TableGenEvaluationContext(context)) as? TableGenIntegerValue)?.value

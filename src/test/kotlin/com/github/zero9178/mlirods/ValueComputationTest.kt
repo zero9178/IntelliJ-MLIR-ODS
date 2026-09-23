@@ -5,6 +5,11 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatemen
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.values.*
+import com.github.zero9178.mlirods.model.IncludePaths
+import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
+import com.intellij.openapi.components.service
+import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.assertInstanceOf
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -339,7 +344,8 @@ class ValueComputationTest : BasePlatformTestCase() {
     ) {
         assertEquals(TableGenIntegerValue(2), it)
         val v1 = PsiTreeUtil.findChildrenOfType(myFixture.file, TableGenDefvarStatement::class.java).first()
-        assertEquals(TableGenIntegerValue(1), v1.valueNode?.evaluateBlocking(TableGenEvaluationContext()))
+        val context = TableGenEvaluationContext(TableGenCompilationContext.activeFor(v1))
+        assertEquals(TableGenIntegerValue(1), v1.valueNode?.evaluateBlocking(context))
     }
 
     fun `test class instantiation field evaluated with default template argument`() = doTest(
@@ -425,6 +431,29 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenUnknownValue
     )
 
+    fun `test record field evaluates within the root asked for`() {
+        // A file pasted in by two roots derives from a different 'A' in each of them, so the same field has a
+        // different value per root.
+        myFixture.createFile("a.td", "class A { int x = 1; }")
+        myFixture.createFile("b.td", "class A { int x = 2; }")
+        val shared = myFixture.createFile("shared.td", "def D : A;\ndefvar v = D.x;")
+        val rootA = myFixture.createFile("rootA.td", "include \"a.td\"\ninclude \"shared.td\"")
+        val rootB = myFixture.createFile("rootB.td", "include \"b.td\"\ninclude \"shared.td\"")
+        val paths = IncludePaths(listOf(shared.parent))
+        compileCommandsUpdater(project)(mapOf(rootA to paths, rootB to paths))
+
+        val file = assertInstanceOf<TableGenFile>(PsiManager.getInstance(project).findFile(shared))
+        val statement = assertInstanceOf<TableGenDefvarStatement>(file.lastChild)
+        val service = project.service<TableGenIncludeGraphService>()
+        fun valueIn(context: TableGenCompilationContext) =
+            statement.valueNode?.evaluateBlocking(TableGenEvaluationContext(context))
+
+        assertEquals(TableGenIntegerValue(1), valueIn(service.compilationContextOf(rootA)))
+        assertEquals(TableGenIntegerValue(2), valueIn(service.compilationContextOf(rootB)))
+        // The context the file derives from the include graph is that of the first root reaching it.
+        assertEquals(TableGenIntegerValue(1), valueIn(TableGenCompilationContext.activeFor(statement)))
+    }
+
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
     }
@@ -432,6 +461,7 @@ class ValueComputationTest : BasePlatformTestCase() {
     fun doTest(source: String, expectedCondition: (TableGenValue) -> Unit) {
         val file = assertInstanceOf<TableGenFile>(myFixture.configureByText("test.td", source))
         val statement = assertInstanceOf<TableGenDefvarStatement>(file.lastChild)
-        expectedCondition.invoke(requireNotNull(statement.valueNode?.evaluateBlocking(TableGenEvaluationContext())))
+        val context = TableGenEvaluationContext(TableGenCompilationContext.activeFor(file))
+        expectedCondition.invoke(requireNotNull(statement.valueNode?.evaluateBlocking(context)))
     }
 }

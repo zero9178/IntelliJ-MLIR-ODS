@@ -186,10 +186,11 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
     internal class Root(val node: FileNode, val includePaths: List<VirtualFile>)
 
     /**
-     * Context in which a given [TableGenFile] is parsed and resolved in. This is derived from some root file which
-     * has a compilation command.
+     * The include paths a given [TableGenFile] resolves its 'include' directives against. They are those of the root
+     * the file derives its context from and are a property of the file: unlike a [TableGenCompilationContext], they do
+     * not vary with the root the file is looked at through.
      */
-    class TableGenCompilationContext internal constructor(val includePaths: List<VirtualFile>)
+    class TableGenIncludeContext internal constructor(val includePaths: List<VirtualFile>)
 
     /**
      * Reference to a node that remembers the file it is mapped from, allowing [gcNodes] to drop exactly the entries
@@ -210,6 +211,12 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
      * Only mutated under a write action.
      */
     private var myRoots: List<Root> = emptyList()
+
+    /**
+     * [myRoots] by the file each of them stands for, which is how a [TableGenCompilationContext] names its root. Only
+     * mutated under a write action, together with [myRoots].
+     */
+    private var myRootsByFile: Map<VirtualFile, Root> = emptyMap()
 
     // -----------------------------------------------------------------------------------------------------------------
     // Everything derived from the graph
@@ -289,21 +296,6 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
          * reaches it. The set is a view and costs nothing to create.
          */
         fun filesBefore(position: Int): Set<VirtualFile> = Prefix(myOrder, myPositions, position)
-
-        /**
-         * Returns everything the expansion contains up to and including everything [file] pastes into it, or `null` if
-         * [file] is not part of the expansion at all.
-         *
-         * That prefix is exactly the set of files visible to [file]: the files pasted in before it – the files it is
-         * included from and the files included before it – plus the files it pastes in itself. The latter are all in
-         * the prefix because a depth-first traversal only leaves a file once everything reachable from it has been
-         * visited, so any file [file] includes was either already pasted in before it or is pasted in within its
-         * subtree.
-         */
-        fun visibleFrom(file: VirtualFile): Set<VirtualFile>? {
-            val position = myPositions[file] ?: return null
-            return filesBefore(myEnds[position])
-        }
     }
 
     /**
@@ -379,17 +371,23 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
     private fun expansionOf(root: Root): Expansion =
         myExpansionCache.value.computeIfAbsent(root) { Expansion(it.node) }
 
+    /**
+     * Returns the expansion of the root [rootFile] stands for, or `null` if [rootFile] is not a root (anymore).
+     */
+    @RequiresReadLock
+    internal fun expansionOf(rootFile: VirtualFile): Expansion? = myRootsByFile[rootFile]?.let { expansionOf(it) }
+
     // -----------------------------------------------------------------------------------------------------------------
     // Queries
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Returns the active compilation context of [vf] – the one derived from the highest-priority compile-command root
-     * that reaches [vf] – or `null` if [vf] is not reachable from any file with compile commands.
+     * Returns the include context of [vf] – the include paths of the highest-priority compile-command root that
+     * reaches [vf] – or `null` if [vf] is not reachable from any file with compile commands.
      */
     @RequiresReadLock
-    fun getContextOf(vf: VirtualFile): TableGenCompilationContext? =
-        labeling[vf]?.let { TableGenCompilationContext(it.includePaths) }
+    fun getContextOf(vf: VirtualFile): TableGenIncludeContext? =
+        labeling[vf]?.let { TableGenIncludeContext(it.includePaths) }
 
     /**
      * Returns the set of files that currently have an active context, i.e. the compile-command roots and every file
@@ -399,29 +397,15 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
     fun getFilesWithContext(): Set<VirtualFile> = labeling.keys
 
     /**
-     * Returns the set of all files that are visible to [file] in its active context: the files it is included from, the
-     * files included before it (together with their transitive includes) and its own transitive includes.
+     * Returns the context [vf] is resolved in by default: the expansion of the highest-priority compile-command root
+     * that reaches [vf], or a context in which [vf] sees nothing but itself if no root reaches it. This is the one
+     * place that decides which of the roots pasting a file in the file is looked at through; every lookup takes the
+     * result as a parameter from there on, see [TableGenCompilationContext].
      */
     @RequiresReadLock
-    fun getIncludedFiles(file: TableGenFile): Set<VirtualFile> = CachedValuesManager.getCachedValue(file) {
-        val result = file.originalFile.virtualFile?.let { vf ->
-            labeling[vf]?.let { expansionOf(it).visibleFrom(vf) }
-        }.orEmpty()
-        CachedValueProvider.Result.create(result, graphChangedModificationTracker)
-    }
-
-    /**
-     * Returns where [file] sits within the expansion of the root it derives its active context from, or `null` if it
-     * has no context. This is what any lookup that has to respect the order in which files are pasted into each other
-     * is built on, see [TableGenIncludePosition].
-     */
-    @RequiresReadLock
-    fun getIncludePositionOf(file: TableGenFile): TableGenIncludePosition? = CachedValuesManager.getCachedValue(file) {
-        val result = file.originalFile.virtualFile?.let { vf ->
-            val expansion = labeling[vf]?.let { expansionOf(it) }
-            expansion?.positionOf(vf)?.let { TableGenIncludePosition(expansion, it) }
-        }
-        CachedValueProvider.Result.create(result, graphChangedModificationTracker)
+    fun compilationContextOf(vf: VirtualFile?): TableGenCompilationContext {
+        val root = vf?.let { labeling[it] } ?: return TableGenCompilationContext.SelfOnly(project, vf)
+        return TableGenCompilationContext.Rooted(project, root.node.file)
     }
 
     /**
@@ -805,6 +789,7 @@ class TableGenIncludeGraphService(val project: Project, private val cs: Coroutin
                                 writeAction {
                                     // The order of the compile commands is the priority of the roots they yield.
                                     myRoots = roots.map { (file, paths) -> Root(getOrCreate(file), paths.paths) }
+                                    myRootsByFile = myRoots.associateBy { it.node.file }
                                     graphGeneration.update { it + 1 }
                                 }
                             }
