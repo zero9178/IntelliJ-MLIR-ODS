@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.annotator
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
@@ -91,40 +92,46 @@ internal abstract class TableGenCollectingEvaluationHolder(private val holder: A
 }
 
 /**
- * [TableGenEvaluationHolder] used by a regular [Annotator]: evaluates in the null context and surfaces problems
- * directly on the offending element.
+ * [TableGenEvaluationHolder] used by a regular [Annotator]: evaluates in the null context of [compilationContext] and
+ * surfaces problems directly on the offending element.
  */
-internal class TableGenDirectEvaluationHolder(holder: AnnotationHolder) : TableGenCollectingEvaluationHolder(holder) {
-    override val context = TableGenEvaluationContext()
+internal class TableGenDirectEvaluationHolder(
+    holder: AnnotationHolder,
+    compilationContext: TableGenCompilationContext,
+) : TableGenCollectingEvaluationHolder(holder) {
+    override val context = TableGenEvaluationContext(compilationContext)
 
     override fun anchorOf(element: PsiElement) = element
 }
 
 /**
  * [TableGenEvaluationHolder] used when checking a [def][TableGenDefStatement] instantiation: evaluates field
- * expressions in the def's context and anchors any problem on [anchor], a location inside the def being highlighted
- * (the offending expression itself may live in an out-of-file base class).
+ * expressions in the def's context within [compilationContext] and anchors any problem on [anchor], a location inside
+ * the def being highlighted (the offending expression itself may live in an out-of-file base class).
  */
 internal class TableGenInstantiationEvaluationHolder(
     def: TableGenDefStatement,
     private val anchor: PsiElement,
     holder: AnnotationHolder,
+    compilationContext: TableGenCompilationContext,
 ) : TableGenCollectingEvaluationHolder(holder) {
-    override val context = TableGenEvaluationContext(def)
+    override val context = TableGenEvaluationContext(def, compilationContext)
 
     override fun anchorOf(element: PsiElement) = anchor
 }
 
 /**
  * [TableGenEvaluationHolder] that emits no annotations and merely records whether a check reported a problem, evaluating
- * in the null context.
+ * in the null context of [compilationContext].
  *
  * It is used to find out whether a check already fails without any instantiation, i.e. whether the problem is constant
  * and therefore already reported by [TableGenDirectEvaluationHolder]. Running it before re-checking in an instantiation
  * context lets the instantiation pass skip such problems instead of reporting them a second time.
  */
-internal class TableGenProbeEvaluationHolder : TableGenEvaluationHolder {
-    override val context = TableGenEvaluationContext()
+internal class TableGenProbeEvaluationHolder(
+    compilationContext: TableGenCompilationContext,
+) : TableGenEvaluationHolder {
+    override val context = TableGenEvaluationContext(compilationContext)
 
     @Volatile
     var emittedError = false

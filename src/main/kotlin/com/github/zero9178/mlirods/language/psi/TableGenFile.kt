@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.components.service
@@ -92,7 +93,7 @@ class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, T
         }
     }
 
-    override val directIdMap by myDirectIdMap
+    override fun directIdMap(context: TableGenCompilationContext) = myDirectIdMap.value
 
     private val myUsedMacros = resettableLazy {
         stubStream(TableGenStubElementTypes.IFDEF_IFNDEF_DIRECTIVE).mapNotNullTo(mutableSetOf()) { it.macroName }

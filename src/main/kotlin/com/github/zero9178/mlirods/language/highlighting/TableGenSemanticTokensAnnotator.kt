@@ -8,6 +8,7 @@ import com.github.zero9178.mlirods.color.SKIPPED_CODE
 import com.github.zero9178.mlirods.language.psi.TableGenFile
 import com.github.zero9178.mlirods.language.generated.psi.*
 import com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode
+import com.github.zero9178.mlirods.language.annotator.compilationContext
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
@@ -106,12 +107,12 @@ internal class TableGenSemanticTokensAnnotator : HighlightVisitor {
 
     private var myHolder: HighlightInfoHolder? = null
 
+    // 'analyze' sets the holder before running the action that visits anything, so a visit outside of it means the
+    // platform called this visitor in a way it was not written for.
+    private val holder: HighlightInfoHolder
+        get() = checkNotNull(myHolder) { "visited an element outside of 'analyze'" }
 
-    private fun addInfo(highlightInfo: HighlightInfo?) {
-        // 'analyze' sets the holder before running the action that visits anything, so a visit outside of it means the
-        // platform called this visitor in a way it was not written for.
-        checkNotNull(myHolder) { "visited an element outside of 'analyze'" }.add(highlightInfo)
-    }
+    private fun addInfo(highlightInfo: HighlightInfo?) = holder.add(highlightInfo)
 
     override fun clone(): HighlightVisitor {
         return TableGenSemanticTokensAnnotator()
@@ -132,7 +133,9 @@ internal class TableGenSemanticTokensAnnotator : HighlightVisitor {
     override fun visit(element: PsiElement) {
         when (element) {
             is TableGenIdentifierValueNode -> {
-                if (element.reference?.resolve() !is TableGenFieldBodyItem) return
+                // A highlight visitor is where the IDE enters: the context is decided once per file analyzed.
+                val context = holder.annotationSession.compilationContext
+                if (element.referencedDeclaration(context) !is TableGenFieldBodyItem) return
 
                 addInfo(
                     HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(element)

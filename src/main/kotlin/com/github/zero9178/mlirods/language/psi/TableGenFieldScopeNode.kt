@@ -6,15 +6,17 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiElement
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 /**
- * Map used to lookup fields within a [TableGenFieldScopeNode].
+ * Map used to lookup fields within a [TableGenFieldScopeNode] within [myContext].
  * Will perform the lookup not only in [myRoot], but also any of its base classes.
  */
-class FieldMap(private val myRoot: TableGenFieldScopeNode) {
+class FieldMap(private val myRoot: TableGenFieldScopeNode, private val myContext: TableGenCompilationContext) {
 
     /**
      * Returns the field named [fieldName] within [myRoot] or null if no such field exists.
@@ -28,9 +30,9 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode) {
             myRoot.baseClassRefs.takeWhile {
                 beforeElement?.let { other -> it.isBefore(other) } ?: true
             }.mapNotNull {
-                it.referencedClass
+                it.referencedClass(myContext)
             }.firstNotNullOfOrNull {
-                FieldMap(it)[fieldName, beforeElement]
+                FieldMap(it, myContext)[fieldName, beforeElement]
             }?.let { return@disallowTreeLoading it }
 
             // Only consider fields defined before 'beforeElement'.
@@ -51,6 +53,9 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode) {
 
 /**
  * Interface used by any [TableGenIdentifierScopeNode] which may also contain fields.
+ *
+ * Everything reaching into base classes depends on which class a base class reference resolves to and therefore takes
+ * the [TableGenCompilationContext] it is asked in; see there for why.
  */
 interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     /**
@@ -69,32 +74,33 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Returns a sequence of all fields of this class, including inherited fields.
      * The field body items returned by this sequence are guaranteed to be the defining field body items.
      */
-    val allFields: Sequence<TableGenFieldBodyItem>
-        get() = sequence {
-            val seen = mutableSetOf<String?>()
-            baseClassRefs.mapNotNull {
-                it.referencedClass
-            }.flatMap {
-                it.allFields
-            }.forEach {
-                if (seen.add(it.fieldName)) yield(it)
-            }
-
-            yieldAll(directFields.values.asSequence().filter {
-                !seen.contains(it.fieldName)
-            })
+    @RequiresReadLock
+    fun allFields(context: TableGenCompilationContext): Sequence<TableGenFieldBodyItem> = sequence {
+        val seen = mutableSetOf<String?>()
+        baseClassRefs.mapNotNull {
+            it.referencedClass(context)
+        }.flatMap {
+            it.allFields(context)
+        }.forEach {
+            if (seen.add(it.fieldName)) yield(it)
         }
+
+        yieldAll(directFields.values.asSequence().filter {
+            !seen.contains(it.fieldName)
+        })
+    }
 
     /**
      * Returns a map of all field assignments in order of application (earliest to latest), including from all
      * transitive base classes.
      * The first element in a list is therefore always a field body item if valid TableGen.
      */
-    val allFieldAssignments: Map<String, List<TableGenFieldAssignmentNode>>
-        get() = getProjectContextDependentCache(this) {
+    @RequiresReadLock
+    fun allFieldAssignments(context: TableGenCompilationContext): Map<String, List<TableGenFieldAssignmentNode>> =
+        getProjectContextDependentCache(this, context) {
             val result = directFieldAssignments.toMutableMap()
-            baseClassRefs.toList().asReversed().mapNotNull { it.referencedClass }.map {
-                it.allFieldAssignments
+            baseClassRefs.toList().asReversed().mapNotNull { it.referencedClass(context) }.map {
+                it.allFieldAssignments(context)
             }.forEach {
                 it.forEach { (k, v) ->
                     result.merge(k, v) { existing, parent ->
@@ -114,13 +120,14 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Returns a set of all base classes (direct and transitive) of this node excluding 'this'.
      * The set contains a null value if there is at least one base-class that could not be resolved.
      */
-    val allBaseClasses: Set<TableGenClassStatement?>
-        get() = getProjectContextDependentCache(this) {
-            RecursionManager.doPreventingRecursion(this, true) {
+    @RequiresReadLock
+    fun allBaseClasses(context: TableGenCompilationContext): Set<TableGenClassStatement?> =
+        getProjectContextDependentCache(this, context) {
+            RecursionManager.doPreventingRecursion(this to context, true) {
                 baseClassRefs.map {
-                    it.referencedClass
+                    it.referencedClass(context)
                 }.flatMap {
-                    sequenceOf(it) + it?.allBaseClasses?.asSequence().orEmpty()
+                    sequenceOf(it) + it?.allBaseClasses(context)?.asSequence().orEmpty()
                 }.toSet()
             } ?: emptySet()
         }
@@ -133,7 +140,8 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Note that a forward declaration and its definition denote the same class while being distinct statements, see
      * [TableGenClassStatement.isSameClassAs].
      */
-    fun derivesFrom(target: TableGenFieldScopeNode): Boolean? {
+    @RequiresReadLock
+    fun derivesFrom(target: TableGenFieldScopeNode, context: TableGenCompilationContext): Boolean? {
         // Trivial self case.
         if (target === this) return true
 
@@ -143,29 +151,34 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         // A class may be declared before it is defined, in which case [target], this record and any of its base
         // classes may each be whichever statement of their class was visible from where they got referenced.
         if (this is TableGenClassStatement && isSameClassAs(target)) return true
-        if (allBaseClasses.any { it != null && it.isSameClassAs(target) }) return true
+        val baseClasses = allBaseClasses(context)
+        if (baseClasses.any { it != null && it.isSameClassAs(target) }) return true
 
         // If null is contained in the set then not all base classes are known.
         // Depending on the caller we should handle this explicitly.
         // Return a null sentinel in this case.
-        if (allBaseClasses.contains(null)) return null
+        if (baseClasses.contains(null)) return null
         return false
     }
 
     /**
-     * Returns what every template argument of the classes directly derived from is bound to: the argument given in the
-     * class reference or else the default value of the template argument. Like in TableGen, both are values of the
-     * record deriving from this: a default referring to another template argument of its class sees what the same
-     * class reference binds it to.
+     * Returns what every template argument of the classes directly derived from is bound to within [context]: the
+     * argument given in the class reference or else the default value of the template argument. Like in TableGen, both
+     * are values of the record deriving from this: a default referring to another template argument of its class sees
+     * what the same class reference binds it to.
      */
-    val directArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
-        get() = getProjectContextDependentCache(this) {
+    @RequiresReadLock
+    fun directArgToTemplateArgMapping(
+        context: TableGenCompilationContext,
+    ): Map<TableGenTemplateArgDecl, TableGenValueNode> =
+        getProjectContextDependentCache(this, context) {
             baseClassRefs.flatMap { ref ->
-                val defaults = ref.referencedClass?.templateArgDeclList.orEmpty().mapNotNull { decl ->
+                val defaults = ref.referencedClass(context)?.templateArgDeclList.orEmpty().mapNotNull { decl ->
                     decl.valueNode?.let { decl to it }
                 }
                 val arguments = ref.argValueItemList.flatMap {
-                    val referencedTemplateArgDecl = it.referencedTemplateArgDecl ?: return@flatMap emptyList()
+                    val referencedTemplateArgDecl =
+                        it.referencedTemplateArgDecl(context) ?: return@flatMap emptyList()
                     val valueNode = it.valueNode ?: return@flatMap emptyList()
                     listOf(referencedTemplateArgDecl to valueNode)
                 }
@@ -174,10 +187,13 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
             }.toMap()
         }
 
-    val allArgToTemplateArgMapping: Map<TableGenTemplateArgDecl, TableGenValueNode>
-        get() = getProjectContextDependentCache(this) {
-            val result = directArgToTemplateArgMapping.toMutableMap()
-            baseClassRefs.mapNotNull { it.referencedClass?.allArgToTemplateArgMapping }.forEach {
+    @RequiresReadLock
+    fun allArgToTemplateArgMapping(
+        context: TableGenCompilationContext,
+    ): Map<TableGenTemplateArgDecl, TableGenValueNode> =
+        getProjectContextDependentCache(this, context) {
+            val result = directArgToTemplateArgMapping(context).toMutableMap()
+            baseClassRefs.mapNotNull { it.referencedClass(context)?.allArgToTemplateArgMapping(context) }.forEach {
                 it.forEach { (decl, node) ->
                     result[decl] = node
                 }
@@ -186,8 +202,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         }
 
     /**
-     * Returns a map for field lookup.
+     * Returns a map for field lookup within [context].
      */
-    val fields: FieldMap
-        get() = FieldMap(this)
+    fun fields(context: TableGenCompilationContext): FieldMap = FieldMap(this, context)
 }

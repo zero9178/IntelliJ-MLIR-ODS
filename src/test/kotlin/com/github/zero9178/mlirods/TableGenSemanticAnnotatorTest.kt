@@ -120,6 +120,16 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test argument named by a string is checked against that template argument`() {
+        // A named argument may use a string literal instead of an identifier as the name.
+        doResolvingTest(
+            """
+            class C<int a, string b>;
+            def D : C<0, "b" = <error descr="Value of type 'int' cannot be assigned to template argument 'b' of type 'string'">1</error>>;
+        """.trimIndent()
+        )
+    }
+
     fun `test named argument of a mismatching type is flagged`() {
         doResolvingTest(
             """

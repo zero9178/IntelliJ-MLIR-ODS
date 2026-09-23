@@ -38,53 +38,44 @@ private fun projectContextDependencies(project: Project): Array<Any> = arrayOf(
 )
 
 /**
- * Context-aware replacement for [CachedValuesManager.getProjectPsiDependentCache].
- *
- * Like the platform helper, the value computed by [provider] is cached per [element] and recomputed on PSI change.
- * Unlike the platform helper it only tracks changes to TableGen PSI ([PsiModificationTracker.forLanguage]) rather than
- * any language, as nothing cached here depends on the PSI of other languages. In addition, it is invalidated whenever
- * the include graph changes (see [TableGenIncludeGraphService.graphChangedModificationTracker]).
- *
- * Almost every cross-file lookup in this project depends on these: resolution happens relative to the active context of
- * a file (which files it includes, which defines are active, ...), and that context may change without any PSI edit —
- * e.g. because the compile commands changed, or a TableGen file was added or removed. A plain
- * [CachedValuesManager.getProjectPsiDependentCache] would keep serving stale results in those cases.
- *
- * Anything whose result depends on more than [element] must use the overload taking a key instead.
+ * The slots of the keyed caches [element] has for the call site [providerClass] identifies, one per key. The map is
+ * dropped along with everything in it whenever what everything cached here depends on changes.
  */
-fun <T, P : PsiElement> getProjectContextDependentCache(element: P, provider: (P) -> T): T =
+private fun <S, P : PsiElement, K : Any> slotsOf(element: P, providerClass: Class<*>): ConcurrentHashMap<K, S> =
     CachedValuesManager.getManager(element.project).getParameterizedCachedValue(
         element,
-        cacheKeyFor<T, P>(provider.javaClass),
+        cacheKeyFor<ConcurrentHashMap<K, S>, P>(providerClass),
         { param: P ->
-            CachedValueProvider.Result.create(provider(param), *projectContextDependencies(param.project))
+            CachedValueProvider.Result.create(ConcurrentHashMap<K, S>(), *projectContextDependencies(param.project))
         },
         false,
         element,
     )
 
 /**
- * Same as [getProjectContextDependentCache], but for a value that depends on a [key] besides [element]: the value is
- * cached per [element] and [key], so that a computation for another key neither finds nor overwrites it. Keys must have
- * value equality, as it is what lets a key obtained anew hit what was cached under an equal one. [provider] is only ever
- * run for [key] and may therefore capture it.
+ * Context-aware replacement for [CachedValuesManager.getProjectPsiDependentCache], for a value that depends on a [key]
+ * besides [element], typically the [TableGenCompilationContext] the value is computed in or a
+ * [TableGenEvaluationContext][com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext] carrying one.
+ *
+ * Like the platform helper, the value computed by [provider] is recomputed on PSI change. Unlike the platform helper it
+ * only tracks changes to TableGen PSI ([PsiModificationTracker.forLanguage]) rather than any language, as nothing
+ * cached here depends on the PSI of other languages. In addition, it is invalidated whenever the include graph changes
+ * (see [TableGenIncludeGraphService.graphChangedModificationTracker]).
+ *
+ * Almost every cross-file lookup in this project depends on these: resolution happens relative to a compilation
+ * context (which files it pastes in, in which order, ...), and that context may change without any PSI edit — e.g.
+ * because the compile commands changed, or a TableGen file was added or removed. A plain
+ * [CachedValuesManager.getProjectPsiDependentCache] would keep serving stale results in those cases.
+ *
+ * The value is cached per [element] and [key], so that a computation in another context neither finds nor overwrites
+ * it. Keys must have value equality, as it is what lets a context obtained anew hit what was cached under an equal one.
+ * [provider] is only ever run for [key] and may therefore capture it.
  */
 fun <T, P : PsiElement, K : Any> getProjectContextDependentCache(element: P, key: K, provider: (P) -> T): T {
     val manager = CachedValuesManager.getManager(element.project)
-    val slots = manager.getParameterizedCachedValue(
-        element,
-        cacheKeyFor<ConcurrentHashMap<K, CachedValue<T>>, P>(provider.javaClass),
-        { param: P ->
-            CachedValueProvider.Result.create(
-                ConcurrentHashMap<K, CachedValue<T>>(), *projectContextDependencies(param.project)
-            )
-        },
-        false,
-        element,
-    )
     // Only the slot is created here, never the value: 'computeIfAbsent' must not re-enter the map, which a computation
     // reaching the same element and key through a cycle would do.
-    return slots.computeIfAbsent(key) {
+    return slotsOf<CachedValue<T>, P, K>(element, provider.javaClass).computeIfAbsent(key) {
         manager.createCachedValue {
             CachedValueProvider.Result.create(provider(element), *projectContextDependencies(element.project))
         }
@@ -101,22 +92,48 @@ fun SuspendingCachedValueScope.dependsOnProjectContext(project: Project) = depen
 )
 
 /**
- * Suspending counterpart of [getProjectContextDependentCache]: [provider] is a coroutine, and is run once no matter how
- * many threads request the value while it does. See [SuspendingCachedValue] for what that is good for and how to call
- * it.
+ * Suspending counterpart of [getProjectContextDependentCache] for a value that depends on nothing but [element]:
+ * [provider] is a coroutine, and is run once no matter how many threads request the value while it does. See
+ * [SuspendingCachedValue] for what that is good for and how to call it.
  *
  * Returns the cached value rather than what it computes, for the caller to choose between
- * [SuspendingCachedValue.await] and [SuspendingCachedValue.getBlocking]. [onCycle] is what the value is when requested
- * in a cycle, see [SuspendingCachedValue].
+ * [SuspendingCachedValue.await] and [SuspendingCachedValue.getBlocking].
  */
 fun <T, P : PsiElement> projectContextDependentSuspendingCachedValue(
     element: P,
-    onCycle: (() -> T)? = null,
     provider: suspend SuspendingCachedValueScope.(P) -> T,
-): SuspendingCachedValue<T> = element.suspendingCachedValue(suspendingCachedValueKeyOf<T>(provider), onCycle) { param ->
+): SuspendingCachedValue<T> = element.suspendingCachedValue(suspendingCachedValueKeyOf<T>(provider)) { param ->
     dependsOnProjectContext(param.project)
     provider(param)
 }
+
+/**
+ * Suspending counterpart of [getProjectContextDependentCache]: [provider] is a coroutine, cached per [element] and
+ * [key] like there, and run once no matter how many threads request the value while it does. See
+ * [SuspendingCachedValue] for what that is good for and how to call it.
+ *
+ * Returns the cached value rather than what it computes, for the caller to choose between
+ * [SuspendingCachedValue.await] and [SuspendingCachedValue.getBlocking]. [what] names the value in diagnostics, and
+ * [onCycle] is what the value is when requested in a cycle, see [SuspendingCachedValue].
+ */
+fun <T, P : PsiElement, K : Any> projectContextDependentSuspendingCachedValue(
+    element: P,
+    key: K,
+    what: String,
+    onCycle: (() -> T)? = null,
+    provider: suspend SuspendingCachedValueScope.(P) -> T,
+): SuspendingCachedValue<T> =
+    // Creating the map of slots neither suspends nor takes part in a cycle, which is why a platform cached value holds
+    // it rather than another suspending one.
+    slotsOf<SuspendingCachedValue<T>, P, K>(element, provider.javaClass).computeIfAbsent(key) {
+        // Identified by what is at hand without loading the tree of a stubbed element.
+        SuspendingCachedValue(
+            "$what of ${element.javaClass.simpleName}@${System.identityHashCode(element)} in $key", onCycle,
+        ) {
+            dependsOnProjectContext(element.project)
+            provider(element)
+        }
+    }
 
 /**
  * Requests the value of [projectContextDependentSuspendingCachedValue].

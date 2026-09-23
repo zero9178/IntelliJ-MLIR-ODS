@@ -25,8 +25,8 @@ import kotlin.io.path.writeText
 
 /**
  * Tests for [TableGenIncludeGraphService] context propagation: how include paths from the compile commands flow into the
- * root file and transitively into all (directly and indirectly) included files, and how the set of files visible to a
- * file ([TableGenIncludeGraphService.getIncludedFiles]) is populated as a result.
+ * root file and transitively into all (directly and indirectly) included files, and which files the graph finds to
+ * include which. What the graph makes visible from where is tested through resolution, see [ReferenceTest].
  */
 class IncludeGraphContextTest : BasePlatformTestCase() {
 
@@ -36,9 +36,6 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
     private fun includePaths(vf: VirtualFile): List<VirtualFile> =
         service.getContextOf(vf)?.includePaths ?: emptyList()
 
-    private fun includedFiles(vf: VirtualFile): Set<VirtualFile> =
-        service.getIncludedFiles(PsiManager.getInstance(project).findFile(vf) as TableGenFile)
-
     fun `test compile command propagates include paths to root`() {
         val root = myFixture.createFile("root.td", "")
         val dir = root.parent
@@ -47,7 +44,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         assertEquals(listOf(dir), includePaths(root))
     }
 
-    fun `test direct include inherits include paths and sees its includer`() {
+    fun `test direct include inherits include paths`() {
         val included = myFixture.createFile("included.td", "")
         val root = myFixture.createFile(
             "root.td", """
@@ -59,8 +56,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
 
         // Include paths propagate unchanged from the root.
         assertEquals(listOf(dir), includePaths(included))
-        // The file it is included from is visible to it.
-        assertContainsElements(includedFiles(included), root)
+        assertEquals(listOf(root), service.getIncludersOf(included))
     }
 
     fun `test include paths propagate down the include chain`() {
@@ -83,61 +79,6 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         assertEquals(listOf(dir), includePaths(leaf))
     }
 
-    fun `test earlier includes are visible to later ones but not the reverse`() {
-        val first = myFixture.createFile("first.td", "")
-        val second = myFixture.createFile("second.td", "")
-        val root = myFixture.createFile(
-            "root.td", """
-            include "first.td"
-            include "second.td"
-        """.trimIndent()
-        )
-        val dir = root.parent
-        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
-
-        // 'second' is preceded by 'first' in the root, so 'first' is visible to it, but not vice versa.
-        assertContainsElements(includedFiles(second), first)
-        assertDoesntContain(includedFiles(first), second)
-    }
-
-    fun `test getIncludedFiles returns transitive includes`() {
-        val leaf = myFixture.createFile("leaf.td", "")
-        val mid = myFixture.createFile(
-            "mid.td", """
-            include "leaf.td"
-        """.trimIndent()
-        )
-        val root = myFixture.createFile(
-            "root.td", """
-            include "mid.td"
-        """.trimIndent()
-        )
-        val dir = root.parent
-        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
-
-        // The root transitively includes both 'mid' and 'leaf'.
-        assertContainsElements(includedFiles(root), mid, leaf)
-    }
-
-    fun `test getIncludedFiles contains the includedFrom chain`() {
-        val leaf = myFixture.createFile("leaf.td", "")
-        val mid = myFixture.createFile(
-            "mid.td", """
-            include "leaf.td"
-        """.trimIndent()
-        )
-        val root = myFixture.createFile(
-            "root.td", """
-            include "mid.td"
-        """.trimIndent()
-        )
-        val dir = root.parent
-        installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
-
-        // Definitions in the files we are included from are visible, so they are part of the included set.
-        assertContainsElements(includedFiles(leaf), root, mid)
-    }
-
     fun `test recursive include is handled gracefully`() {
         val a = myFixture.createFile(
             "a.td", """
@@ -153,9 +94,8 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         // Must terminate despite the cycle.
         installCompileCommands(project, mapOf(a to IncludePaths(listOf(dir))))
 
-        // Both files see each other, but the traversal does not loop forever.
-        assertContainsElements(includedFiles(a), b)
-        assertContainsElements(includedFiles(b), a)
+        // Both files are part of the graph, and the traversal does not loop forever.
+        assertEquals(setOf(a, b), service.getFilesWithContext())
     }
 
     /**
@@ -310,8 +250,6 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
 
         // Every file is reachable from the root and therefore has a context.
         files.forEach { assertEquals(listOf(dir), includePaths(it)) }
-        // The last file is reachable from every other one, so all of them are visible to it.
-        assertContainsElements(includedFiles(files.last()), files)
     }
 
     fun `test the graph can be traversed backwards`() {
@@ -340,13 +278,13 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
 
         // The file the root includes does not exist yet, so the root sees nothing but itself.
-        assertEquals(setOf(root), includedFiles(root))
+        assertEquals(setOf(root), service.getFilesWithContext())
 
         val appears = myFixture.createFile("appears.td", "class Appears;")
         awaitIncludeGraph(project)
 
         assertEquals(listOf(dir), includePaths(appears))
-        assertContainsElements(includedFiles(root), appears)
+        assertEquals(listOf(root), service.getIncludersOf(appears))
     }
 
     fun `test renaming a file to the name an include names resolves it`() {
@@ -363,7 +301,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         awaitIncludeGraph(project)
 
         assertEquals(listOf(dir), includePaths(other))
-        assertContainsElements(includedFiles(root), other)
+        assertEquals(listOf(root), service.getIncludersOf(other))
     }
 
     fun `test moving a file into the directory an include names resolves it`() {
@@ -381,7 +319,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         awaitIncludeGraph(project)
 
         assertEquals(listOf(dir), includePaths(moved))
-        assertContainsElements(includedFiles(root), moved)
+        assertEquals(listOf(root), service.getIncludersOf(moved))
     }
 
     fun `test deleting a file drops the context of files only reachable through it`() {
@@ -419,7 +357,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         awaitIncludeGraph(project)
 
         assertEquals(listOf(dir), includePaths(leaf))
-        assertContainsElements(includedFiles(root), leaf)
+        assertEquals(listOf(root), service.getIncludersOf(leaf))
     }
 
     fun `test moving a directory into an include path resolves an include naming it`() {
@@ -437,7 +375,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         awaitIncludeGraph(project)
 
         assertEquals(listOf(dir), includePaths(leaf))
-        assertContainsElements(includedFiles(root), leaf)
+        assertEquals(listOf(root), service.getIncludersOf(leaf))
     }
 
     fun `test deleting a directory unresolves the includes naming files below it`() {
@@ -448,15 +386,16 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         val leaf = VfsTestUtil.createFile(dir, "sub/leaf.td", "class Leaf;")
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
 
-        assertContainsElements(includedFiles(root), leaf)
+        assertEquals(listOf(root), service.getIncludersOf(leaf))
 
         WriteCommandAction.runWriteCommandAction(project) {
             leaf.parent.delete(this)
         }
         awaitIncludeGraph(project)
 
-        assertEquals("the include of the root does not resolve to anything anymore", setOf(root), includedFiles(root))
-        assertEquals(setOf(root), service.getFilesWithContext())
+        assertEquals(
+            "the include of the root does not resolve to anything anymore", setOf(root), service.getFilesWithContext()
+        )
     }
 
     /**
@@ -478,7 +417,6 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         VfsTestUtil.createFile(dir, "sub/leaf.td", "class Leaf;")
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
 
-        assertEquals(setOf(root), includedFiles(root))
         assertEquals(setOf(root), service.getFilesWithContext())
         assertNull(psiIncludeTargetOf(root))
     }
@@ -489,7 +427,6 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         val dir = root.parent
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
 
-        assertEquals(setOf(root), includedFiles(root))
         assertEquals(setOf(root), service.getFilesWithContext())
         assertNull(psiIncludeTargetOf(root))
     }
@@ -502,7 +439,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         val dir = root.parent
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
 
-        assertEquals(setOf(root), includedFiles(root))
+        assertEquals(setOf(root), service.getFilesWithContext())
         assertNull("a C header is not part of the include graph", service.getContextOf(header))
         assertNull(psiIncludeTargetOf(root))
     }
@@ -518,7 +455,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         val root = myFixture.createFile("root.td", "include \"leaf.td\"")
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(first, second))))
 
-        assertContainsElements(includedFiles(root), leaf)
+        assertEquals(listOf(root), service.getIncludersOf(leaf))
         assertEquals(leaf, psiIncludeTargetOf(root))
     }
 
@@ -545,13 +482,13 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         val dir = root.parent
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(dir))))
 
-        assertEquals("the file the root includes does not exist yet", setOf(root), includedFiles(root))
+        assertEquals("the file the root includes does not exist yet", setOf(root), service.getFilesWithContext())
 
         val appears = myFixture.createFile("appears.tablegen", "class Appears;")
         awaitIncludeGraph(project)
 
         assertEquals(listOf(dir), includePaths(appears))
-        assertContainsElements(includedFiles(root), appears)
+        assertEquals(listOf(root), service.getIncludersOf(appears))
         assertEquals(appears, psiIncludeTargetOf(root))
     }
 
@@ -628,7 +565,7 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         update(mapOf(rootA to IncludePaths(listOf(dir))))
         assertEquals(listOf(dir), includePaths(rootA))
         // 'shared' is reachable from 'rootA'.
-        assertContainsElements(includedFiles(shared), rootA)
+        assertEquals(listOf(rootA), service.getIncludersOf(shared))
 
         // Replace the compile commands so only 'rootB' is a root anymore.
         update(mapOf(rootB to IncludePaths(listOf(dir))))
@@ -637,6 +574,6 @@ class IncludeGraphContextTest : BasePlatformTestCase() {
         // 'rootA' is no longer a root and thus has no context anymore.
         assertNull(service.getContextOf(rootA))
         // 'shared' is still reachable from the now-active root.
-        assertContainsElements(includedFiles(rootB), shared)
+        assertEquals(listOf(rootB), service.getIncludersOf(shared))
     }
 }

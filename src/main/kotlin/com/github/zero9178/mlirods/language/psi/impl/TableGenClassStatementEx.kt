@@ -5,11 +5,13 @@ import com.github.zero9178.mlirods.index.getElements
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.navigation.NavigationItem
 import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, TableGenRecord {
     /**
@@ -25,15 +27,13 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
     val hasBody: Boolean
 
     /**
-     * Returns all statements of this class preceding this one be they declarations or definitions.
-     * The statements are in the order they have within that text, making the last one the
-     * closest to this statement.
+     * Returns all statements of this class preceding this one within [context], be they declarations or
+     * definitions. The statements are in the order they have within that text, making the last one the closest to
+     * this statement.
      */
-    val previousStatements: List<TableGenClassStatement>
-        get() = getProjectContextDependentCache(this) { self ->
-            val name = self.name ?: return@getProjectContextDependentCache emptyList()
-            TableGenClassReference.findVisibleClasses(name, self)
-        }
+    @RequiresReadLock
+    fun previousStatements(context: TableGenCompilationContext): List<TableGenClassStatement> =
+        name?.let { TableGenClassReference.findVisibleClasses(it, this, context) } ?: emptyList()
 
     /**
      * Returns true if this statement and [other] denote the same class.
@@ -51,42 +51,46 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
     fun isSameClassAs(other: TableGenClassStatement): Boolean = this === other || name != null && name == other.name
 
     /**
-     * Returns a list of all records that directly derive from this class.
+     * Returns a list of all records that directly derive from this class, i.e. whose base class reference resolves to
+     * this statement within [context].
      *
      * Note that this currently doesn't include inline class instantiation values.
      */
-    val directivelyDerivedRecords: Sequence<TableGenRecord>
-        get() = getProjectContextDependentCache(this) {
+    @RequiresReadLock
+    fun directivelyDerivedRecords(context: TableGenCompilationContext): Sequence<TableGenRecord> =
+        getProjectContextDependentCache(this, context) {
             MAY_DERIVE_CLASS_INDEX.getElements(
                 name ?: return@getProjectContextDependentCache emptyList(),
                 project,
                 GlobalSearchScope.allScope(project)
             ).asSequence().filter {
                 it.baseClassRefs.any { ref ->
-                    ref.referencedClass == this
+                    ref.referencedClass(context) == this
                 }
             }.toList()
         }.asSequence()
 
     /**
-     * Returns a list of all records that directly or indirectly derive from this class.
+     * Returns a list of all records that directly or indirectly derive from this class within [context].
      *
      * Note that this currently doesn't include inline class instantiation values.
      */
-    val allDerivedRecords: Sequence<TableGenRecord>
-        get() = getProjectContextDependentCache(this) {
-            RecursionManager.doPreventingRecursion(this, true) {
-                directivelyDerivedRecords + directivelyDerivedRecords.flatMap {
-                    if (it is TableGenClassStatement) it.allDerivedRecords else emptySequence()
+    @RequiresReadLock
+    fun allDerivedRecords(context: TableGenCompilationContext): Sequence<TableGenRecord> =
+        getProjectContextDependentCache(this, context) {
+            RecursionManager.doPreventingRecursion(this to context, true) {
+                directivelyDerivedRecords(context) + directivelyDerivedRecords(context).flatMap {
+                    if (it is TableGenClassStatement) it.allDerivedRecords(context) else emptySequence()
                 }
             }?.toList() ?: emptyList()
         }.asSequence()
 
-    override val mostDerivedRecords: Sequence<TableGenRecord>
-        get() = getProjectContextDependentCache(this) {
-            (allDerivedRecords + sequenceOf(this)).filter {
+    @RequiresReadLock
+    override fun mostDerivedRecords(context: TableGenCompilationContext): Sequence<TableGenRecord> =
+        getProjectContextDependentCache(this, context) {
+            (allDerivedRecords(context) + sequenceOf(this)).filter {
                 when (it) {
-                    is TableGenClassStatement -> it.directivelyDerivedRecords.firstOrNull() == null
+                    is TableGenClassStatement -> it.directivelyDerivedRecords(context).firstOrNull() == null
                     else -> true
                 }
             }.toList()

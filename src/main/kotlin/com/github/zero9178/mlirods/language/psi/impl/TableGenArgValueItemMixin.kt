@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDec
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.psi.TableGenArgValueItemReference
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenArgValueItemStub
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
@@ -28,8 +29,8 @@ abstract class TableGenArgValueItemMixin : StubBasedPsiElementBase<TableGenArgVa
     override val valueNode: TableGenValueNode?
         get() = if (isNamedArgument && identifierName == null) valueNodeList.getOrNull(1) else valueNodeList.firstOrNull()
 
-    override val referencedTemplateArgDecl: TableGenTemplateArgDecl?
-        get() = TableGenArgValueItemReference(this).resolve() as? TableGenTemplateArgDecl
+    override fun referencedTemplateArgDecl(context: TableGenCompilationContext): TableGenTemplateArgDecl? =
+        TableGenArgValueItemReference.findTemplateArgDecl(this, context)
 
     override val identifierName: String?
         get() {

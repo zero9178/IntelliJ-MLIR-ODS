@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStub
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -41,11 +42,10 @@ abstract class TableGenFieldBodyItemMixin : StubBasedPsiElementBase<TableGenFiel
         return nameIdentifier?.textOffset ?: super.getTextOffset()
     }
 
-    override val definingFieldBodyItem: TableGenFieldBodyItem
-        get() {
-            val fieldName = fieldName ?: return this
-            val scope = parentOfType<TableGenFieldScopeNode>() ?: return this
-            // Only fields defined before this one (in this scope or a base class) constitute a redefinition.
-            return scope.fields[fieldName, this] ?: this
-        }
+    override fun definingFieldBodyItem(context: TableGenCompilationContext): TableGenFieldBodyItem {
+        val fieldName = fieldName ?: return this
+        val scope = parentOfType<TableGenFieldScopeNode>() ?: return this
+        // Only fields defined before this one (in this scope or a base class) constitute a redefinition.
+        return scope.fields(context)[fieldName, this] ?: this
+    }
 }

@@ -7,6 +7,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenMulticlassStatementStub
 import com.github.zero9178.mlirods.language.stubs.stubbedChildren
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -50,7 +51,7 @@ abstract class TableGenMulticlassStatementMixin : StubBasedPsiElementBase<TableG
         }
     }
 
-    override val directIdMap by myDirectIdMap
+    override fun directIdMap(context: TableGenCompilationContext) = myDirectIdMap.value
 
     override fun subtreeChanged() {
         super.subtreeChanged()

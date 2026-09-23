@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods
 
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.language.types.*
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -501,7 +502,7 @@ class TypeComputationTest : BasePlatformTestCase() {
     private fun typeAtCaret(source: String): TableGenType? {
         myFixture.configureByText("test.td", source)
         val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))
-        return statement.valueNode?.typeBlocking()
+        return statement.valueNode?.typeBlocking(TableGenCompilationContext.activeFor(statement))
     }
 
     fun doTest(source: String, expectedType: TableGenType) {

@@ -11,6 +11,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenFieldAssignmentNode
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.progress.runBlockingCancellable
@@ -104,7 +105,7 @@ private suspend fun visitLiveValues(root: TableGenValueNode, holder: TableGenEva
 
             // Only report a problem here if it does not already fail in the null context. Such constant problems are
             // reported by the direct pass, so reporting them again for every instantiation would duplicate the annotation.
-            val probe = TableGenProbeEvaluationHolder()
+            val probe = TableGenProbeEvaluationHolder(holder.context.compilationContext)
             check(element, probe)
             if (!probe.emittedError) check(element, holder)
         }
@@ -128,10 +129,12 @@ private fun effectiveFieldValues(assignments: List<TableGenFieldAssignmentNode>)
  * context. This catches problems that only become visible once a class's template arguments and fields are bound to
  * concrete values, e.g. a `!div` whose divisor is a template argument that this def sets to `0`.
  */
-private fun checkInstantiation(def: TableGenDefStatement, holder: AnnotationHolder) {
+private fun checkInstantiation(
+    def: TableGenDefStatement, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
     val anchor = def.nameIdentifier ?: return
-    val evaluationHolder = TableGenInstantiationEvaluationHolder(def, anchor, holder)
-    val values = def.allFieldAssignments.values.asSequence().flatMap(::effectiveFieldValues).toList()
+    val evaluationHolder = TableGenInstantiationEvaluationHolder(def, anchor, holder, context)
+    val values = def.allFieldAssignments(context).values.asSequence().flatMap(::effectiveFieldValues).toList()
     if (values.isEmpty()) return
 
     runBlockingCancellable {
@@ -162,18 +165,20 @@ private fun reachableFields(start: String, dependencies: Map<String, Set<String>
  * Only the fields on a cycle are reported, not fields merely referring to one. References within '!if' branches not
  * taken are ignored, as TableGen does not resolve them either.
  */
-private fun checkCyclicFields(def: TableGenDefStatement, holder: AnnotationHolder) {
+private fun checkCyclicFields(
+    def: TableGenDefStatement, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
     val anchor = def.nameIdentifier ?: return
-    val context = TableGenEvaluationContext(def)
-    val assignments = def.allFieldAssignments
+    val evaluationContext = TableGenEvaluationContext(def, context)
+    val assignments = def.allFieldAssignments(context)
     if (assignments.isEmpty()) return
 
     // Maps each field to the fields its value refers to.
     val dependencies = runBlockingCancellable {
         assignments.mapValues { (_, assignments) ->
-            effectiveFieldValues(assignments).toList().flatMap { liveValuesPostOrder(it, context) }
+            effectiveFieldValues(assignments).toList().flatMap { liveValuesPostOrder(it, evaluationContext) }
                 .filterIsInstance<TableGenIdentifierValueNode>()
-                .mapNotNull { (it.reference?.resolve() as? TableGenFieldBodyItem)?.fieldName }
+                .mapNotNull { (it.referencedDeclaration(context) as? TableGenFieldBodyItem)?.fieldName }
                 .toSet()
         }
     }
@@ -193,19 +198,23 @@ private fun checkCyclicFields(def: TableGenDefStatement, holder: AnnotationHolde
 private val ANNOTATIONS = arrayOf(
     // Run the evaluation-based checks directly on each value node, evaluated in the null context. A problem found here
     // is constant (e.g. '!div(6, 0)') and therefore wrong as written, so it is reported even inside a dead '!if' branch.
-    addAnnotationFor { element: TableGenValueNode, holder: AnnotationHolder ->
+    addAnnotationFor { element: TableGenValueNode, holder: AnnotationHolder, context ->
         val checks = EVALUATION_CHECKS.filter { it.appliesTo(element) }
         if (checks.isEmpty()) return@addAnnotationFor
 
-        val evaluationHolder = TableGenDirectEvaluationHolder(holder)
+        val evaluationHolder = TableGenDirectEvaluationHolder(holder, context)
         runBlockingCancellable {
             checks.forEach { launch { it(element, evaluationHolder) } }
         }
         evaluationHolder.flush()
     },
     // Re-run them on every def, this time through the def's instantiation context.
-    addAnnotationFor { element: TableGenDefStatement, holder -> checkInstantiation(element, holder) },
-    addAnnotationFor { element: TableGenDefStatement, holder -> checkCyclicFields(element, holder) },
+    addAnnotationFor { element: TableGenDefStatement, holder, context ->
+        checkInstantiation(element, holder, context)
+    },
+    addAnnotationFor { element: TableGenDefStatement, holder, context ->
+        checkCyclicFields(element, holder, context)
+    },
 )
 
 /**

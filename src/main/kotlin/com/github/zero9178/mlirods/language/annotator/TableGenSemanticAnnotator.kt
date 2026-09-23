@@ -11,6 +11,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDec
 import com.github.zero9178.mlirods.language.psi.findVisibleMulticlass
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.modcommand.ActionContext
@@ -26,21 +27,23 @@ import com.intellij.psi.PsiNameIdentifierOwner
  * 3. Every template argument declaration without a default value is assigned a value.
  * 4. Every argument's value is of a type assignable to its template argument declaration.
  */
-private fun checkArguments(element: TableGenAbstractClassRef, holder: AnnotationHolder) {
-    val targetClass = element.referencedClass ?: return
+private fun checkArguments(
+    element: TableGenAbstractClassRef, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
+    val targetClass = element.referencedClass(context) ?: return
 
     // Entered once per class reference, with the types requested one after the other: almost every argument is a
     // literal or an identifier, whose type costs less than a coroutine of its own would.
     val items = element.argValueItemList
-    val valueTypes = runBlockingCancellable { items.map { it.valueNode?.type() ?: TableGenUnknownType } }
+    val valueTypes = runBlockingCancellable { items.map { it.valueNode?.type(context) ?: TableGenUnknownType } }
 
     // Map each referenced declaration to the arguments assigning a value to it.
     val itemsByDecl = mutableMapOf<TableGenTemplateArgDecl, MutableList<TableGenArgValueItem>>()
     for ((item, valueType) in items.zip(valueTypes)) {
-        val decl = item.referencedTemplateArgDecl
+        val decl = item.referencedTemplateArgDecl(context)
         if (decl != null) {
             itemsByDecl.getOrPut(decl) { mutableListOf() }.add(item)
-            checkArgumentType(item, valueType, decl, holder)
+            checkArgumentType(item, valueType, decl, holder, context)
             continue
         }
 
@@ -82,13 +85,17 @@ private fun checkArguments(element: TableGenAbstractClassRef, holder: Annotation
  * indeterminate) no error is reported.
  */
 private fun checkArgumentType(
-    item: TableGenArgValueItem, valueType: TableGenType, decl: TableGenTemplateArgDecl, holder: AnnotationHolder
+    item: TableGenArgValueItem,
+    valueType: TableGenType,
+    decl: TableGenTemplateArgDecl,
+    holder: AnnotationHolder,
+    context: TableGenCompilationContext,
 ) {
     val valueNode = item.valueNode ?: return
     val declaredType = decl.typeNode.toType()
 
     // Only report a definite mismatch; an indeterminate result (null) leaves the argument alone.
-    if (valueType.isConvertibleTo(declaredType) != false) return
+    if (valueType.isConvertibleTo(declaredType, context) != false) return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message(
@@ -115,9 +122,11 @@ private class NavigateToPreviousDefinitionFix(definition: PsiNameIdentifierOwner
  * includes declarations: a class may be declared any number of times, but only up until it is defined. The definition
  * reported is the one closest to [element].
  */
-private fun checkRedefinition(element: TableGenClassStatement, holder: AnnotationHolder) {
+private fun checkRedefinition(
+    element: TableGenClassStatement, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
     val identifier = element.nameIdentifier ?: return
-    val previous = element.previousStatements.lastOrNull { !it.isDeclaration } ?: return
+    val previous = element.previousStatements(context).lastOrNull { !it.isDeclaration } ?: return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.classRedefinition", element.name ?: "")
@@ -129,10 +138,12 @@ private fun checkRedefinition(element: TableGenClassStatement, holder: Annotatio
  * a multiclass cannot be declared: every statement of it defines it, making every statement following the first one an
  * error in TableGen. The definition reported is the one closest to [element].
  */
-private fun checkRedefinition(element: TableGenMulticlassStatement, holder: AnnotationHolder) {
+private fun checkRedefinition(
+    element: TableGenMulticlassStatement, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
     val identifier = element.nameIdentifier ?: return
     val name = element.name ?: return
-    val previous = findVisibleMulticlass(name, element) ?: return
+    val previous = findVisibleMulticlass(name, element, context) ?: return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.multiclassRedefinition", name)
@@ -142,10 +153,16 @@ private fun checkRedefinition(element: TableGenMulticlassStatement, holder: Anno
 private val ANNOTATIONS = arrayOf(
     // Only validate arguments for class references in an inheritance list and for class instantiations; other
     // references (such as a class used as a type) do not pass template arguments.
-    addAnnotationFor { element: TableGenClassRef, holder -> checkArguments(element, holder) },
-    addAnnotationFor { element: TableGenClassInstantiationValueNode, holder -> checkArguments(element, holder) },
-    addAnnotationFor { element: TableGenClassStatement, holder -> checkRedefinition(element, holder) },
-    addAnnotationFor { element: TableGenMulticlassStatement, holder -> checkRedefinition(element, holder) },
+    addAnnotationFor { element: TableGenClassRef, holder, context -> checkArguments(element, holder, context) },
+    addAnnotationFor { element: TableGenClassInstantiationValueNode, holder, context ->
+        checkArguments(element, holder, context)
+    },
+    addAnnotationFor { element: TableGenClassStatement, holder, context ->
+        checkRedefinition(element, holder, context)
+    },
+    addAnnotationFor { element: TableGenMulticlassStatement, holder, context ->
+        checkRedefinition(element, holder, context)
+    },
 )
 
 internal class TableGenSemanticAnnotator : TableGenAnnotator(ANNOTATIONS.asIterable())

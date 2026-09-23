@@ -9,6 +9,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
 import com.github.zero9178.mlirods.language.stubs.stubbedChildren
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
@@ -29,15 +30,15 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
     constructor(stub: StubT, stubType: IStubElementType<*, *>) : super(stub, stubType)
 
     /**
-     * Returns all id entries originating from the record body.
+     * Returns all id entries originating from the record body, resolving the base classes within [context].
      */
-    protected val bodyIdEntries: Sequence<IdMapEntry>
-        get() = baseClassRefs.mapNotNull {
-            it.referencedClass?.let { klass ->
+    protected fun bodyIdEntries(context: TableGenCompilationContext): Sequence<IdMapEntry> =
+        baseClassRefs.mapNotNull {
+            it.referencedClass(context)?.let { klass ->
                 klass to it
             }
         }.flatMap { (klass, ref) ->
-            klass.allFields.map {
+            klass.allFields(context).map {
                 IdMapEntry(it, ref)
             }
         } + stubbedChildren<TableGenIdentifierElement>(

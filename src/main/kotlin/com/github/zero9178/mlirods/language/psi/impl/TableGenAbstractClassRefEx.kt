@@ -1,24 +1,18 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.psi.TableGenClassReference
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiPolyVariantReference
-import com.intellij.util.containers.sequenceOfNotNull
+import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 interface TableGenAbstractClassRefEx : PsiElement {
     /**
-     * Returns the class being referenced or null if resolution failed.
+     * Returns the class being referenced within [context] or null if resolution failed.
      */
-    val referencedClass: TableGenClassStatement?
-        get() = references.asSequence().flatMap {
-            when (it) {
-                is PsiPolyVariantReference -> it.multiResolve(false).asSequence().mapNotNull { result ->
-                    result.element as? TableGenClassStatement
-                }
-
-                else -> sequenceOfNotNull(it.resolve() as? TableGenClassStatement)
-            }
-        }.partition {
+    @RequiresReadLock
+    fun referencedClass(context: TableGenCompilationContext): TableGenClassStatement? =
+        TableGenClassReference.findVisibleClasses(this, context).partition {
             it.isDeclaration
         }.let { (decls, defs) ->
             // Always prefer definitions to declarations, only returning a declaration if there is no definition.

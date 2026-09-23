@@ -5,11 +5,14 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatemen
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierValueNodeStub
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub
 import com.github.zero9178.mlirods.language.values.TableGenRecordValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -30,9 +33,12 @@ abstract class TableGenIdentifierValueNodeMixin : StubBasedPsiElementBase<TableG
     override val identifierText: String
         get() = stub?.identifier ?: identifier.text
 
+    override fun referencedDeclaration(context: TableGenCompilationContext): TableGenIdentifierElement? =
+        TableGenIdentifierReference.findVisibleDeclarations(this, context).singleOrNull()
+
     override suspend fun evaluateInner(context: TableGenEvaluationContext): TableGenValue {
-        val ref = reference?.resolve() ?: return TableGenUnknownValue
-        if (ref is TableGenDefStatement) return TableGenRecordValue(ref)
+        val ref = referencedDeclaration(context.compilationContext) ?: return TableGenUnknownValue
+        if (ref is TableGenDefStatement) return TableGenRecordValue(ref, context.compilationContext)
 
         // The value referred to may refer to another, and so on, to any length no matter how deep the AST is. Launched,
         // it is computed from the bottom of the stack of some thread instead of on top of ours.

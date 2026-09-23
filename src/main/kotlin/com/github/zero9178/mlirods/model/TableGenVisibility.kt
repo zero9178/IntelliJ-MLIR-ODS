@@ -13,10 +13,11 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.startOffset
 import com.intellij.util.concurrency.annotations.RequiresReadLock
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Where a file sits within the expansion of the root it derives its context from, i.e. within the order in which that
- * root pastes every file it transitively includes into itself.
+ * Where a file sits within the expansion of a root, i.e. within the order in which that root pastes every file it
+ * transitively includes into itself.
  *
  * Neither this class nor the graph knows about anything smaller than a file: wherever an answer depends on where within
  * a file something is, it is given in terms of the 'include' directive the position has to be compared with, see
@@ -113,7 +114,7 @@ class TableGenIncludePosition internal constructor(
 
 /**
  * Everything about the visibility of declarations from within a file that does not depend on where in the file one is
- * looking from. Cached per file, turning what is left to do per lookup into a binary search.
+ * looking from. Cached per file and compilation context, turning what is left to do per lookup into a binary search.
  */
 private class FileVisibility(
     val position: TableGenIncludePosition,
@@ -130,16 +131,34 @@ private class FileVisibility(
 )
 
 @RequiresReadLock
-private fun getFileVisibility(file: TableGenFile): FileVisibility? = CachedValuesManager.getCachedValue(file) {
-    val service = file.project.service<TableGenIncludeGraphService>()
-    val result = service.getIncludePositionOf(file)?.let { position ->
-        val included = file.includeDirectives.mapNotNull { directive ->
-            directive.includedFile?.let { directive to it }
-        }.toList()
-        FileVisibility(position, included.map { it.first }, position.visibleFilesAfterEach(included.map { it.second }))
+private fun computeFileVisibility(file: TableGenFile, context: TableGenCompilationContext): FileVisibility? {
+    val position = file.originalFile.virtualFile?.let { context.positionOf(it) } ?: return null
+    // What a directive resolves to is a function of the file and the graph, not of the context: a file's 'include'
+    // directives are resolved once, against the include paths of the root it derives its context from, no matter which
+    // root is looking at it.
+    val included = file.includeDirectives.mapNotNull { directive ->
+        directive.includedFile?.let { directive to it }
+    }.toList()
+    return FileVisibility(
+        position, included.map { it.first }, position.visibleFilesAfterEach(included.map { it.second }),
+    )
+}
+
+@RequiresReadLock
+private fun getFileVisibility(file: TableGenFile, context: TableGenCompilationContext): FileVisibility? {
+    // Unlike most of what is cached per context, this depends on nothing but the file and the graph, and therefore
+    // survives edits of other files.
+    val byContext = CachedValuesManager.getCachedValue(file) {
+        CachedValueProvider.Result.create(
+            ConcurrentHashMap<TableGenCompilationContext, FileVisibility>(),
+            file,
+            file.project.service<TableGenIncludeGraphService>().graphChangedModificationTracker,
+        )
     }
-    // What a directive resolves to is a function of the graph, where it is one of the file.
-    CachedValueProvider.Result.create(result, file, service.graphChangedModificationTracker)
+    byContext[context]?.let { return it }
+    // A file the context does not paste in is not remembered, as finding that out is a lookup in the graph.
+    val computed = computeFileVisibility(file, context) ?: return null
+    return byContext.putIfAbsent(context, computed) ?: computed
 }
 
 /**
@@ -154,12 +173,18 @@ private fun getFileVisibility(file: TableGenFile): FileVisibility? = CachedValue
  * files that are left. Creating an instance is a binary search over the 'include' directives of the file and every
  * [isVisible] query a hash lookup, neither of which requires the syntax tree of any file to be loaded.
  *
- * Instances must not outlive the read action they were created in.
+ * Unlike the [TableGenCompilationContext] it is derived from, an instance is bound to the element and to the graph as
+ * it was when the instance was created: it must not outlive the read action it was created in, is never passed around
+ * and never serves as a cache key. Obtain one through [TableGenCompilationContext.at] right where an index is
+ * queried.
  */
-class TableGenVisibility @RequiresReadLock constructor(private val myElement: PsiElement) {
+class TableGenVisibility @RequiresReadLock internal constructor(
+    private val myContext: TableGenCompilationContext,
+    private val myElement: PsiElement,
+) {
 
     val project: Project
-        get() = myElement.project
+        get() = myContext.project
 
     private val myFile = myElement.containingFile
 
@@ -170,28 +195,28 @@ class TableGenVisibility @RequiresReadLock constructor(private val myElement: Ps
     /**
      * The files that may contain something visible from the element: the file of the element itself, the files pasted
      * in before it and the files pasted in by the 'include' directives of the file preceding the element. Not
-     * everything within these files is necessarily visible, see [isVisible]. A file without a context sees nothing but
-     * itself.
+     * everything within these files is necessarily visible, see [isVisible]. A file the context does not paste in sees
+     * nothing but itself.
      */
     private val myVisibleFiles: Set<VirtualFile>
 
     init {
-        val visibility = (myFile as? TableGenFile)?.let { getFileVisibility(it) }
-        myPosition = visibility?.position
-        myVisibleFiles = if (visibility == null) setOfNotNull(myVirtualFile) else {
+        val fileVisibility = (myFile as? TableGenFile)?.let { getFileVisibility(it, myContext) }
+        myPosition = fileVisibility?.position
+        myVisibleFiles = if (fileVisibility == null) setOfNotNull(myVirtualFile) else {
             // Never reporting a match makes the search return the inverted insertion point, which is the number of
             // directives preceding the element.
-            val preceding = visibility.directives.binarySearch {
+            val preceding = fileVisibility.directives.binarySearch {
                 val isBefore = requireNotNull(it.isBefore(myElement)) { "directives should have been in the same file" }
                 if (isBefore) -1 else 1
             }.inv()
-            visibility.files[preceding]
+            fileVisibility.files[preceding]
         }
     }
 
     /**
      * Scope containing exactly the files that have something visible from the element, including the file of the
-     * element itself. A file without a context sees nothing but itself.
+     * element itself. A file the context does not paste in sees nothing but itself.
      */
     val scope: GlobalSearchScope
         get() {
@@ -215,7 +240,7 @@ class TableGenVisibility @RequiresReadLock constructor(private val myElement: Ps
         val firstFile = first.containingFile as TableGenFile
         val firstVirtualFile = firstFile.originalFile.virtualFile
         val secondVirtualFile = second.containingFile.originalFile.virtualFile
-        val position = requireNotNull(myPosition) { "a file without a context sees nothing but itself" }
+        val position = requireNotNull(myPosition) { "a file the context does not paste in sees nothing but itself" }
         if (position.compareBeginOf(firstVirtualFile, secondVirtualFile) > 0) return -compareTextOrder(second, first)
 
         val directive = position.pastedThrough(firstVirtualFile, secondVirtualFile)?.let {

@@ -1,24 +1,27 @@
 package com.github.zero9178.mlirods.language.psi
 
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.psi.PsiElement
 
 /**
- * Lazy view of the [TableGenIdentifierScopeNode.idMap] of [myScope], composed out of the id map of its parent scope and
- * its own [TableGenIdentifierScopeNode.directIdMap].
+ * Lazy view of the [TableGenIdentifierScopeNode.idMap] of [myScope] within [myContext], composed out of the id map
+ * of its parent scope and its own [TableGenIdentifierScopeNode.directIdMap].
  */
-private class ScopeIdMap(private val myScope: TableGenIdentifierScopeNode) :
-    AbstractMap<String, List<IdMapEntry>>() {
+private class ScopeIdMap(
+    private val myScope: TableGenIdentifierScopeNode,
+    private val myContext: TableGenCompilationContext,
+) : AbstractMap<String, List<IdMapEntry>>() {
 
     /**
      * The constituents are fetched once per view rather than once per lookup. As a view is created anew on every
      * [TableGenIdentifierScopeNode.idMap] access, what they capture never outlives the read action it was fetched in.
      */
     private val myParent: Map<String, List<IdMapEntry>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        myScope.parentScope?.idMap ?: emptyMap()
+        myScope.parentScope?.idMap(myContext) ?: emptyMap()
     }
     private val myDirect: Map<String, List<IdMapEntry>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        myScope.directIdMap
+        myScope.directIdMap(myContext)
     }
 
     /**
@@ -50,7 +53,7 @@ private class ScopeIdMap(private val myScope: TableGenIdentifierScopeNode) :
     ) {
         // Everything inherited occurs before 'scope' and therefore before everything declared within it.
         scope.parentScope?.let { appendEntries(it, key, before = scope, result) }
-        val direct = scope.directIdMap[key] ?: return
+        val direct = scope.directIdMap(myContext)[key] ?: return
         if (before == null) {
             result.addAll(direct)
             return
@@ -122,9 +125,11 @@ interface TableGenIdentifierScopeNode : PsiElement {
      * Returns a map containing all elements that can be found by def lookup directly nested within this scope.
      * Elements with the same name are within a list ordered by lexical appearance of the occurrence element.
      * Every occurrence must therefore be in the same file as 'this' and must start after 'this'.
+     *
+     * [context] only matters to scopes with entries that stem from resolution, such as the fields a record inherits
+     * from its base classes; every other scope ignores it.
      */
-    val directIdMap: Map<String, List<IdMapEntry>>
-        get() = emptyMap<String, List<IdMapEntry>>()
+    fun directIdMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> = emptyMap()
 
     /**
      * Same as [directIdMap], but contains elements from every parent scope as well.
@@ -135,8 +140,7 @@ interface TableGenIdentifierScopeNode : PsiElement {
      * returned view derives everything from the composed maps on use and is created anew on every access, so it must
      * not be retained beyond the enclosing read action.
      */
-    val idMap: Map<String, List<IdMapEntry>>
-        get() = ScopeIdMap(this)
+    fun idMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> = ScopeIdMap(this, context)
 
     /**
      * Returns true if [element], which must be a direct child of 'this', is within the scope created by 'this'.

@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.linemarkers
 import com.github.zero9178.mlirods.MyIcons
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.codeInsight.daemon.GutterName
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
@@ -29,7 +30,9 @@ internal class TableGenDerivesClassLineMarkerProvider : LineMarkerProviderDescri
 
         val parent = element.parent as? TableGenClassStatement ?: return null
 
-        val deriving = parent.allDerivedRecords.toList().ifEmpty {
+        // A line marker provider is where the IDE enters: the lookup happens in the context the file derives from the
+        // include graph.
+        val deriving = parent.allDerivedRecords(TableGenCompilationContext.activeFor(element)).toList().ifEmpty {
             return null
         }
 
