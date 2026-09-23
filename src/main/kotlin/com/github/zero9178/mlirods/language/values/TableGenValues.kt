@@ -32,6 +32,14 @@ data class TableGenStringValue(val value: String) : TableGenValue {
 }
 
 /**
+ * A list of [elements], all of which can be used as [elementType].
+ */
+data class TableGenListValue(val elements: List<TableGenValue>, val elementType: TableGenType) : TableGenValue {
+    override val type: TableGenListType
+        get() = TableGenListType(elementType)
+}
+
+/**
  * A record, exposing its fields for further evaluation. Either a 'def' or the anonymous record created by a class
  * instantiation.
  */
