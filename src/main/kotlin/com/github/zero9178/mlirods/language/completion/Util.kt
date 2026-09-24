@@ -1,9 +1,12 @@
 package com.github.zero9178.mlirods.language.completion
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassTypeNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
+import com.github.zero9178.mlirods.language.generated.psi.TableGenMultiClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.completion.InsertHandler
@@ -67,7 +70,7 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
         context: InsertionContext,
         item: LookupElement
     ): Unit = disallowTreeLoading {
-        val classStatement = item.psiElement as? TableGenClassStatement ?: return@disallowTreeLoading
+        val classStatement = item.psiElement as? TableGenAbstractClassStatement ?: return@disallowTreeLoading
         var hasParams = true
         when (identifier.parent) {
             // Type node never needs brackets.
@@ -76,8 +79,8 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
             is TableGenIdentifierValueNode -> {
                 if (classStatement.templateArgDeclList.isEmpty()) hasParams = false
             }
-            // Class ref does depending on whether the class template arguments or not.
-            is TableGenClassRef -> {
+            // Class and multiclass refs do depending on whether the class has template arguments or not.
+            is TableGenClassRef, is TableGenMultiClassRef -> {
                 // TODO: Double check how default template arguments must be handled here.
                 if (classStatement.templateArgDeclList.isEmpty()) return@disallowTreeLoading
             }
@@ -117,7 +120,7 @@ private class ClassAngleBracketsInsertHandler(private val identifier: PsiElement
  */
 fun createLookupElement(toSuggest: PsiNamedElement, positionToken: PsiElement): LookupElement {
     return when (toSuggest) {
-        is TableGenClassStatement -> LookupElementBuilder.createWithIcon(toSuggest)
+        is TableGenClassStatement, is TableGenMulticlassStatement -> LookupElementBuilder.createWithIcon(toSuggest)
             .withInsertHandler(ClassAngleBracketsInsertHandler(positionToken))
 
         else -> LookupElementBuilder.createWithIcon(toSuggest)

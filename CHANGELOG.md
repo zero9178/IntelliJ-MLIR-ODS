@@ -19,6 +19,9 @@
   after the first one that names a class. Names that refer to nothing are reported as an error.
 - The parameter info popup now shows the template arguments of the multiclass or class a name in the parent list of a
   `defm` or `multiclass` statement refers to.
+- The names in the parent list of `defm` and `multiclass` statements are now completed with the multiclasses visible
+  from them and, where a name of a `defm` may refer to a class, the visible classes. Selecting one with template
+  arguments inserts `<>` and shows its parameter info.
 
 ### Changed
 
