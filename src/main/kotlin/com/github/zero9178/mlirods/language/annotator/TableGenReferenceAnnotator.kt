@@ -34,7 +34,7 @@ private fun checkInclude(element: TableGenIncludeDirective, holder: AnnotationHo
 private fun checkClassReference(
     element: TableGenAbstractClassRef, holder: AnnotationHolder, context: TableGenCompilationContext
 ) {
-    if (element.referencedClass(context) != null) return
+    if (element.referencedDefinitionBlocking(context) != null) return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unresolvedClass", element.className)

@@ -21,7 +21,7 @@ internal class TableGenDocumentationTargetProvider : PsiDocumentationTargetProvi
     }
 }
 
-internal class TableGenDocumentationTarget(private val element: PsiElement) : DocumentationTarget {
+internal class TableGenDocumentationTarget(val element: PsiElement) : DocumentationTarget {
     override fun createPointer(): Pointer<out DocumentationTarget> {
         val pointer = element.createSmartPointer()
         return Pointer.delegatingPointer(pointer, ::TableGenDocumentationTarget)

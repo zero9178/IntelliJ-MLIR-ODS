@@ -31,7 +31,7 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode, private val myContext
             myRoot.baseClassRefs.takeWhile {
                 beforeElement?.let { other -> it.isBefore(other) } ?: true
             }.mapNotNull {
-                it.referencedClass(myContext)
+                it.referencedDefinitionBlocking(myContext)
             }.firstNotNullOfOrNull {
                 FieldMap(it, myContext)[fieldName, beforeElement]
             }?.let { return@disallowTreeLoading it }
@@ -79,7 +79,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     fun allFields(context: TableGenCompilationContext): Sequence<TableGenFieldBodyItem> = sequence {
         val seen = mutableSetOf<String?>()
         baseClassRefs.mapNotNull {
-            it.referencedClass(context)
+            it.referencedDefinitionBlocking(context)
         }.flatMap {
             it.allFields(context)
         }.forEach {
@@ -100,7 +100,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     fun allFieldAssignments(context: TableGenCompilationContext): Map<String, List<TableGenFieldAssignmentNode>> =
         getProjectContextDependentCache(this, context) {
             val result = directFieldAssignments.toMutableMap()
-            baseClassRefs.toList().asReversed().mapNotNull { it.referencedClass(context) }.map {
+            baseClassRefs.toList().asReversed().mapNotNull { it.referencedDefinitionBlocking(context) }.map {
                 it.allFieldAssignments(context)
             }.forEach {
                 it.forEach { (k, v) ->
@@ -126,7 +126,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         getProjectContextDependentCache(this, context) {
             RecursionManager.doPreventingRecursion(this to context, true) {
                 baseClassRefs.map {
-                    it.referencedClass(context)
+                    it.referencedDefinitionBlocking(context)
                 }.flatMap {
                     sequenceOf(it) + it?.allBaseClasses(context)?.asSequence().orEmpty()
                 }.toSet()
@@ -175,12 +175,12 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         this, context, "direct template argument mapping", onCycle = { emptyMap() }
     ) {
         baseClassRefs.toList().flatMap { ref ->
-            val defaults = ref.referencedClass(context)?.templateArgDeclList.orEmpty().mapNotNull { decl ->
+            val defaults = ref.referencedDefinition(context)?.templateArgDeclList.orEmpty().mapNotNull { decl ->
                 decl.valueNode?.let { decl to it }
             }
             val arguments = ref.argValueItemList.flatMap {
                 val referencedTemplateArgDecl =
-                    it.referencedTemplateArgDecl(context) ?: return@flatMap emptyList()
+                    it.referencedDefinition(context) ?: return@flatMap emptyList()
                 val valueNode = it.valueNode ?: return@flatMap emptyList()
                 listOf(referencedTemplateArgDecl to valueNode)
             }
@@ -196,7 +196,9 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         this, context, "template argument mapping", onCycle = { emptyMap() }
     ) {
         val result = directArgToTemplateArgMapping(context).toMutableMap()
-        baseClassRefs.toList().mapNotNull { it.referencedClass(context)?.allArgToTemplateArgMapping(context) }.forEach {
+        baseClassRefs.toList().mapNotNull {
+            it.referencedDefinition(context)?.allArgToTemplateArgMapping(context)
+        }.forEach {
             it.forEach { (decl, node) ->
                 result[decl] = node
             }

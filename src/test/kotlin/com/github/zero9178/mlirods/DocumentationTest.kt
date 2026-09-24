@@ -1,12 +1,17 @@
 package com.github.zero9178.mlirods
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.intellij.lang.documentation.DocumentationMarkup
+import com.intellij.model.Pointer
 import com.intellij.platform.backend.documentation.DocumentationData
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.PsiDocumentationTargetProvider
+import com.intellij.platform.backend.documentation.impl.resolveLinkToTarget
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.testFramework.DumbModeTestUtils
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -66,6 +71,38 @@ class DocumentationTest : BasePlatformTestCase() {
     private fun assertDefinition(html: String?, definition: String) {
         val text = definitionText(html)
         assertTrue("expected definition \"$definition\" within:\n$html", text.contains(definition))
+    }
+
+    /**
+     * Returns the labels of the hyperlinks within the definition section of [html] in order.
+     */
+    private fun definitionLinks(html: String?): List<String> =
+        section(html, DocumentationMarkup.CLASS_DEFINITION).select("a").map { it.text() }
+
+    /**
+     * Returns the documentation HTML shown after clicking the hyperlink labelled [label] within the definition section
+     * of the documentation of [element].
+     */
+    private fun followLink(element: PsiElement, label: String): String? {
+        val target = documentationTarget(element)!!
+        val html = (target.computeDocumentation() as? DocumentationData)?.html
+        val link = section(html, DocumentationMarkup.CLASS_DEFINITION).select("a").single { it.text() == label }
+        val pointer = target.createPointer()
+        var linked: Pointer<out DocumentationTarget>? = null
+        awaitOffEdt {
+            linked = resolveLinkToTarget(pointer, link.attr("href"))
+        }
+        assertNotNull("expected \"$label\" to lead to documentation within:\n$html", linked)
+        return (linked!!.dereference()?.computeDocumentation() as? DocumentationData)?.html
+    }
+
+    /**
+     * Returns the documentation HTML shown after clicking the hyperlink labelled [label] within the documentation of
+     * the element the caret resolves to.
+     */
+    private fun followLinkAtCaret(code: String, label: String): String? {
+        myFixture.configureByText("test.td", code)
+        return followLink(myFixture.elementAtCaret, label)
     }
 
     private fun assertNoContent(html: String?) {
@@ -372,5 +409,182 @@ class DocumentationTest : BasePlatformTestCase() {
         val presentation = documentationTarget(multiclass)!!.computePresentation()
         assertEquals("Mc", presentation.presentableText)
         assertNotNull(presentation.icon)
+    }
+
+    fun `test parent class links to its documentation`() {
+        val html = followLinkAtCaret(
+            """
+                // Op doc.
+                class Op<int x>;
+                class Foo<int y> : Op<y>;
+                class Bar : F<caret>oo<4>;
+            """.trimIndent(), "Op"
+        )
+        assertDefinition(html, "class Op<int x>")
+        assertContent(html, "Op doc.")
+    }
+
+    fun `test def parent classes link to their documentation`() {
+        val code = """
+            // A doc.
+            class A;
+            // B doc.
+            class B;
+            def foo : A, B;
+            defvar v = f<caret>oo;
+        """.trimIndent()
+        assertContent(followLinkAtCaret(code, "A"), "A doc.")
+        assertContent(followLinkAtCaret(code, "B"), "B doc.")
+    }
+
+    fun `test multiclass parent links to its documentation`() {
+        myFixture.configureByText(
+            "test.td", """
+                // Base doc.
+                multiclass Base<int x> {
+                    def _b;
+                }
+
+                multiclass Mc<int x> : Base<x> {
+                    def _a;
+                }
+            """.trimIndent()
+        )
+        val multiclass = PsiTreeUtil.findChildrenOfType(myFixture.file, TableGenMulticlassStatement::class.java)
+            .single { it.name == "Mc" }
+        val html = followLink(multiclass, "Base")
+        assertDefinition(html, "multiclass Base<int x>")
+        assertContent(html, "Base doc.")
+    }
+
+    fun `test class of template argument type links to its documentation`() {
+        val html = followLinkAtCaret(
+            """
+                // Op doc.
+                class Op;
+                class Foo<list<Op> ops>;
+                class Bar : F<caret>oo<[]>;
+            """.trimIndent(), "Op"
+        )
+        assertContent(html, "Op doc.")
+    }
+
+    fun `test class link leads to the definition rather than a declaration`() {
+        val html = followLinkAtCaret(
+            """
+                class A;
+                // Definition doc.
+                class A {
+                    int x = 0;
+                }
+                def foo : A;
+                defvar v = f<caret>oo;
+            """.trimIndent(), "A"
+        )
+        assertContent(html, "Definition doc.")
+    }
+
+    fun `test field links to its type and record`() {
+        val code = """
+            // Op doc.
+            class Op;
+            // B doc.
+            class B {
+                Op o = ?;
+            }
+            defvar v = B<>.<caret>o;
+        """.trimIndent()
+        assertContent(followLinkAtCaret(code, "Op"), "Op doc.")
+        assertContent(followLinkAtCaret(code, "B"), "B doc.")
+    }
+
+    fun `test field initializer links to its documentation`() {
+        val html = followLinkAtCaret(
+            """
+                class Op;
+                // The default.
+                def defaultOp : Op;
+                class B {
+                    Op o = defaultOp;
+                }
+                defvar v = B<>.<caret>o;
+            """.trimIndent(), "defaultOp"
+        )
+        assertContent(html, "The default.")
+    }
+
+    fun `test defvar value links to its documentation`() {
+        val code = """
+            // Op doc.
+            class Op<int x> {
+                // Field doc.
+                int f = x;
+            }
+            // Foo doc.
+            def foo : Op<1>;
+            defvar value = !listconcat([foo.f], [Op<2>.f]);
+            defvar other = val<caret>ue;
+        """.trimIndent()
+        assertEquals(listOf("foo", "f", "Op", "f"), definitionLinks(docAtCaret(code)))
+        assertContent(followLinkAtCaret(code, "foo"), "Foo doc.")
+        assertContent(followLinkAtCaret(code, "Op"), "Op doc.")
+    }
+
+    fun `test linked names keep their position within the definition`() {
+        val html = docAtCaret(
+            """
+                class Op<int x>;
+                class A;
+                // Doc.
+                class Foo<Op y, int z> : Op<z>, A;
+                class Bar : F<caret>oo<?, 4>;
+            """.trimIndent()
+        )
+        assertEquals("class Foo<Op y, int z> : Op<...>, A", definitionText(html))
+        assertEquals(listOf("Op", "Op", "A"), definitionLinks(html))
+    }
+
+    fun `test linked names have the color of an identifier rather than of a link`() {
+        val html = docAtCaret(
+            """
+                class A;
+                class <caret>B : A;
+            """.trimIndent()
+        )
+        val link = section(html, DocumentationMarkup.CLASS_DEFINITION).select("a").single()
+        assertTrue("expected an explicit color within:\n$html", link.select("span").attr("style").contains("color:"))
+    }
+
+    fun `test field record keeps its own line after a linked initializer`() {
+        val html = docAtCaret(
+            """
+                class Op;
+                def defaultOp : Op;
+                class B {
+                    // Field doc.
+                    Op o = defaultOp;
+                }
+                defvar v = B<>.<caret>o;
+            """.trimIndent()
+        )
+        val definition = section(html, DocumentationMarkup.CLASS_DEFINITION).wholeText().replace('\u00a0', ' ')
+        assertTrue(
+            "expected a line break before the record within:\n$html",
+            definition.contains("Op o = defaultOp\n  in class B")
+        )
+    }
+
+    fun `test unresolved and undocumented names are not linked`() {
+        myFixture.configureByText(
+            "test.td", """
+                class Foo<int x> : Unknown {
+                    int y = x;
+                }
+                defvar v = Foo<1>.<caret>y;
+            """.trimIndent()
+        )
+        assertEquals(listOf("Foo"), definitionLinks(documentation(myFixture.elementAtCaret)))
+        val foo = PsiTreeUtil.findChildOfType(myFixture.file, TableGenClassStatement::class.java)!!
+        assertEmpty(definitionLinks(documentation(foo)))
     }
 }

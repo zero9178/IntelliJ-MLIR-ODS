@@ -208,7 +208,7 @@ ifdef_ifndef_directive ::= ('#ifdef' | '#ifndef') IDENTIFIER {
     pin=1
     methods=[toString]
     implements=[
-        "com.github.zero9178.mlirods.language.psi.impl.TableGenMacroDirectiveEx"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenIfdefIfndefDirectiveEx"
         "com.intellij.psi.NavigatablePsiElement"
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMacroDirectiveStub"
@@ -297,6 +297,9 @@ fake abstract_ref ::= IDENTIFIER class_ref_suffix? {
         rAngle='RANGLE'
         // Named differently by the references to classes and multiclasses.
         IDENTIFIER=''
+    ]
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractRefEx"
     ]
 }
 
@@ -388,6 +391,7 @@ let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_
     pin=1
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
+        "com.github.zero9178.mlirods.language.psi.TableGenFieldReferencingElement"
     ]
     methods=[
         toString
@@ -684,7 +688,10 @@ private field_access_value_node_suffix ::= '.' IDENTIFIER {
     pin=1
 }
 field_access_value_node ::= value_node field_access_value_node_suffix {
-    implements="com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
+        "com.github.zero9178.mlirods.language.psi.TableGenFieldReferencingElement"
+    ]
     methods = [
         field_identifier="IDENTIFIER"
 

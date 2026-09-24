@@ -33,11 +33,11 @@ abstract class TableGenIdentifierValueNodeMixin : StubBasedPsiElementBase<TableG
     override val identifierText: String
         get() = stub?.identifier ?: identifier.text
 
-    override fun referencedDeclaration(context: TableGenCompilationContext): TableGenIdentifierElement? =
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext): TableGenIdentifierElement? =
         TableGenIdentifierReference.findVisibleDeclarations(this, context).singleOrNull()
 
     override suspend fun evaluateInner(context: TableGenEvaluationContext): TableGenValue {
-        val ref = referencedDeclaration(context.compilationContext) ?: return TableGenUnknownValue
+        val ref = referencedDefinition(context.compilationContext) ?: return TableGenUnknownValue
         if (ref is TableGenDefStatement) return TableGenRecordValue(ref, context.compilationContext)
 
         // The value referred to may refer to another, and so on, to any length no matter how deep the AST is. Launched,

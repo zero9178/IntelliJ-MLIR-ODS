@@ -120,7 +120,7 @@ internal suspend fun computeTypeOf(
 private suspend fun typeOfIdentifier(
     element: TableGenIdentifierValueNode, context: TableGenCompilationContext,
 ): TableGenType =
-    when (val resolve = element.referencedDeclaration(context)) {
+    when (val resolve = element.referencedDefinition(context)) {
         // The value may again be an identifier referring to another 'defvar', and so on, to any length no matter how
         // deep the AST is. Launched, its type is computed from the bottom of the stack of some thread instead of on top
         // of ours.

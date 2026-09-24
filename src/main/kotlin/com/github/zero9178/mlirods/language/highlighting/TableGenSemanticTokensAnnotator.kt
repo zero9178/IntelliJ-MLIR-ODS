@@ -135,7 +135,7 @@ internal class TableGenSemanticTokensAnnotator : HighlightVisitor {
             is TableGenIdentifierValueNode -> {
                 // A highlight visitor is where the IDE enters: the context is decided once per file analyzed.
                 val context = holder.annotationSession.compilationContext
-                if (element.referencedDeclaration(context) !is TableGenFieldBodyItem) return
+                if (element.referencedDefinitionBlocking(context) !is TableGenFieldBodyItem) return
 
                 addInfo(
                     HighlightInfo.newHighlightInfo(HighlightInfoType.TEXT_ATTRIBUTES).range(element)
