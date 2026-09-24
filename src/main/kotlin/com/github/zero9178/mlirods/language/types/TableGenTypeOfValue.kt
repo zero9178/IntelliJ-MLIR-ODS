@@ -9,6 +9,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
+import com.github.zero9178.mlirods.language.values.TableGenRecordValue
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import kotlin.math.abs
 
@@ -157,14 +158,22 @@ private suspend fun typeOfFieldAccess(
     element: TableGenFieldAccessValueNode, context: TableGenCompilationContext,
 ): TableGenType {
     val identifier = element.fieldName ?: return TableGenUnknownType
-    return when (val type = typeOf(element.valueNode, context)) {
-        is TableGenRecordType -> {
-            val field = type.record(context)?.fields(context)?.get(identifier) ?: return TableGenUnknownType
-            field.typeNode.toType()
-        }
+    val record = (typeOf(element.valueNode, context) as? TableGenRecordType)?.record(context)
+        ?: return TableGenUnknownType
+    val declaredType = record.fields(context)[identifier]?.typeNode?.toType() ?: return TableGenUnknownType
+    // Only the fields of a 'def' have a value to go by. Any other record (e.g. a template argument of class type) is
+    // only known to be of the declared type.
+    if (record !is TableGenDefStatement) return declaredType
 
-        else -> TableGenUnknownType
-    }
+    // TableGen folds the field access of a 'def' into the field's value, making the type of the expression that of the
+    // value rather than the declared type of the field. Since values are converted to the declared type on assignment,
+    // this only makes a difference for records (and lists thereof), which keep their more derived type.
+    // The value may again be a field access of another 'def', and so on, to any length no matter how deep the AST is.
+    // Launched, its type is computed from the bottom of the stack of some thread instead of on top of ours.
+    // Fields may also be defined in terms of each other, e.g. 'def A { Foo f = B.g; }' and 'def B { Foo g = A.f; }'.
+    // TableGen rejects such cycles. The types on them are unknown, leaving the declared type as the best guess.
+    val valueType = coroutineScope { async { TableGenRecordValue(record, context).fields[identifier].type }.await() }
+    return declaredType.refinedBy(valueType, context)
 }
 
 private suspend fun typeOfBitsInit(element: TableGenBitsInitValueNode, context: TableGenCompilationContext): TableGenType {
