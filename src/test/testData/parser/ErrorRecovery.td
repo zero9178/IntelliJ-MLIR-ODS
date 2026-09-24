@@ -107,3 +107,7 @@ defvar after6 = 0;
 
 defvar e7 = !cast;
 defvar after7 = 0;
+
+// A multiclass body must be enclosed in braces.
+multiclass BracelessMulticlass def X;
+defvar afterMulticlass = 0;

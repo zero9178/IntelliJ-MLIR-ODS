@@ -551,7 +551,7 @@ let_item ::= let_mode_and_identifier ('{' range_list '}')? '=' value_node {
         getFieldIdentifier
     ]
 }
-multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_class_list multi_class_ref>>? (';' | statement_block) {
+multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_class_list multi_class_ref>>? (';' | statement_block_list) {
     methods = [
         lAngle='LANGLE'
         rAngle='RANGLE'
