@@ -65,7 +65,7 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
                 GlobalSearchScope.allScope(project)
             ).asSequence().filter {
                 it.baseClassRefs.any { ref ->
-                    ref.referencedClass(context) == this
+                    ref.referencedDefinitionBlocking(context) == this
                 }
             }.toList()
         }.asSequence()

@@ -123,6 +123,8 @@
         <breadcrumbsInfoProvider implementation="com.github.zero9178.mlirods.language.TableGenBreadcrumbsProvider"/>
         <platform.backend.documentation.psiTargetProvider
                 implementation="com.github.zero9178.mlirods.language.documentation.TableGenDocumentationTargetProvider"/>
+        <platform.backend.documentation.linkHandler
+                implementation="com.github.zero9178.mlirods.language.documentation.TableGenDocumentationLinkHandler"/>
         <annotator language="TableGen"
                    implementationClass="com.github.zero9178.mlirods.language.annotator.TableGenSyntaxAnnotator"
         />

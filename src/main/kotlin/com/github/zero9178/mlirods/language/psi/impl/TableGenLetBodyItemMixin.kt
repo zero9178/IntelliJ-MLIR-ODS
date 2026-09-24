@@ -5,12 +5,12 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenLetReference
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenLetBodyItemStub
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.stubs.IStubElementType
-import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import javax.swing.Icon
 
@@ -42,6 +42,9 @@ abstract class TableGenLetBodyItemMixin : StubBasedPsiElementBase<TableGenLetBod
     }
 
     override fun getReference() = TableGenLetReference(this)
+
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext) =
+        TableGenLetReference.findField(this, context)
 
     override fun getPresentation(): ItemPresentation? {
         return object : ItemPresentation {

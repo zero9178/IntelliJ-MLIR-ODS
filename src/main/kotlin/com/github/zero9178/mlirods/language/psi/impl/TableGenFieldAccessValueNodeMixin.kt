@@ -1,10 +1,12 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
+import com.github.zero9178.mlirods.language.psi.TableGenFieldAccessReference
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenValueNodeStub
 import com.github.zero9178.mlirods.language.values.TableGenRecordValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
 import com.github.zero9178.mlirods.language.values.TableGenValue
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
@@ -21,6 +23,9 @@ abstract class TableGenFieldAccessValueNodeMixin : StubBasedPsiElementBase<Table
         stub: TableGenValueNodeStub,
         stubType: IStubElementType<*, *>
     ) : super(stub, stubType)
+
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext) =
+        TableGenFieldAccessReference.findField(this, context)
 
     override suspend fun evaluateInner(context: TableGenEvaluationContext): TableGenValue {
         val record = valueNode.evaluate(context) as? TableGenRecordValue ?: return TableGenUnknownValue

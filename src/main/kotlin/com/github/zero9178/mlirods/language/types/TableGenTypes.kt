@@ -150,7 +150,7 @@ class TableGenRecordType private constructor(
      */
     @RequiresReadLock
     fun record(context: TableGenCompilationContext): TableGenFieldScopeNode? =
-        myRecord ?: myReference?.referencedClass(context)
+        myRecord ?: myReference?.referencedDefinitionBlocking(context)
 
     override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? {
         if (target !is TableGenRecordType) return if (target is TableGenUnknownType) null else false
