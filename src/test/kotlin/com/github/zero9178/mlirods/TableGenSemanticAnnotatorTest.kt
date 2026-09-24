@@ -51,6 +51,17 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
+    // Which template argument the name refers to depends on what the base classes of 'E' bind, which is what the
+    // argument is part of. It refers to none.
+    fun `test argument name instantiating the class being defined`() {
+        doResolvingTest(
+            """
+            class C<string n = "d"> { string f = n; }
+            class E<string m> : C<<error descr="Class 'C' has no template argument named ''">E<"q">.f = "x"</error>>;
+        """.trimIndent()
+        )
+    }
+
     fun `test too many positional arguments`() {
         doResolvingTest(
             """

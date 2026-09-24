@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.psi
 
+import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
@@ -7,7 +8,7 @@ import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
-import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
@@ -34,40 +35,52 @@ class TableGenArgValueItemReference(element: TableGenArgValueItem) :
          * built on; results are cached per [element] and [context].
          */
         @RequiresReadLock
-        fun findTemplateArgDecl(
+        suspend fun findTemplateArgDecl(
             element: TableGenArgValueItem, context: TableGenCompilationContext
-        ): TableGenTemplateArgDecl? = getProjectContextDependentCache(element, context) { element ->
-            disallowTreeLoading {
+        ): TableGenTemplateArgDecl? = cachedTemplateArgDeclOf(element, context).await()
+
+        /**
+         * The cached value of [findTemplateArgDecl].
+         */
+        private fun cachedTemplateArgDeclOf(
+            element: TableGenArgValueItem, context: TableGenCompilationContext
+        ): SuspendingCachedValue<TableGenTemplateArgDecl?> = projectContextDependentSuspendingCachedValue(
+            element, context, "template argument", onCycle = { null }
+        ) { element ->
+            val (classRef, targetClass) = disallowTreeLoading {
                 val classRef = element.parentOfType<TableGenAbstractClassRef>() ?: return@disallowTreeLoading null
                 val targetClass = classRef.referencedClass(context) ?: return@disallowTreeLoading null
+                classRef to targetClass
+            } ?: return@projectContextDependentSuspendingCachedValue null
 
-                if (element.isNamedArgument) {
-                    val identifierName = element.identifierName
-                    val nameNode = element.nameNode
-                    val argumentName = when {
-                        identifierName != null -> identifierName
-                        nameNode != null -> when (val result = nameNode.evaluateBlocking(TableGenEvaluationContext(context))) {
-                            is TableGenStringValue -> result.value
-                            else -> return@disallowTreeLoading null
-                        }
-
-                        else -> return@disallowTreeLoading null
+            if (element.isNamedArgument) {
+                val identifierName = element.identifierName
+                val nameNode = element.nameNode
+                val argumentName = when {
+                    identifierName != null -> identifierName
+                    nameNode != null -> when (val result = nameNode.evaluate(TableGenEvaluationContext(context))) {
+                        is TableGenStringValue -> result.value
+                        else -> return@projectContextDependentSuspendingCachedValue null
                     }
+
+                    else -> return@projectContextDependentSuspendingCachedValue null
+                }
+                disallowTreeLoading {
                     targetClass.templateArgDeclList.find {
                         it.name == argumentName
                     }
-                } else {
-                    val index = classRef.argValueItemList.binarySearchBy(element.startOffsetInParent) {
-                        it.startOffsetInParent
-                    }
-                    // 'element' is one of the arg-value items of the class ref it was reached through, so the search
-                    // always finds it.
-                    if (index < 0) {
-                        thisLogger().error("Positional argument is not among the arg-value items of ${classRef.text}")
-                        return@disallowTreeLoading null
-                    }
-                    targetClass.templateArgDeclList.getOrNull(index)
                 }
+            } else disallowTreeLoading {
+                val index = classRef.argValueItemList.binarySearchBy(element.startOffsetInParent) {
+                    it.startOffsetInParent
+                }
+                // 'element' is one of the arg-value items of the class ref it was reached through, so the search
+                // always finds it.
+                if (index < 0) {
+                    thisLogger().error("Positional argument is not among the arg-value items of ${classRef.text}")
+                    return@disallowTreeLoading null
+                }
+                targetClass.templateArgDeclList.getOrNull(index)
             }
         }
     }
@@ -79,6 +92,7 @@ class TableGenArgValueItemReference(element: TableGenArgValueItem) :
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> {
         val context = TableGenCompilationContext.activeFor(element)
-        return PsiElementResolveResult.createResults(listOfNotNull(findTemplateArgDecl(element, context)))
+        val decl = cachedTemplateArgDeclOf(element, context).getBlocking()
+        return PsiElementResolveResult.createResults(listOfNotNull(decl))
     }
 }
