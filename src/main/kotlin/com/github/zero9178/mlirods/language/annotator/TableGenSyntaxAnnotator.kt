@@ -14,6 +14,8 @@ import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.endOffset
 import com.intellij.psi.util.parentOfType
 import com.intellij.psi.util.startOffset
@@ -118,6 +120,19 @@ private val ANNOTATIONS = arrayOf(
                 HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.positionalAfterNamed")
             ).range(it).create()
         }
+    },
+    /**
+     * Flags a multiclass whose braces enclose no statement, which TableGen rejects.
+     */
+    addAnnotationFor { element: TableGenMulticlassStatement, holder ->
+        val lBrace = element.lBrace ?: return@addAnnotationFor
+        val rBrace = element.rBrace ?: return@addAnnotationFor
+        val isEmpty = generateSequence(lBrace.nextSibling) { it.nextSibling }.takeWhile { it != rBrace }.all {
+            it is PsiWhiteSpace || it is PsiComment
+        }
+        if (isEmpty) holder.newAnnotation(
+            HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.emptyMulticlass")
+        ).range(TextRange(lBrace.startOffset, rBrace.endOffset)).create()
     },
     /**
      * Flags a class statement nested within a multiclass, 'foreach' or 'if' statement. TableGen only allows classes
