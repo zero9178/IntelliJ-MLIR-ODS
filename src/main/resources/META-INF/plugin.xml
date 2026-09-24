@@ -82,6 +82,7 @@
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenClassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllClassesIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenMulticlassIndex"/>
+        <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenAllMulticlassesIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenMayDeriveClassIndex"/>
         <stubIndex implementation="com.github.zero9178.mlirods.index.TableGenDefineIndex"/>
         <fileBasedIndex implementation="com.github.zero9178.mlirods.index.TableGenIncludeIndex"/>
@@ -103,6 +104,8 @@
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenClassReferenceCompletionContributor"/>
         <completion.contributor language="TableGen"
                                 implementationClass="com.github.zero9178.mlirods.language.completion.TableGenIdentifierCompletionContributor"/>
+        <completion.contributor language="TableGen"
+                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenMultiClassCompletionContributor"/>
         <completion.confidence language="TableGen"
                                implementationClass="com.github.zero9178.mlirods.language.completion.TableGenCompletionConfidence"/>
         <iconProvider implementation="com.github.zero9178.mlirods.language.TableGenIconProvider"/>

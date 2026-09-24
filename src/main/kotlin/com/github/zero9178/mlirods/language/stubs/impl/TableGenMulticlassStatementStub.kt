@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.stubs.impl
 
+import com.github.zero9178.mlirods.index.ALL_MULTICLASSES_INDEX
 import com.github.zero9178.mlirods.index.MULTICLASS_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenMulticlassStatementImpl
@@ -44,6 +45,7 @@ class TableGenMulticlassStatementStubElementType(debugName: String) :
     override fun indexStub(stub: TableGenMulticlassStatementStub, sink: IndexSink) {
         stub.name?.let {
             sink.occurrence(MULTICLASS_INDEX, it)
+            sink.occurrence(ALL_MULTICLASSES_INDEX, 0)
         }
     }
 }

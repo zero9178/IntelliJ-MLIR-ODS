@@ -778,6 +778,157 @@ class CompletionTest : BasePlatformTestCase() {
         assertDoesntContain(collection, "ClassAfter", "DefAfter", "DefIncluderAfter")
     }
 
+    fun `test first name of defm only suggests multiclasses`() = doTest(
+        """
+            class C;
+            def D;
+            multiclass MBefore { def a; }
+            defm : <caret>;
+            multiclass MAfter { def a; }
+        """.trimIndent(), "MBefore", doesNotContain = listOf("C", "D", "MAfter")
+    )
+
+    fun `test later name of defm suggests multiclasses and classes`() = doTest(
+        """
+            class C;
+            multiclass M { def a; }
+            defm : M, <caret>;
+        """.trimIndent(), "M", "C"
+    )
+
+    fun `test name of defm following a class only suggests classes`() = doTest(
+        """
+            class C;
+            class C2;
+            multiclass M { def a; }
+            defm : M, C, <caret>;
+        """.trimIndent(), "C", "C2", doesNotContain = listOf("M")
+    )
+
+    fun `test parent of multiclass only suggests multiclasses`() = doTest(
+        """
+            class C;
+            multiclass M { def a; }
+            multiclass N : M, <caret>;
+        """.trimIndent(), "M", doesNotContain = listOf("C")
+    )
+
+    fun `test multiclass is not suggested in its own parent list`() = doTest(
+        """
+            multiclass MBefore { def a; }
+            multiclass MSelf : <caret>;
+        """.trimIndent(), "MBefore", doesNotContain = listOf("MSelf")
+    )
+
+    fun `test multiclass is suggested for a defm within its own body`() = doTest(
+        """
+            multiclass MSelf {
+                def a;
+                defm : <caret>;
+            }
+        """.trimIndent(), "MSelf"
+    )
+
+    fun `test multiclass angled brackets`() {
+        doTestTyping(
+            """
+            multiclass MLong<int i> { def a; }
+            defm : M<caret>;
+        """.trimIndent(), """
+            multiclass MLong<int i> { def a; }
+            defm : MLong<<caret>>;
+        """.trimIndent()
+        )
+
+        doTestTyping(
+            """
+            multiclass NLong { def a; }
+            defm : N<caret>;
+        """.trimIndent(), """
+            multiclass NLong { def a; }
+            defm : NLong<caret>;
+        """.trimIndent()
+        )
+    }
+
+    fun `test multiclass cross file access lookup`() = doCrossFileTestTyping(
+        """
+            multiclass MLong { def a; }
+        """.trimIndent(), """
+            include "other.td"
+            defm : M<caret>;
+        """.trimIndent(), """
+            include "other.td"
+            defm : MLong<caret>;
+        """.trimIndent()
+    )
+
+    fun `test cross file multiclass lookup only suggests what precedes the caret`() {
+        myFixture.addFileToProject(
+            "before.td", """
+            multiclass MBefore { def a; }
+        """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "after.td", """
+            multiclass MAfter { def a; }
+        """.trimIndent()
+        )
+        val testTD = myFixture.addFileToProject(
+            "test.td", """
+            include "before.td"
+            defm : <caret>;
+            include "after.td"
+        """.trimIndent()
+        )
+        val rootTD = myFixture.addFileToProject(
+            "root.td", """
+            multiclass MIncluderBefore { def a; }
+            include "test.td"
+            multiclass MIncluderAfter { def a; }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                rootTD.virtualFile to IncludePaths(listOf(rootTD.virtualFile.parent))
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(testTD.virtualFile)
+        myFixture.completeBasic()
+        val collection = requireNotNull(myFixture.lookupElementStrings)
+        assertContainsElements(collection, "MBefore", "MIncluderBefore")
+        assertDoesntContain(collection, "MAfter", "MIncluderAfter")
+    }
+
+    fun `test name of defm following a class of another file only suggests classes`() {
+        myFixture.addFileToProject(
+            "classes.td", """
+            class C;
+            class C2;
+        """.trimIndent()
+        )
+        val testTD = myFixture.addFileToProject(
+            "test.td", """
+            include "classes.td"
+            multiclass M { def a; }
+            multiclass MOther { def a; }
+            defm : M, C, <caret>;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(
+                testTD.virtualFile to IncludePaths(listOf(testTD.virtualFile.parent))
+            )
+        )
+
+        myFixture.configureFromExistingVirtualFile(testTD.virtualFile)
+        myFixture.completeBasic()
+        val collection = requireNotNull(myFixture.lookupElementStrings)
+        assertContainsElements(collection, "C2")
+        assertDoesntContain(collection, "M", "MOther")
+    }
+
     private fun doTest(source: String, vararg expected: String, doesNotContain: List<String> = emptyList()) {
         myFixture.configureByText(
             "test.td", source
