@@ -22,6 +22,9 @@
 - The names in the parent list of `defm` and `multiclass` statements are now completed with the multiclasses visible
   from them and, where a name of a `defm` may refer to a class, the visible classes. Selecting one with template
   arguments inserts `<>` and shows its parameter info.
+- The names within the definition shown by quick documentation are now links: clicking a parent class, the class of a
+  type, the record a field is defined in or a name within a value shows the documentation of the element it refers to.
+  Only names referring to elements that have documentation are linked.
 
 ### Changed
 

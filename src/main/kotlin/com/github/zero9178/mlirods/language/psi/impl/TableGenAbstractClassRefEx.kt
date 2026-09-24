@@ -4,20 +4,17 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.psi.PsiElement
-import com.intellij.util.concurrency.annotations.RequiresReadLock
 
-interface TableGenAbstractClassRefEx : PsiElement {
+interface TableGenAbstractClassRefEx : PsiElement, TableGenAbstractRefEx {
     /**
-     * Returns the class being referenced within [context] or null if resolution failed.
+     * Returns the class being referenced within [context] or null if resolution failed. Of the statements of the
+     * class, its definition is preferred to its declarations.
      */
-    @RequiresReadLock
-    fun referencedClass(context: TableGenCompilationContext): TableGenClassStatement? =
-        TableGenClassReference.findVisibleClasses(this, context).partition {
-            it.isDeclaration
-        }.let { (decls, defs) ->
-            // Always prefer definitions to declarations, only returning a declaration if there is no definition.
-            defs.lastOrNull() ?: decls.lastOrNull()
-        }
+    override suspend fun referencedDefinition(context: TableGenCompilationContext): TableGenClassStatement? =
+        referencedDefinitionBlocking(context)
+
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext): TableGenClassStatement? =
+        preferDefinition(TableGenClassReference.findVisibleClasses(this, context))
 
     /**
      * Returns the name of the class being referenced.

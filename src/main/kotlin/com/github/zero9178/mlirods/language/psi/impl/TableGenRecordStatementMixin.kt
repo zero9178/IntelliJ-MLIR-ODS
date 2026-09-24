@@ -34,7 +34,7 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
      */
     protected fun bodyIdEntries(context: TableGenCompilationContext): Sequence<IdMapEntry> =
         baseClassRefs.mapNotNull {
-            it.referencedClass(context)?.let { klass ->
+            it.referencedDefinitionBlocking(context)?.let { klass ->
                 klass to it
             }
         }.flatMap { (klass, ref) ->

@@ -1,7 +1,10 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
+import com.github.zero9178.mlirods.language.psi.TableGenArgValueItemReference
+import com.github.zero9178.mlirods.language.psi.TableGenReferencingElement
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiElement
@@ -10,7 +13,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 /**
  * Interface used to inject methods into [com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem].
  */
-interface TableGenArgValueItemEx : PsiElement, NavigatablePsiElement {
+interface TableGenArgValueItemEx : PsiElement, TableGenReferencingElement, NavigatablePsiElement {
 
     /**
      * Returns whether this argument is a named argument of the form `name = value` rather than a positional argument.
@@ -44,5 +47,8 @@ interface TableGenArgValueItemEx : PsiElement, NavigatablePsiElement {
      * Returns the [TableGenTemplateArgDecl] that this item assigns a value to within [context] if possible.
      */
     @RequiresReadLock
-    suspend fun referencedTemplateArgDecl(context: TableGenCompilationContext): TableGenTemplateArgDecl?
+    override suspend fun referencedDefinition(context: TableGenCompilationContext): TableGenTemplateArgDecl? =
+        TableGenArgValueItemReference.findTemplateArgDecl(this as TableGenArgValueItem, context)
+
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext): TableGenTemplateArgDecl?
 }

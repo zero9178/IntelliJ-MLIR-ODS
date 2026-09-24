@@ -7,13 +7,9 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDec
 import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
-import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenBinaryIntegerValueNodeStub
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenBoolValueNodeStub
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenClassInstantiationValueNodeStub
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenIntegerValueNodeStub
-import com.github.zero9178.mlirods.language.stubs.impl.TableGenStringValueNodeStub
+import com.github.zero9178.mlirods.language.psi.TableGenReferencingElement
+import com.github.zero9178.mlirods.language.stubs.impl.*
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.github.zero9178.mlirods.language.types.computeTypeOf
@@ -79,18 +75,18 @@ class TableGenEvaluationContext private constructor(
         InstantiationSource(instantiation, outer),
         { decl ->
             val argument = instantiation.argValueItemList.firstOrNull {
-                it.referencedTemplateArgDecl(compilationContext) == decl
+                it.referencedDefinition(compilationContext) == decl
             }
             argument?.valueNode?.evaluate(outer)
                 // 'allArgToTemplateArgMapping' only binds the template arguments of the base classes of the
                 // instantiated class. Its own are bound by this instantiation alone and default to values of the
                 // instantiated class.
-                ?: (instantiation.referencedClass(compilationContext)?.allArgToTemplateArgMapping(compilationContext)
+                ?: (instantiation.referencedDefinition(compilationContext)?.allArgToTemplateArgMapping(compilationContext)
                     ?.get(decl) ?: decl.valueNode)?.evaluate(this)
                 ?: TableGenUnknownValue
         },
         { fieldName ->
-            evaluateFieldAssignments(instantiation.referencedClass(compilationContext), fieldName)
+            evaluateFieldAssignments(instantiation.referencedDefinition(compilationContext), fieldName)
         })
 
     /**
@@ -250,7 +246,7 @@ interface TableGenBinaryIntegerValueNodeEx : TableGenValueNodeEx {
  */
 internal const val BINARY_PREFIX = "0b"
 
-interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
+interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx, TableGenReferencingElement {
     val identifierText: String
 
     /**
@@ -258,8 +254,10 @@ interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx {
      * several, mirroring [TableGenIdentifierReference.resolve]. See
      * [TableGenIdentifierReference.findVisibleDeclarations].
      */
-    @RequiresReadLock
-    fun referencedDeclaration(context: TableGenCompilationContext): TableGenIdentifierElement?
+    override suspend fun referencedDefinition(context: TableGenCompilationContext): TableGenIdentifierElement? =
+        referencedDefinitionBlocking(context)
+
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext): TableGenIdentifierElement?
 }
 
 interface TableGenBangOperatorValueNodeEx : TableGenValueNodeEx {

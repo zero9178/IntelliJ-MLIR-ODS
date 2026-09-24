@@ -30,13 +30,13 @@ import com.intellij.psi.PsiNameIdentifierOwner
 private fun checkArguments(
     element: TableGenAbstractClassRef, holder: AnnotationHolder, context: TableGenCompilationContext
 ) {
-    val targetClass = element.referencedClass(context) ?: return
+    val targetClass = element.referencedDefinitionBlocking(context) ?: return
 
     // Entered once per class reference, with the types and declarations requested one after the other: almost every
     // argument is a literal or an identifier, whose type costs less than a coroutine of its own would.
     val items = element.argValueItemList
     val resolved = runBlockingCancellable {
-        items.map { (it.valueNode?.type(context) ?: TableGenUnknownType) to it.referencedTemplateArgDecl(context) }
+        items.map { (it.valueNode?.type(context) ?: TableGenUnknownType) to it.referencedDefinition(context) }
     }
 
     // Map each referenced declaration to the arguments assigning a value to it.

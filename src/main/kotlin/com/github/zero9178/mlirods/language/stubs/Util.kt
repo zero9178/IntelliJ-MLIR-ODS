@@ -76,6 +76,9 @@ inline fun <reified C : PsiElement> StubElement<*>.stubbedChildren(vararg klasse
 
 /**
  * Kotlin friendly wrapper around [AstLoadingFilter.disallowTreeLoading].
+ *
+ * The filter is thread-local, which is why [block] cannot suspend: a coroutine may resume on another thread, and the
+ * thread it suspended on runs other coroutines in the meantime. Suspending code does without it.
  */
 inline fun <R> disallowTreeLoading(crossinline block: () -> R): R =
     AstLoadingFilter.disallowTreeLoading<R, Throwable> {

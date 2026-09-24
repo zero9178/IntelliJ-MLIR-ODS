@@ -30,20 +30,22 @@ import kotlin.time.Duration.Companion.seconds
 private val TIMEOUT = 60.seconds
 
 /**
- * Runs [action] and waits until it completes, i.e. until the include graph has settled.
+ * Runs [action] off the EDT and waits until it completes, e.g. until the include graph has settled. Any read action
+ * awaited from a test must be run this way.
  *
  * Tests run on the EDT with the write-intent lock held, while the graph applies its changes in background write
- * actions. Holding on to that lock would deadlock the graph update we are waiting for, and so would blocking the EDT:
- * committing to the workspace model – which reacting to a graph change does – needs events to be dispatched.
+ * actions. Holding on to that lock would deadlock the graph update we are waiting for, as well as any read action
+ * yielding to it, and so would blocking the EDT: committing to the workspace model – which reacting to a graph change
+ * does – needs events to be dispatched.
  */
-private fun awaitOffEdt(action: suspend CoroutineScope.() -> Unit) =
+internal fun awaitOffEdt(action: suspend CoroutineScope.() -> Unit) =
     TestOnlyThreading.releaseTheAcquiredWriteIntentLockThenExecuteActionAndTakeWriteIntentLockBack {
         val scope = CoroutineScope(Dispatchers.Default)
         try {
             val job = scope.async { action() }
             if (EDT.isCurrentThreadEdt()) {
                 PlatformTestUtil.waitWithEventsDispatching(
-                    "Timed out waiting for the include graph to settle",
+                    "Timed out waiting for an action running off the EDT",
                     { job.isCompleted },
                     TIMEOUT.inWholeSeconds.toInt(),
                 )

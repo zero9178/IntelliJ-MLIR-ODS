@@ -178,7 +178,7 @@ private fun checkCyclicFields(
         assignments.mapValues { (_, assignments) ->
             effectiveFieldValues(assignments).toList().flatMap { liveValuesPostOrder(it, evaluationContext) }
                 .filterIsInstance<TableGenIdentifierValueNode>()
-                .mapNotNull { (it.referencedDeclaration(context) as? TableGenFieldBodyItem)?.fieldName }
+                .mapNotNull { (it.referencedDefinition(context) as? TableGenFieldBodyItem)?.fieldName }
                 .toSet()
         }
     }

@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.psi.impl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIfdefIfndefDirective
 import com.github.zero9178.mlirods.language.psi.TableGenMacroReference
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenMacroDirectiveStub
+import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 
@@ -16,4 +17,7 @@ abstract class TableGenIfdefIfndefDirectiveMixin : TableGenMacroDirectiveMixin, 
     constructor(stub: TableGenMacroDirectiveStub, stubType: IStubElementType<*, *>) : super(stub, stubType)
 
     override fun getReference() = TableGenMacroReference(this)
+
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext) =
+        TableGenMacroReference.findVisibleDefines(this, context).firstOrNull()
 }
