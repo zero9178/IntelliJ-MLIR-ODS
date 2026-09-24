@@ -23,6 +23,9 @@
 ### Changed
 
 - The plugin now requires 2026.2 or newer.
+- Accessing a field of a `def` now has the type of the field's value rather than its declared type, as in TableGen
+  itself. For example, if `def D` has a field `Foo f = Derived<>;`, then `D.f` is of type `Derived`, so its fields can be
+  resolved and completed.
 
 ### Removed
 

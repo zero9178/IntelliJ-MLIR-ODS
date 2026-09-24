@@ -185,6 +185,24 @@ object TableGenUnknownType : TableGenType() {
 }
 
 /**
+ * Returns the more precise type of a location of this declared type, given that it holds a value of [valueType].
+ *
+ * Values are converted to the declared type on assignment, which is a no-op for records of a derived class. These keep
+ * their more derived type, and so do the elements of a list. Any other declared type is returned as is, as are types
+ * that the value is not known to be convertible to.
+ */
+@RequiresReadLock
+fun TableGenType.refinedBy(valueType: TableGenType, context: TableGenCompilationContext): TableGenType = when (this) {
+    is TableGenRecordType if valueType is TableGenRecordType && valueType.isConvertibleTo(this, context) == true ->
+        valueType
+
+    is TableGenListType if valueType is TableGenListType ->
+        TableGenListType(elementType.refinedBy(valueType.elementType, context))
+
+    else -> this
+}
+
+/**
  * Returns the type that values of both [t1] and [t2] can be used as, as is required by operators yielding one of
  * multiple values (e.g. '!if' or '!cond').
  *

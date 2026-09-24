@@ -453,6 +453,18 @@ class ValueComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test cyclic field access across records`() = doTest(
+        """
+        def A {
+            int f = B.g;
+        }
+        def B {
+            int g = A.f;
+        }
+        defvar v = A.f;
+    """.trimIndent(), TableGenUnknownValue
+    )
+
     // Neither field can be evaluated without the other. Values on a cycle are unknown rather than recursing forever.
     fun `test fields referencing each other are unknown`() = doTest(
         """

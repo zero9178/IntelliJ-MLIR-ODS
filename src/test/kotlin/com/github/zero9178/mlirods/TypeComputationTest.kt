@@ -40,6 +40,174 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test field access of def yields type of value`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            def D : Derived;
+            def Bar {
+                Foo foo = D;
+            }
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "D"
+        )
+    }
+
+    fun `test field access of def yields type of class instantiation`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            def Bar {
+                Foo foo = Derived<>;
+            }
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "Derived"
+        )
+    }
+
+    fun `test field access of def yields type of inherited value`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            class Base {
+                Foo foo = Derived<>;
+            }
+            def Bar : Base;
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "Derived"
+        )
+    }
+
+    fun `test field access of def yields type of overriding let`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            class Other : Foo;
+            def Bar {
+                Foo foo = Derived<>;
+                let foo = Other<>;
+            }
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "Other"
+        )
+    }
+
+    fun `test field access of def resolves template arguments`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            def D : Derived;
+            class Base<Foo f> {
+                Foo foo = f;
+            }
+            def Bar : Base<D>;
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "D"
+        )
+    }
+
+    fun `test field access of def yields list of value element type`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            def Bar {
+                list<Foo> foo = [Derived<>, Derived<>];
+            }
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "list<Derived>"
+        )
+    }
+
+    fun `test field access of def yields common list element type`() {
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            class Other : Foo;
+            def Bar {
+                list<Foo> foo = [Derived<>, Other<>];
+            }
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "list<Foo>"
+        )
+    }
+
+    fun `test field access of def with undef value yields declared type`() {
+        doTestString(
+            """
+            class Foo;
+            def Bar {
+                Foo foo = ?;
+            }
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), "Foo"
+        )
+    }
+
+    fun `test field access of def converts value to declared type`() {
+        // Values other than records are converted to the declared type on assignment.
+        doTest(
+            """
+            def Bar {
+                bits<4> foo = 5;
+            }
+            defvar <caret>v = Bar.foo;
+        """.trimIndent(), TableGenBitsType(4)
+        )
+    }
+
+    fun `test field access of def enables access to fields of derived class`() {
+        doTest(
+            """
+            class Foo;
+            class Derived : Foo {
+                string s = "";
+            }
+            def Bar {
+                Foo foo = Derived<>;
+            }
+            defvar <caret>v = Bar.foo.s;
+        """.trimIndent(), TableGenStringType
+        )
+    }
+
+    fun `test field access of class instance yields declared type`() {
+        // Only the value of a 'def' is known, a template argument may be any record deriving from its class.
+        doTestString(
+            """
+            class Foo;
+            class Derived : Foo;
+            class Holder {
+                Foo foo = Derived<>;
+            }
+            class C<Holder h> {
+                defvar <caret>v = h.foo;
+            }
+        """.trimIndent(), "Foo"
+        )
+    }
+
+    fun `test field access of def with cyclic values`() {
+        doTestString(
+            """
+            class Foo;
+            def A {
+                Foo f = B.g;
+            }
+            def B {
+                Foo g = A.f;
+            }
+            defvar <caret>v = A.f;
+        """.trimIndent(), "Foo"
+        )
+    }
+
     fun `test list init yields common element type`() {
         doTestString(
             """
