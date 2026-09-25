@@ -62,6 +62,15 @@ class TableGenClassStatementStubElementType(debugName: String) :
     }
 
     override fun indexStub(stub: TableGenClassStatementStub, sink: IndexSink) {
+        // TableGen rejects classes within a multiclass, 'foreach' or 'if' statement. They therefore never define a
+        // class and must not be found by any class lookup.
+        val misplaced = generateSequence(stub.parentStub) { it.parentStub }.any {
+            it.elementType === TableGenStubElementTypes.MULTICLASS_STATEMENT ||
+                    it.elementType === TableGenStubElementTypes.FOREACH_STATEMENT ||
+                    it.elementType === TableGenStubElementTypes.IF_STATEMENT
+        }
+        if (misplaced) return
+
         sink.occurrence(CLASS_INDEX, stub.name)
         sink.occurrence(ALL_CLASSES_INDEX, 0)
         stub.baseClassNames.forEach {
