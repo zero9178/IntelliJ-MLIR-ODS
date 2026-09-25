@@ -9,7 +9,6 @@ import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
-import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiElement
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
@@ -124,13 +123,11 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     @RequiresReadLock
     fun allBaseClasses(context: TableGenCompilationContext): Set<TableGenClassStatement?> =
         getProjectContextDependentCache(this, context) {
-            RecursionManager.doPreventingRecursion(this to context, true) {
-                baseClassRefs.map {
-                    it.referencedDefinitionBlocking(context)
-                }.flatMap {
-                    sequenceOf(it) + it?.allBaseClasses(context)?.asSequence().orEmpty()
-                }.toSet()
-            } ?: emptySet()
+            baseClassRefs.map {
+                it.referencedDefinitionBlocking(context)
+            }.flatMap {
+                sequenceOf(it) + it?.allBaseClasses(context)?.asSequence().orEmpty()
+            }.toSet()
         }
 
     /**

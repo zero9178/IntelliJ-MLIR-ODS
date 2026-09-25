@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassR
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMultiClassRef
+import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenFieldAccessReference
 import com.github.zero9178.mlirods.language.psi.TableGenMultiClassReference
 import com.github.zero9178.mlirods.language.psi.refersToClass
@@ -29,16 +30,19 @@ private fun checkInclude(element: TableGenIncludeDirective, holder: AnnotationHo
 
 /**
  * Flags a class reference (in an inheritance list, a `def`'s parent class, a value's type or a class instantiation)
- * that does not resolve to any class.
+ * that does not resolve to any class, which a class deriving from itself never does.
  */
 private fun checkClassReference(
     element: TableGenAbstractClassRef, holder: AnnotationHolder, context: TableGenCompilationContext
 ) {
     if (element.referencedDefinitionBlocking(context) != null) return
 
-    holder.newAnnotation(
-        HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unresolvedClass", element.className)
-    ).range(element.classIdentifier).create()
+    val message = if (TableGenClassReference.isDerivingFromOwnClass(element)) {
+        MyBundle.message("tableGen.reference.selfDerivedClass", element.className)
+    } else {
+        MyBundle.message("tableGen.reference.unresolvedClass", element.className)
+    }
+    holder.newAnnotation(HighlightSeverity.ERROR, message).range(element.classIdentifier).create()
 }
 
 /**

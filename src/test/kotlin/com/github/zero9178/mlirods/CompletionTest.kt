@@ -648,6 +648,58 @@ class CompletionTest : BasePlatformTestCase() {
         )
     }
 
+    // A class cannot derive from itself, neither by its definition's nor by its forward declaration's name.
+    fun `test class completion in parent list excludes own class`() = doTest(
+        """
+            class ALong;
+            class AShort;
+            class AFwd;
+            class AFwd : A<caret>;
+        """.trimIndent(), "ALong", "AShort", doesNotContain = listOf("AFwd")
+    )
+
+    fun `test class completion in parent list excludes own class without forward declaration`() = doTest(
+        """
+            class ALong;
+            class AShort;
+            class AOther : A<caret>;
+        """.trimIndent(), "ALong", "AShort", doesNotContain = listOf("AOther")
+    )
+
+    fun `test class completion in parent list excludes own class declared in included file`() {
+        myFixture.addFileToProject(
+            "other.td", """
+            class ALong;
+            class AShort;
+            class AFwd;
+        """.trimIndent()
+        )
+        val testTD = myFixture.configureByText(
+            "test.td", """
+            include "other.td"
+            class AFwd : A<caret>;
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(testTD.virtualFile to IncludePaths(listOf(testTD.virtualFile.parent)))
+        )
+
+        myFixture.completeBasic()
+        val collection = requireNotNull(myFixture.lookupElementStrings)
+        assertContainsElements(collection, "ALong", "AShort")
+        assertDoesntContain(collection, "AFwd")
+    }
+
+    // Only its parent list is before the class is usable, its body may name it.
+    fun `test class completion in own body includes own class`() = doTest(
+        """
+            class ALong;
+            class AOther {
+                A<caret> x = ?;
+            }
+        """.trimIndent(), "ALong", "AOther"
+    )
+
     fun `test class completion enters existing empty brackets`() = doTestTyping(
         """
             class ALong<int i>;
