@@ -3,6 +3,7 @@ package com.github.zero9178.mlirods.language.psi
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
@@ -10,6 +11,7 @@ import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 
 /**
@@ -92,13 +94,24 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
 
     /**
      * Returns a map of all field assignments in order of application (earliest to latest), including from all
-     * transitive base classes.
+     * transitive base classes and the top-level 'let' statements enclosing this.
      * The first element in a list is therefore always a field body item if valid TableGen.
      */
     @RequiresReadLock
     fun allFieldAssignments(context: TableGenCompilationContext): Map<String, List<TableGenFieldAssignmentNode>> =
         getProjectContextDependentCache(this, context) {
-            val result = directFieldAssignments.toMutableMap()
+            // Like in TableGen, the enclosing 'let' statements override what is inherited from the base classes, from
+            // the outermost to the innermost one, and are overridden by the body in turn.
+            val result = parentsOfType<TableGenLetStatement>(withSelf = false).toList().asReversed().flatMap {
+                it.letItemList
+            }.mapNotNull { item ->
+                item.fieldName?.let { it to item }
+            }.groupBy<_, _, TableGenFieldAssignmentNode>({ it.first }) { it.second }.toMutableMap()
+            directFieldAssignments.forEach { (k, v) ->
+                result.merge(k, v) { lets, direct ->
+                    lets + direct
+                }
+            }
             baseClassRefs.toList().asReversed().mapNotNull { it.referencedDefinitionBlocking(context) }.map {
                 it.allFieldAssignments(context)
             }.forEach {
