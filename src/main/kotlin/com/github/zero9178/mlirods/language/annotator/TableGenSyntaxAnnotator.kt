@@ -1,13 +1,22 @@
 package com.github.zero9178.mlirods.language.annotator
 
 import com.github.zero9178.mlirods.MyBundle
+import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorValueNode
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIfStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenSwitchOperatorValueNode
 import com.github.zero9178.mlirods.language.psi.TableGenTypeArgument
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.util.TextRange
+import com.intellij.psi.util.endOffset
+import com.intellij.psi.util.parentOfType
+import com.intellij.psi.util.startOffset
 
 private val ANNOTATIONS = arrayOf(
     addAnnotationFor { element: TableGenBangOperatorValueNode, holder ->
@@ -109,6 +118,22 @@ private val ANNOTATIONS = arrayOf(
                 HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.positionalAfterNamed")
             ).range(it).create()
         }
+    },
+    /**
+     * Flags a class statement nested within a multiclass, 'foreach' or 'if' statement. TableGen only allows classes
+     * at the top level or within 'let' and 'defset' statements.
+     */
+    addAnnotationFor { element: TableGenClassStatement, holder ->
+        val message = when {
+            element.parentOfType<TableGenMulticlassStatement>() != null -> "tableGen.syntax.classInMulticlass"
+            element.parentOfType<TableGenForeachStatement>() != null -> "tableGen.syntax.classInForeach"
+            element.parentOfType<TableGenIfStatement>() != null -> "tableGen.syntax.classInIf"
+            else -> return@addAnnotationFor
+        }
+        val keyword = element.node.findChildByType(TableGenTypes.CLASS)?.psi ?: return@addAnnotationFor
+        val end = element.identifier ?: keyword
+        holder.newAnnotation(HighlightSeverity.ERROR, MyBundle.message(message))
+            .range(TextRange(keyword.startOffset, end.endOffset)).create()
     },
 )
 
