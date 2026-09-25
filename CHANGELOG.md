@@ -28,6 +28,7 @@
 - A class statement within a `multiclass`, `foreach` or `if` statement is reported as an error and no longer referred
   to by any class reference. As in TableGen, classes may only be defined at the top level or within `let` and `defset`
   statements.
+- A multiclass without any statement in its body is reported as an error.
 
 ### Changed
 

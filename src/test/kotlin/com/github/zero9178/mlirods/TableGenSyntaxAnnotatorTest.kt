@@ -491,6 +491,28 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
+    fun `test multiclass with statement`() {
+        myFixture.configureByText(
+            "test.td", """
+            multiclass M {
+              defvar v = 0;
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test empty multiclass`() {
+        myFixture.configureByText(
+            "test.td", """
+            multiclass M <error descr="A multiclass must contain at least one statement">{
+              // Nothing.
+            }</error>
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
     fun `test class within let and defset`() {
         myFixture.configureByText(
             "test.td", """
