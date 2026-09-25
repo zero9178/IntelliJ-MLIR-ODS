@@ -40,7 +40,9 @@ internal class TableGenInterFileCompletionContributor : CompletionContributor() 
 
                     ALL_CLASSES_INDEX.processVisibleElements(0, seenFrom) {
                         // The classes of the file itself are suggested by the reference already.
-                        if (!seenFrom.isInSameFile(it)) result.addElement(createLookupElement(it, parameters.position))
+                        if (!seenFrom.isInSameFile(it) &&
+                            !TableGenClassReference.isOwnClassVariant(it, parameters.position)
+                        ) result.addElement(createLookupElement(it, parameters.position))
                         !result.isStopped
                     }
                 }

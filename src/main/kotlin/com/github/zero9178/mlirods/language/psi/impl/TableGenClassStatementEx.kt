@@ -8,7 +8,6 @@ import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.intellij.navigation.NavigationItem
-import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.concurrency.annotations.RequiresReadLock
@@ -78,11 +77,9 @@ interface TableGenClassStatementEx : PsiNameIdentifierOwner, NavigationItem, Tab
     @RequiresReadLock
     fun allDerivedRecords(context: TableGenCompilationContext): Sequence<TableGenRecord> =
         getProjectContextDependentCache(this, context) {
-            RecursionManager.doPreventingRecursion(this to context, true) {
-                directivelyDerivedRecords(context) + directivelyDerivedRecords(context).flatMap {
-                    if (it is TableGenClassStatement) it.allDerivedRecords(context) else emptySequence()
-                }
-            }?.toList() ?: emptyList()
+            (directivelyDerivedRecords(context) + directivelyDerivedRecords(context).flatMap {
+                if (it is TableGenClassStatement) it.allDerivedRecords(context) else emptySequence()
+            }).toList()
         }.asSequence()
 
     @RequiresReadLock

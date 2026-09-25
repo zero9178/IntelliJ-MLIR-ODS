@@ -117,6 +117,23 @@ class TableGenReferenceAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
+    fun `test class deriving from itself is flagged`() {
+        // TableGen crashes on either. A forward declaration is the same class as its definition.
+        val main = myFixture.configureByText(
+            "test.td", """
+            class A<int a> : <error descr="Class 'A' cannot derive from itself">A</error><a> { int f = a; }
+            class B;
+            class B : <error descr="Class 'B' cannot derive from itself">B</error> { int g = 1; }
+            def D : A<1>, B;
+            defvar v = !add(D.f, D.g);
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
     fun `test unresolved name of a defm is flagged as multiclass or class depending on its position`() {
         // The names of a 'defm' refer to classes starting with the first name after the first one that names a class.
         val main = myFixture.configureByText(
