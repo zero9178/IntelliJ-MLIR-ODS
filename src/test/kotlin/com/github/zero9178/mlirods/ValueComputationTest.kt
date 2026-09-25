@@ -176,6 +176,29 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenIntegerValue(2)
     )
 
+    fun `test field declared without value is undef`() = doTest(
+        """
+        class C {
+            int x;
+        }
+        def D : C;
+        defvar v = D.x;
+    """.trimIndent(), TableGenUndefValue
+    )
+
+    // Declaring a field again replaces the value it had so far, even without giving it a new one.
+    fun `test field redefined without value is undef`() = doTest(
+        """
+        class C {
+            int x = 1;
+        }
+        def D : C {
+            int x;
+        }
+        defvar v = D.x;
+    """.trimIndent(), TableGenUndefValue
+    )
+
     fun `test record template arg extra indirection`() = doTest(
         """
         class C<int x> {
