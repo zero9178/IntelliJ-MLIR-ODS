@@ -523,6 +523,15 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenUnknownValue
     )
 
+    // The class derives from nothing rather than from itself, which TableGen crashes on.
+    fun `test field of class deriving from itself`() = doTest(
+        """
+        class A<int a> : A<a> { int f = a; }
+        def D : A<1>;
+        defvar v = D.f;
+    """.trimIndent(), TableGenIntegerValue(1)
+    )
+
     fun `test record field evaluates within the root asked for`() {
         // A file pasted in by two roots derives from a different 'A' in each of them, so the same field has a
         // different value per root.

@@ -70,19 +70,46 @@ class TableGenClassReference(element: TableGenAbstractClassRef) :
         }
 
         /**
+         * Returns whether [element] names the class whose parent list it is part of. The class is visible from there,
+         * as TableGen defines a class before parsing its parent list, but deriving from it makes TableGen recurse
+         * until it crashes.
+         */
+        fun isDerivingFromOwnClass(element: TableGenAbstractClassRefEx): Boolean =
+            (element.parent as? TableGenClassStatement)?.name == element.className
+
+        /**
          * Returns all statements of the class [element] refers to that are visible from it within [context], see the
          * overload above. This is what resolving the reference and every lookup on the PSI itself are built on.
+         *
+         * A class deriving from itself, see [isDerivingFromOwnClass], derives from nothing instead, as every lookup
+         * through base classes would otherwise follow the cycle forever.
          */
         @RequiresReadLock
         fun findVisibleClasses(element: TableGenAbstractClassRefEx, context: TableGenCompilationContext) =
-            disallowTreeLoading { findVisibleClasses(element.className, element, context) }
+            disallowTreeLoading {
+                if (isDerivingFromOwnClass(element)) emptyList()
+                else findVisibleClasses(element.className, element, context)
+            }
 
         /**
          * Returns all completion variants at the given [positionToken].
          * [positionToken] should be an identifier token.
+         *
+         * Within the parent list of a class, the class itself is never a variant, see [isOwnClassVariant].
          */
-        fun getVariants(positionToken: PsiElement) = localSearchOrder(positionToken).map {
+        fun getVariants(positionToken: PsiElement) = localSearchOrder(positionToken).filterNot {
+            isOwnClassVariant(it, positionToken)
+        }.map {
             createLookupElement(it, positionToken)
+        }
+
+        /**
+         * Returns whether completing [variant] at [positionToken] would make a class derive from itself, see
+         * [isDerivingFromOwnClass]. This includes the forward declarations of the class, wherever they are.
+         */
+        fun isOwnClassVariant(variant: TableGenClassStatement, positionToken: PsiElement): Boolean {
+            val derivingClass = (positionToken.parent as? TableGenAbstractClassRef)?.parent as? TableGenClassStatement
+            return derivingClass != null && variant.name == derivingClass.name
         }
     }
 
