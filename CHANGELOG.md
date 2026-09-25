@@ -25,6 +25,9 @@
 - The names within the definition shown by quick documentation are now links: clicking a parent class, the class of a
   type, the record a field is defined in or a name within a value shows the documentation of the element it refers to.
   Only names referring to elements that have documentation are linked.
+- A class statement within a `multiclass`, `foreach` or `if` statement is reported as an error and no longer referred
+  to by any class reference. As in TableGen, classes may only be defined at the top level or within `let` and `defset`
+  statements.
 
 ### Changed
 
