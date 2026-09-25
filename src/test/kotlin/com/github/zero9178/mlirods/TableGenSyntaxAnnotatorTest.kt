@@ -490,4 +490,70 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting()
     }
+
+    fun `test class within let and defset`() {
+        myFixture.configureByText(
+            "test.td", """
+            class B { int x; }
+            let x = 1 in {
+              class C : B;
+            }
+            defset list<B> S = {
+              class D;
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test class within multiclass`() {
+        myFixture.configureByText(
+            "test.td", """
+            class B { int x; }
+            multiclass M {
+              def X : B;
+              let x = 1 in {
+                <error descr="A class cannot be defined within a multiclass">class C</error> : B;
+              }
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test class within foreach within multiclass`() {
+        myFixture.configureByText(
+            "test.td", """
+            multiclass M {
+              foreach i = [0] in
+                <error descr="A class cannot be defined within a multiclass">class C</error>;
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test class within foreach`() {
+        myFixture.configureByText(
+            "test.td", """
+            foreach i = [0] in {
+              <error descr="A class cannot be defined within a 'foreach' loop">class C</error>;
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test class within if`() {
+        myFixture.configureByText(
+            "test.td", """
+            if 1 then {
+              def X;
+            } else {
+              <error descr="A class cannot be defined within an 'if' statement">class C</error>;
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
 }

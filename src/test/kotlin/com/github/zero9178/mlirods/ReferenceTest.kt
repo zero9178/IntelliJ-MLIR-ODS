@@ -389,6 +389,52 @@ class ReferenceTest : BasePlatformTestCase() {
         )
     )
 
+    fun `test class within multiclass`() = assertNull(
+        resolveAcrossFiles(
+            "root.td" to """
+                multiclass M {
+                  def X;
+                  class A;
+                }
+                def : <caret>A;
+            """
+        )
+    )
+
+    fun `test class within foreach`() = assertNull(
+        resolveAcrossFiles(
+            "root.td" to """
+                foreach i = [0] in {
+                  class A;
+                }
+                def : <caret>A;
+            """
+        )
+    )
+
+    fun `test class within if`() = assertNull(
+        resolveAcrossFiles(
+            "root.td" to """
+                if 1 then {
+                  class A;
+                }
+                def : <caret>A;
+            """
+        )
+    )
+
+    fun `test class within let`() = assertResolvesToFile(
+        "root.td", resolveAcrossFiles(
+            "root.td" to """
+                class B { int x; }
+                let x = 1 in {
+                  class A : B;
+                }
+                def : <caret>A;
+            """
+        )
+    )
+
     fun `test GlobalClassInstantiationResolution`() {
         val element = doTest<TableGenClassStatement>("GlobalClassInstantiationResolution.td", "test.td")
         assertEquals(element.name, "F")
