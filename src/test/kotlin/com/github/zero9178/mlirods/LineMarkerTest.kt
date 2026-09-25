@@ -18,6 +18,19 @@ class LineMarkerTest : BasePlatformTestCase() {
         """.trimIndent()
     )
 
+    // Unlike a field, the enclosing 'let' overridden by the body is not where the field name navigates to.
+    fun `test enclosing let override`() = doTest(
+        """
+            class <lineMarker descr="Navigate to derived records of 'A'">A</lineMarker> {
+                int <lineMarker descr="Navigate to overriding values of 'i'">i</lineMarker> = 5;
+            }
+            let i = 7 in
+            def B : A {
+                let <lineMarker descr="Navigate to previous value of 'i'">i</lineMarker> = 8;
+            }
+        """.trimIndent()
+    )
+
     fun `test derived class`() = doTest(
         """
             class <lineMarker descr="Navigate to derived records of 'A'">A</lineMarker> {}

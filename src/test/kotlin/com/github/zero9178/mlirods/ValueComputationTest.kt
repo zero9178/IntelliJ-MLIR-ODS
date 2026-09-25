@@ -199,6 +199,108 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenUndefValue
     )
 
+    fun `test record field overridden by enclosing let`() = doTest(
+        """
+        class C {
+            int y = 1;
+        }
+        let y = 2 in
+        def D : C;
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(2)
+    )
+
+    fun `test every item of enclosing let applies`() = doTest(
+        """
+        class C {
+            int x = 1;
+            int y = 1;
+        }
+        let x = 2, y = 3 in
+        def D : C;
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    // The enclosing 'let's are applied before the body of the record.
+    fun `test enclosing let overridden by body`() = doTest(
+        """
+        class C {
+            int y = 1;
+        }
+        let y = 2 in
+        def D : C {
+            let y = 3;
+        }
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    fun `test innermost enclosing let takes precedence`() = doTest(
+        """
+        class C {
+            int y = 1;
+        }
+        let y = 2 in {
+            let y = 3 in
+            def D : C;
+        }
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    fun `test enclosing let of base class`() = doTest(
+        """
+        class Base {
+            int y = 1;
+        }
+        let y = 2 in
+        class C : Base;
+        def D : C;
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(2)
+    )
+
+    fun `test enclosing let of base class overridden by its body`() = doTest(
+        """
+        class Base {
+            int y = 1;
+        }
+        let y = 2 in
+        class C<int a> : Base {
+            let y = a;
+        }
+        def D : C<3>;
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(3)
+    )
+
+    fun `test field referring to field set by enclosing let`() = doTest(
+        """
+        class C {
+            int x = 1;
+            int y = x;
+        }
+        let x = 4 in
+        def D : C;
+        defvar v = D.y;
+    """.trimIndent(), TableGenIntegerValue(4)
+    )
+
+    // The anonymous record created by a class instantiation is not enclosed by the 'let', even if the instantiation is.
+    fun `test enclosing let does not apply to class instantiation`() = doTest(
+        """
+        class C {
+            int y = 1;
+        }
+        let y = 2 in
+        def D : C {
+            C inner = C<>;
+        }
+        defvar v = D.inner.y;
+    """.trimIndent(), TableGenIntegerValue(1)
+    )
+
     fun `test record template arg extra indirection`() = doTest(
         """
         class C<int x> {
