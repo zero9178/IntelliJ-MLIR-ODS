@@ -910,6 +910,26 @@ class ReferenceTest : BasePlatformTestCase() {
         )
     )
 
+    // Regression test for a directive following the last token of a value, which used to end up within the value and
+    // fail building the stubs of 'defs.td'.
+    fun `test def in include with directive following a value`() = assertResolvesToFile(
+        "defs.td", resolveAcrossFiles(
+            "defs.td" to """
+                def A;
+                defvar l = [A
+                #ifdef FOO
+                  , A
+                #endif
+                ];
+                def B;
+            """,
+            "test.td" to """
+                include "defs.td"
+                defvar x = <caret>B;
+            """
+        )
+    )
+
     fun `test inherited field context follows the base class`() {
         val mainVF = myFixture.createFile(
             "test.td", """
