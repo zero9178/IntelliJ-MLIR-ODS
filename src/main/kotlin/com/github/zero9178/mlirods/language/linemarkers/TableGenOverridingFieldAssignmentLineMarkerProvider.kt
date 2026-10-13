@@ -15,6 +15,7 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
+import com.intellij.util.PsiNavigateUtil
 import javax.swing.Icon
 
 /**
@@ -62,7 +63,7 @@ internal class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerP
             element, element.textRange, icon, {
                 "Navigate to previous value of '$fieldName'"
             }, { _, _ ->
-                overwriting.navigate(true)
+                PsiNavigateUtil.navigate(overwriting)
             },
             GutterIconRenderer.Alignment.RIGHT
         ) {
