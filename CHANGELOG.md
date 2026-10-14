@@ -59,6 +59,8 @@
 - Identifier completion suggests the declarations of the enclosing scopes while indexing is still in progress.
 - The body of a multiclass statement must be enclosed in braces, as in TableGen. A single statement following it
   without braces, e.g. `multiclass M def X;`, was previously accepted as its body.
+- Indexing no longer fails for files containing a preprocessor directive directly after a value, e.g. an `#endif`
+  following the last element of a list.
 
 ## [0.16.0] - 2026-09-10
 

@@ -15,5 +15,16 @@ def;
 
 def;
 
+defvar l = [A
+#ifdef IDENTIFIER
+  , A
+#endif
+];
+
+defvar s = "a"
+#ifdef IDENTIFIER
+#endif
+# "b";
+
 
 #ifdef NO
