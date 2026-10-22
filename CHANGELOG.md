@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-19
+
 ### Added
 
 - Typing `<` inserts the matching `>` and shows the parameter info of the class being instantiated, if any. Typing `>`
@@ -315,7 +317,8 @@ items in the `Find usage` functionality confusing for users.
 
 - Support for using `tblgen-lsp-server` built as part of the opened CMake project
 
-[Unreleased]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/zero9178/IntelliJ-MLIR-ODS/compare/v0.13.0...v0.14.0
