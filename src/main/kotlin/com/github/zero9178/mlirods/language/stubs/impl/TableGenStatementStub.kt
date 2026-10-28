@@ -32,9 +32,7 @@ sealed class TableGenAbstractStatementStubElementType<PsiT : PsiElement>(
     psiConstructor: (TableGenStatementStub, TableGenStubElementType<TableGenStatementStub, PsiT>) -> PsiT
 ) : TableGenSingletonStubElementType<TableGenStatementStub, PsiT>(
     debugName, psiConstructor, ::TableGenStatementStubImpl
-) {
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
-}
+)
 
 class TableGenForeachStatementStubElementType(debugName: String) :
     TableGenAbstractStatementStubElementType<TableGenForeachStatement>(
@@ -71,6 +69,4 @@ private class TableGenDefmStatementStubImpl(
 class TableGenDefmStatementStubElementType(debugName: String) :
     TableGenSingletonStubElementType<TableGenDefmStatementStub, TableGenDefmStatement>(
         debugName, ::TableGenDefmStatementImpl, ::TableGenDefmStatementStubImpl
-    ) {
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
-}
+    )

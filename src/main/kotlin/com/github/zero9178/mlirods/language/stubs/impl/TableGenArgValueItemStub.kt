@@ -38,9 +38,6 @@ class TableGenArgValueItemStubElementType(debugName: String) :
         val identifier = dataStream.readNameString()
         return TableGenArgValueItemStubImpl(isNamedArgument, identifier, parentStub)
     }
-
-    // An argument carries the value node it is assigned, which is itself stubbed.
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
 }
 
 private class TableGenArgValueItemStubImpl(

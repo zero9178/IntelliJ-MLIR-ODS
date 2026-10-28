@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Indexing no longer fails for files containing a preprocessor directive within a value or type, e.g. a `#define`
+  between two concatenated string literals.
+
 ## [0.17.0] - 2026-10-19
 
 ### Added

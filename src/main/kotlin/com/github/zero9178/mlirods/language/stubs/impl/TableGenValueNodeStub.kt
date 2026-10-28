@@ -34,9 +34,7 @@ sealed class TableGenAbstractValueNodeStubElementType<PsiT : PsiElement>(
     psiConstructor: (TableGenValueNodeStub, TableGenStubElementType<TableGenValueNodeStub, PsiT>) -> PsiT
 ) : TableGenSingletonStubElementType<TableGenValueNodeStub, PsiT>(
     debugName, psiConstructor, ::TableGenValueNodeStubImpl
-) {
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
-}
+)
 
 class TableGenConcatValueNodeStubElementType(debugName: String) :
     TableGenAbstractValueNodeStubElementType<TableGenConcatValueNode>(
@@ -91,8 +89,6 @@ class TableGenIntegerValueNodeStubElementType(
             if (dataStream.readBoolean()) dataStream.readLong() else null, parentStub, this
         )
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenIntegerValueNodeStubImpl(
@@ -135,8 +131,6 @@ class TableGenBinaryIntegerValueNodeStubElementType(
     ): TableGenBinaryIntegerValueNodeStub {
         return TableGenBinaryIntegerValueNodeStubImpl(dataStream.readVarInt(), parentStub, this)
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenBinaryIntegerValueNodeStubImpl(
@@ -177,8 +171,6 @@ class TableGenStringValueNodeStubElementType(
     ): TableGenStringValueNodeStub {
         return TableGenStringValueNodeStubImpl(dataStream.readUTFFast(), parentStub, this)
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenStringValueNodeStubImpl(
@@ -213,8 +205,6 @@ class TableGenBlockStringValueStubElementType(
     ): TableGenStringValueNodeStub {
         return TableGenStringValueNodeStubImpl(dataStream.readUTFFast(), parentStub, this)
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 /**
@@ -246,8 +236,6 @@ class TableGenBoolValueNodeStubElementType(
     ): TableGenBoolValueNodeStub {
         return TableGenBoolValueNodeStubImpl(dataStream.readBoolean(), parentStub, this)
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenBoolValueNodeStubImpl(
@@ -261,9 +249,7 @@ private class TableGenBoolValueNodeStubImpl(
 class TableGenUndefValueNodeStubElementType(debugName: String) :
     TableGenAbstractValueNodeStubElementType<TableGenUndefValueNode>(
         debugName, ::TableGenUndefValueNodeImpl
-    ) {
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
-}
+    )
 
 class TableGenBitsInitValueNodeStubElementType(debugName: String) :
     TableGenAbstractValueNodeStubElementType<TableGenBitsInitValueNode>(
@@ -311,8 +297,6 @@ class TableGenIdentifierValueNodeStubElementType(
             dataStream.readRequiredName("identifier value node"), parentStub, this
         )
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 
 private class TableGenIdentifierValueNodeStubImpl(
@@ -354,9 +338,6 @@ class TableGenClassInstantiationValueNodeStubElementType(
             dataStream.readRequiredName("class instantiation value node"), parentStub, this
         )
     }
-
-    // The arguments of the instantiation are stubbed.
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
 }
 
 private class TableGenClassInstantiationValueNodeStubImpl(

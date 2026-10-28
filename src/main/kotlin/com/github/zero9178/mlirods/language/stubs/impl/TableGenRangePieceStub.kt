@@ -32,10 +32,7 @@ sealed class TableGenAbstractRangePieceStubElementType<PsiT : PsiElement>(
     psiConstructor: (TableGenRangePieceStub, TableGenStubElementType<TableGenRangePieceStub, PsiT>) -> PsiT
 ) : TableGenSingletonStubElementType<TableGenRangePieceStub, PsiT>(
     debugName, psiConstructor, ::TableGenRangePieceStubImpl
-) {
-    // Range pieces contain the value nodes making up the bit indices as children.
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
-}
+)
 
 class TableGenSingleBitStubElementType(debugName: String) :
     TableGenAbstractRangePieceStubElementType<TableGenSingleBit>(

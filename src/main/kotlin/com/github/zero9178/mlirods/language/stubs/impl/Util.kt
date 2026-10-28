@@ -3,7 +3,6 @@ package com.github.zero9178.mlirods.language.stubs.impl
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
-import com.intellij.psi.stubs.StubBase
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.stubs.StubInputStream
 import com.intellij.psi.stubs.StubOutputStream
@@ -31,6 +30,4 @@ abstract class TableGenSingletonStubElementType<StubT : StubElement<*>, PsiT : P
     ): StubT {
         return myStubConstructor.invoke(parentStub, this)
     }
-
-    override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
