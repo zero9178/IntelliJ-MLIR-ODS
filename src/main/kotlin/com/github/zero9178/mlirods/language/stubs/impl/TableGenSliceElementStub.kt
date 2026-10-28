@@ -32,10 +32,7 @@ sealed class TableGenAbstractSliceElementStubElementType<PsiT : PsiElement>(
     psiConstructor: (TableGenSliceElementStub, TableGenStubElementType<TableGenSliceElementStub, PsiT>) -> PsiT
 ) : TableGenSingletonStubElementType<TableGenSliceElementStub, PsiT>(
     debugName, psiConstructor, ::TableGenSliceElementStubImpl
-) {
-    // Slice elements contain the value nodes making up the indices as children.
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
-}
+)
 
 class TableGenSingleSliceElementStubElementType(debugName: String) :
     TableGenAbstractSliceElementStubElementType<TableGenSingleSliceElement>(

@@ -42,6 +42,8 @@ class TableGenIncludeDirectiveStubElementType(debugName: String) :
         return TableGenIncludeDirectiveStubImpl(includeSuffix, parentStub)
     }
 
+    // The preprocessor does not interpret directives within directives. Any other element may contain directives, e.g.
+    // between its tokens, and its stub must therefore permit children.
     override fun isAlwaysLeaf(root: StubBase<*>) = true
 }
 

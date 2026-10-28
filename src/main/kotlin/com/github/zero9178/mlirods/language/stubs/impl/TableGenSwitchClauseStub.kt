@@ -37,9 +37,6 @@ class TableGenSwitchClauseStubElementType(debugName: String) :
     override fun deserialize(
         dataStream: StubInputStream, parentStub: StubElement<*>?
     ): TableGenSwitchClauseStub = TableGenSwitchClauseStubImpl(dataStream.readBoolean(), parentStub)
-
-    // The case key and value are stubbed value node children.
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
 }
 
 private class TableGenSwitchClauseStubImpl(

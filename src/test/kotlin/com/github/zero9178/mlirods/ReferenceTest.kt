@@ -930,6 +930,56 @@ class ReferenceTest : BasePlatformTestCase() {
         )
     )
 
+    // Regression tests for a directive between the tokens of a value or type without stub children, which used to
+    // fail building the stubs of 'defs.td'.
+    fun `test def in include with directive within a string value`() = assertResolvesToFile(
+        "defs.td", resolveAcrossFiles(
+            "defs.td" to """
+                defvar s = "a"
+                #define FOO
+                "b";
+                def B;
+            """,
+            "test.td" to """
+                include "defs.td"
+                defvar x = <caret>B;
+            """
+        )
+    )
+
+    fun `test def in include with directive within a bits type`() = assertResolvesToFile(
+        "defs.td", resolveAcrossFiles(
+            "defs.td" to """
+                def A {
+                  bits<
+                #define FOO
+                  4> v = 0;
+                }
+                def B;
+            """,
+            "test.td" to """
+                include "defs.td"
+                defvar x = <caret>B;
+            """
+        )
+    )
+
+    // Note: 'llvm-tblgen' rejects a '-' separated from the integer, but its stubs must be built nevertheless.
+    fun `test def in include with directive within an integer value`() = assertResolvesToFile(
+        "defs.td", resolveAcrossFiles(
+            "defs.td" to """
+                defvar i = -
+                #define FOO
+                5;
+                def B;
+            """,
+            "test.td" to """
+                include "defs.td"
+                defvar x = <caret>B;
+            """
+        )
+    )
+
     fun `test inherited field context follows the base class`() {
         val mainVF = myFixture.createFile(
             "test.td", """

@@ -25,7 +25,4 @@ private class TableGenCondClauseStubImpl(
 class TableGenCondClauseStubElementType(debugName: String) :
     TableGenSingletonStubElementType<TableGenCondClauseStub, TableGenCondClause>(
         debugName, ::TableGenCondClauseImpl, ::TableGenCondClauseStubImpl
-    ) {
-    // The condition and value are stubbed value node children.
-    override fun isAlwaysLeaf(root: StubBase<*>) = false
-}
+    )
