@@ -2,11 +2,15 @@ package com.github.zero9178.mlirods.language.annotator
 
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractClassRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMultiClassRef
 import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.language.psi.TableGenFieldAccessReference
+import com.github.zero9178.mlirods.language.psi.TableGenLetReference
 import com.github.zero9178.mlirods.language.psi.TableGenMultiClassReference
 import com.github.zero9178.mlirods.language.psi.refersToClass
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
@@ -14,6 +18,7 @@ import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.parentOfTypes
 
 /**
  * Flags an [element] whose include path does not resolve to a file, be it because a directory along the path or the
@@ -81,6 +86,25 @@ private fun checkFieldAccess(
     ).range(fieldIdentifier).create()
 }
 
+/**
+ * Flags a 'let' in the body of a record that assigns to a field the record does not have (nor inherit) at that point,
+ * which includes fields only defined after it. Records with a base class that does not resolve are left alone, as the
+ * field may come from there and the class is already reported as unresolved.
+ */
+private fun checkLetBodyItem(
+    element: TableGenLetBodyItem, holder: AnnotationHolder, context: TableGenCompilationContext
+) {
+    val fieldIdentifier = element.fieldIdentifier ?: return
+    if (TableGenLetReference.findField(element, context) != null) return
+
+    val record = element.parentOfTypes(TableGenClassStatement::class, TableGenDefStatement::class) ?: return
+    if (record.allBaseClasses(context).contains(null)) return
+
+    holder.newAnnotation(
+        HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unresolvedField", fieldIdentifier.text)
+    ).range(fieldIdentifier).create()
+}
+
 private val ANNOTATIONS = arrayOf(
     addAnnotationFor { element: TableGenIncludeDirective, holder -> checkInclude(element, holder) },
     addAnnotationFor { element: TableGenAbstractClassRef, holder, context ->
@@ -91,6 +115,9 @@ private val ANNOTATIONS = arrayOf(
     },
     addAnnotationFor { element: TableGenFieldAccessValueNode, holder, context ->
         checkFieldAccess(element, holder, context)
+    },
+    addAnnotationFor { element: TableGenLetBodyItem, holder, context ->
+        checkLetBodyItem(element, holder, context)
     },
 )
 
