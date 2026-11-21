@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.command.WriteCommandAction
@@ -12,6 +13,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiPolyVariantReference
+import com.intellij.psi.PsiReference
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.utils.vfs.deleteRecursively
@@ -728,6 +730,20 @@ class ReferenceTest : BasePlatformTestCase() {
         assertNotNull(element.parentOfType<TableGenMulticlassStatement>())
     }
 
+    fun `test let defvar shadows global def`() {
+        val element = doTestInline<TableGenDefvarStatement>(
+            """
+            def i;
+            let x = 1 in {
+                defvar i = 0;
+                defvar v = <caret>i;
+            }
+        """.trimIndent()
+        )
+        assertEquals("i", element.name)
+        assertNotNull(element.parentOfType<TableGenLetStatement>())
+    }
+
     fun `test multiclass def not referenceable`() = assertNull(
         resolveAcrossFiles(
             "test.td" to """
@@ -815,6 +831,363 @@ class ReferenceTest : BasePlatformTestCase() {
         """.trimIndent()
         )
         assertEquals("i", iter.name)
+    }
+
+    fun `test top-level let in def`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { int x; }
+            let <caret>x = 1 in def a : C;
+        """.trimIndent()
+        )
+        assertEquals("x", field.name)
+    }
+
+    fun `test top-level let in class`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { int x; }
+            let <caret>x = 1 in class D : C;
+        """.trimIndent()
+        )
+        assertEquals("C", field.parentOfType<TableGenClassStatement>()?.name)
+    }
+
+    fun `test top-level let append`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { list<int> x = []; }
+            let append <caret>x = [1] in def a : C;
+        """.trimIndent()
+        )
+        assertEquals("x", field.name)
+    }
+
+    fun `test top-level let second item`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { int x; int y; }
+            let x = 1, <caret>y = 2 in def a : C;
+        """.trimIndent()
+        )
+        assertEquals("y", field.name)
+    }
+
+    fun `test top-level let field of transitive base`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class B { int x; }
+            class C : B;
+            let <caret>x = 1 in def a : C;
+        """.trimIndent()
+        )
+        assertEquals("B", field.parentOfType<TableGenClassStatement>()?.name)
+    }
+
+    fun `test top-level let field in body is not yet known`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                let <caret>x = 1 in def a { int x; }
+            """
+        )
+    )
+
+    fun `test top-level let does not apply to following records`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                class C { int x; }
+                let <caret>x = 1 in def a;
+                def b : C;
+            """
+        )
+    )
+
+    fun `test top-level let same field of many records`() {
+        assertEquals(
+            listOf("C"), resolveAllAcrossFiles(
+                "test.td" to """
+                    class C { int x; }
+                    let <caret>x = 1 in {
+                        def a : C;
+                        def b : C;
+                    }
+                """
+            ).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let fields of unrelated classes`() {
+        assertEquals(
+            listOf("C", "D"), resolveAllAcrossFiles(
+                "test.td" to """
+                    class C { int x; }
+                    class D { int x; }
+                    let <caret>x = 1 in {
+                        def a : C;
+                        def b : D;
+                    }
+                """
+            ).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let through nested statements`() {
+        assertEquals(
+            listOf("C", "D", "E", "F", "G"), resolveAllAcrossFiles(
+                "test.td" to """
+                    class C { int x; }
+                    class D { int x; }
+                    class E { int x; }
+                    class F { int x; }
+                    class G { int x; }
+                    let <caret>x = 1 in {
+                        let x = 2 in def a : C;
+                        foreach i = [0] in def b#i : D;
+                        if 1 then { def c : E; } else { def d : F; }
+                        defset list<G> l = { def e : G; }
+                    }
+                """
+            ).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let in multiclass def`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { int x; }
+            multiclass M {
+                let <caret>x = 1 in def a : C;
+            }
+        """.trimIndent()
+        )
+        assertEquals("x", field.name)
+    }
+
+    fun `test top-level let enclosing multiclass`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { int x; }
+            let <caret>x = 1 in multiclass M {
+                def a : C;
+            }
+        """.trimIndent()
+        )
+        assertEquals("x", field.name)
+    }
+
+    fun `test top-level let enclosing multiclass does not apply to its bases`() = assertNull(
+        resolveAcrossFiles(
+            "test.td" to """
+                multiclass N { def b { int x; } }
+                let <caret>x = 1 in multiclass M : N;
+            """
+        )
+    )
+
+    fun `test top-level let of defm applies to body of def`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            multiclass M { def b { int x; } }
+            let <caret>x = 1 in defm a : M;
+        """.trimIndent()
+        )
+        assertEquals("b", field.parentOfType<TableGenDefStatement>()?.name)
+    }
+
+    fun `test top-level let of defm applies to defs of base multiclass`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            multiclass N { def b { int x; } }
+            multiclass M : N;
+            let <caret>x = 1 in defm a : M;
+        """.trimIndent()
+        )
+        assertEquals("b", field.parentOfType<TableGenDefStatement>()?.name)
+    }
+
+    fun `test top-level let of defm applies to nested defm`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            multiclass N { def b { int x; } }
+            multiclass M { defm c : N; }
+            let <caret>x = 1 in defm a : M;
+        """.trimIndent()
+        )
+        assertEquals("b", field.parentOfType<TableGenDefStatement>()?.name)
+    }
+
+    fun `test top-level let of defm applies to its classes`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { int x; }
+            multiclass M { def b; }
+            let <caret>x = 1 in defm a : M, C;
+        """.trimIndent()
+        )
+        assertEquals("C", field.parentOfType<TableGenClassStatement>()?.name)
+    }
+
+    fun `test top-level let applies to included records`() {
+        assertEquals(
+            listOf("C", "D"), resolveAllAcrossFiles(
+                "inc.td" to """
+                    def a : C;
+                    defset list<D> l = { def b : D; }
+                """,
+                "root.td" to """
+                    class C { int x; }
+                    class D { int x; }
+                    let <caret>x = 1 in {
+                        include "inc.td"
+                    }
+                """
+            ).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let sees class defined within its body`() {
+        // 'a' sees only the declaration of 'X', 'b' its definition.
+        assertEquals(
+            listOf("X"), resolveAllAcrossFiles(
+                "test.td" to """
+                    class X;
+                    let <caret>x = 1 in {
+                        def a : X;
+                        class X { int x; }
+                        def b : X;
+                    }
+                """
+            ).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let sees class included within its body`() {
+        assertEquals(
+            listOf("X"), resolveAllAcrossFiles(
+                "inc.td" to """
+                    class X { int x; }
+                """,
+                "root.td" to """
+                    class X;
+                    let <caret>x = 1 in {
+                        def a : X;
+                        include "inc.td"
+                        def b : X;
+                    }
+                """
+            ).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let sees class defined within nested let`() {
+        assertEquals(
+            listOf("X"), resolveAllAcrossFiles(
+                "test.td" to """
+                    class X;
+                    let <caret>x = 1 in {
+                        def a : X;
+                        let y = 2 in class X { int x; }
+                        def b : X;
+                    }
+                """
+            ).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let of defm applies to bodies of all multiclass defs`() {
+        assertEquals(
+            listOf("a", "b"), resolveAllAcrossFiles(
+                "test.td" to """
+                    multiclass M {
+                        def a { int x; }
+                        def b { int x; }
+                    }
+                    let <caret>x = 1 in defm m : M;
+                """
+            ).map { it.parentOfType<TableGenDefStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let of defm of multiclass deriving from itself`() {
+        val field = doTestInline<TableGenFieldBodyItem>(
+            """
+            class C { int x; }
+            multiclass M : M { def a : C; }
+            let <caret>x = 1 in defm m : M;
+        """.trimIndent()
+        )
+        assertEquals("C", field.parentOfType<TableGenClassStatement>()?.name)
+    }
+
+    fun `test top-level let of defm of long multiclass chain`() {
+        val depth = 1000
+        val chain = (1 until depth).joinToString("\n") { "multiclass M$it : M${it - 1};" }
+        val reference = referenceAcrossFiles(
+            "test.td" to """
+                |class C { int x; }
+                |multiclass M0 { def a : C; }
+                |$chain
+                |let <caret>x = 1 in defm m : M${depth - 1};
+            """.trimMargin()
+        )
+        assertEquals(
+            listOf("C"), resolveAllOnSmallStack(reference).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let of long class chain`() {
+        val depth = 1000
+        val chain = (1 until depth).joinToString("\n") { "class C$it : C${it - 1};" }
+        val reference = referenceAcrossFiles(
+            "test.td" to """
+                |class C0 { int x; }
+                |$chain
+                |let <caret>x = 1 in def a : C${depth - 1};
+            """.trimMargin()
+        )
+        assertEquals(
+            listOf("C0"), resolveAllOnSmallStack(reference).map { it.parentOfType<TableGenClassStatement>()?.name }
+        )
+    }
+
+    fun `test top-level let applies to nothing on an include cycle`() {
+        // TableGen pastes 'inc.td' into itself until it fails on 'a' being redefined.
+        assertEquals(
+            emptyList<PsiElement>(), resolveAllAcrossFiles(
+                "inc.td" to """
+                    def a : C;
+                    include "inc.td"
+                """,
+                "root.td" to """
+                    class C { int x; }
+                    let <caret>x = 1 in {
+                        include "inc.td"
+                    }
+                """
+            )
+        )
+    }
+
+    fun `test top-level let after adding record to its body`() {
+        val names = { reference: PsiReference? -> reference.resolveAll().map { it.parentOfType<TableGenClassStatement>()?.name } }
+        val reference = referenceAcrossFiles(
+            "test.td" to """
+                class C { int x; }
+                class D { int x; }
+                let <caret>x = 1 in {
+                    def a : C;
+                }
+            """
+        )
+        assertEquals(listOf("C"), names(reference))
+
+        val document = myFixture.getDocument(myFixture.file)
+        WriteCommandAction.runWriteCommandAction(project) {
+            document.insertString(document.text.indexOf("def a"), "def b : D; ")
+            PsiDocumentManager.getInstance(project).commitDocument(document)
+        }
+
+        assertEquals(listOf("D", "C"), names(myFixture.file.findReferenceAt(myFixture.caretOffset)))
     }
 
     fun `test named arg identifier resolution`() {
@@ -1111,13 +1484,44 @@ class ReferenceTest : BasePlatformTestCase() {
      * Creates [files], given as pairs of name and content with the root of the compilation being last, and returns what
      * the reference at the caret resolves to.
      */
-    private fun resolveAcrossFiles(vararg files: Pair<String, String>): PsiElement? {
+    private fun resolveAcrossFiles(vararg files: Pair<String, String>): PsiElement? = referenceAcrossFiles(*files)?.resolve()
+
+    /**
+     * Like [resolveAcrossFiles] for a reference resolving to any number of elements.
+     */
+    private fun resolveAllAcrossFiles(vararg files: Pair<String, String>): List<PsiElement> =
+        referenceAcrossFiles(*files).resolveAll()
+
+    private fun PsiReference?.resolveAll(): List<PsiElement> =
+        (this as PsiPolyVariantReference).multiResolve(false).map { it.element!! }
+
+    /**
+     * Returns what [reference] resolves to, resolved on a thread whose stack is too small for following a long chain
+     * of references to be a call per reference: the depth of the stack must only depend on the syntax tree.
+     */
+    private fun resolveAllOnSmallStack(reference: PsiReference?): List<PsiElement> {
+        var result: List<PsiElement>? = null
+        var failure: Throwable? = null
+        val thread = Thread(null, {
+            try {
+                result = runReadAction { reference.resolveAll() }
+            } catch (t: Throwable) {
+                failure = t
+            }
+        }, "small stack", 512 * 1024)
+        thread.start()
+        thread.join(60_000)
+        failure?.let { throw it }
+        return checkNotNull(result) { "resolving did not finish" }
+    }
+
+    private fun referenceAcrossFiles(vararg files: Pair<String, String>): PsiReference? {
         val virtualFiles = files.map { (name, content) -> myFixture.createFile(name, content.trimIndent()) }
         val root = virtualFiles.last()
         installCompileCommands(project, mapOf(root to IncludePaths(listOf(root.parent))))
 
         myFixture.configureFromExistingVirtualFile(virtualFiles[files.indexOfFirst { "<caret>" in it.second }])
-        return myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve()
+        return myFixture.file.findReferenceAt(myFixture.caretOffset)
     }
 
     private fun assertResolvesToFile(file: String, element: PsiElement?) {

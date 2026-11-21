@@ -67,8 +67,8 @@
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenMultiClassRef"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenMultiClassRefManipulator"/>
         <lang.elementManipulator
-                forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem"
-                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenLetBodyItemManipulator"/>
+                forClass="com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
+                implementationClass="com.github.zero9178.mlirods.language.psi.TableGenAbstractLetItemManipulator"/>
         <lang.elementManipulator
                 forClass="com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode"
                 implementationClass="com.github.zero9178.mlirods.language.psi.TableGenFieldAccessValueNodeManipulator"/>

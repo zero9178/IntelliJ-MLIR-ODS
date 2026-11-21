@@ -1,10 +1,11 @@
 package com.github.zero9178.mlirods.language.psi
 
+import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldAccessValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.types.TableGenRecordType
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
-import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
@@ -22,14 +23,30 @@ class TableGenFieldAccessReference(element: TableGenFieldAccessValueNode) :
          * [context].
          */
         @RequiresReadLock
-        fun findField(
+        suspend fun findField(
             element: TableGenFieldAccessValueNode, context: TableGenCompilationContext
-        ): TableGenFieldBodyItem? = getProjectContextDependentCache(element, context) { element ->
-            val fieldName = element.fieldName ?: return@getProjectContextDependentCache null
-            val type = element.valueNode.typeBlocking(context) as? TableGenRecordType
-                ?: return@getProjectContextDependentCache null
-            type.record(context)?.fields(context)?.get(fieldName)
-        }
+        ): TableGenFieldBodyItem? = fieldOf(element, context).await()
+
+        /**
+         * [findField] for platform entry points. Suspending code must use [findField] instead.
+         */
+        @RequiresReadLock
+        fun findFieldBlocking(
+            element: TableGenFieldAccessValueNode, context: TableGenCompilationContext
+        ): TableGenFieldBodyItem? = fieldOf(element, context).getBlocking()
+
+        /**
+         * The cached value of [findField].
+         */
+        private fun fieldOf(
+            element: TableGenFieldAccessValueNode, context: TableGenCompilationContext
+        ): SuspendingCachedValue<TableGenFieldBodyItem?> =
+            projectContextDependentSuspendingCachedValue(element, context, "accessed field") { element ->
+                val fieldName = element.fieldName ?: return@projectContextDependentSuspendingCachedValue null
+                val type = element.valueNode.type(context) as? TableGenRecordType
+                    ?: return@projectContextDependentSuspendingCachedValue null
+                type.record(context)?.allFieldsByName(context)?.get(fieldName)
+            }
     }
 
     /**
@@ -39,6 +56,6 @@ class TableGenFieldAccessReference(element: TableGenFieldAccessValueNode) :
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> {
         val context = TableGenCompilationContext.activeFor(element)
-        return PsiElementResolveResult.createResults(listOfNotNull(findField(element, context)))
+        return PsiElementResolveResult.createResults(listOfNotNull(findFieldBlocking(element, context)))
     }
 }

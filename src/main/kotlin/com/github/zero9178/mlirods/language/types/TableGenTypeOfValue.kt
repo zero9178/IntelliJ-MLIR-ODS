@@ -160,7 +160,7 @@ private suspend fun typeOfFieldAccess(
     val identifier = element.fieldName ?: return TableGenUnknownType
     val record = (typeOf(element.valueNode, context) as? TableGenRecordType)?.record(context)
         ?: return TableGenUnknownType
-    val declaredType = record.fields(context)[identifier]?.typeNode?.toType() ?: return TableGenUnknownType
+    val declaredType = record.allFieldsByName(context)[identifier]?.typeNode?.toType() ?: return TableGenUnknownType
     // Only the fields of a 'def' have a value to go by. Any other record (e.g. a template argument of class type) is
     // only known to be of the declared type.
     if (record !is TableGenDefStatement) return declaredType

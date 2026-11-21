@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods.language
 
 import com.github.zero9178.mlirods.MyBundle
 import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfTypes
 import com.intellij.usages.impl.rules.UsageType
@@ -28,7 +29,7 @@ internal class TableGenUsageTypeProvider : UsageTypeProvider {
             is TableGenIncludeDirective -> INCLUDE_DIRECTIVE
 
             is TableGenIdentifierValueNode, is TableGenFieldAccessValueNode -> UsageType.READ
-            is TableGenLetBodyItem, is TableGenLetStatement -> UsageType.WRITE
+            is TableGenAbstractLetItem, is TableGenLetStatement -> UsageType.WRITE
             else -> null
         }
     }

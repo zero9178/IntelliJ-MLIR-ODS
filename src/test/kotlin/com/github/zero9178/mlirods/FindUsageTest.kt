@@ -41,6 +41,18 @@ class FindUsageTest : BasePlatformTestCase() {
             })
     }
 
+    fun `test field assigned by top-level let`() {
+        val file = myFixture.configureByText(
+            "test.td", """
+            class C { int <caret>x; }
+            let x = 1 in def a : C;
+        """.trimIndent()
+        )
+        val usages = myFixture.findUsages(myFixture.elementAtCaret)
+        assertInstanceOf<TableGenLetItem>(assertOneElement(usages).element)
+        assertEquals(file.text.indexOf("x = 1"), assertOneElement(usages).navigationOffset)
+    }
+
     fun `test def`() {
         val actual = myFixture.testFindUsagesUsingAction("Def.td").filterIsInstance<PsiElementUsage>()
         assertUnorderedCollection(

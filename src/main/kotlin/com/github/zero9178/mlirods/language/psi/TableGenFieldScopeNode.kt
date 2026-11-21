@@ -15,6 +15,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import java.util.AbstractMap.SimpleImmutableEntry
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 /**
  * Map used to lookup fields within a [TableGenFieldScopeNode] within [myContext].
@@ -23,16 +26,16 @@ import java.util.AbstractMap.SimpleImmutableEntry
 class FieldMap(private val myRoot: TableGenFieldScopeNode, private val myContext: TableGenCompilationContext) {
 
     /**
-     * Returns the field named [fieldName] within [myRoot] or null if no such field exists.
-     * If there are multiple [TableGenFieldBodyItem] that define [fieldName], then the defining one is returned.
-     * If [beforeElement] is not null, null is returned if the field has not yet been defined at the location of
-     * [beforeElement].
+     * Returns the field named [fieldName] within [myRoot] or null if no such field exists yet at the location of
+     * [beforeElement]. If there are multiple [TableGenFieldBodyItem] that define [fieldName], then the defining one is
+     * returned. [TableGenFieldScopeNode.allFieldsByName] looks up the fields regardless of any location.
      */
-    operator fun get(fieldName: String, beforeElement: PsiElement? = null): TableGenFieldBodyItem? =
+    @RequiresReadLock
+    operator fun get(fieldName: String, beforeElement: PsiElement): TableGenFieldBodyItem? =
         disallowTreeLoading {
             // Only consider base classes referenced before 'beforeElement'.
             myRoot.baseClassRefs.takeWhile {
-                beforeElement?.let { other -> it.isBefore(other) } ?: true
+                it.isBefore(beforeElement) != false
             }.mapNotNull {
                 it.referencedDefinitionBlocking(myContext)
             }.firstNotNullOfOrNull {
@@ -40,12 +43,7 @@ class FieldMap(private val myRoot: TableGenFieldScopeNode, private val myContext
             }?.let { return@disallowTreeLoading it }
 
             // Only consider fields defined before 'beforeElement'.
-            val field = myRoot.directFields[fieldName] ?: return@disallowTreeLoading null
-            when {
-                beforeElement == null -> field
-                field.isBefore(beforeElement) != false -> field
-                else -> null
-            }
+            myRoot.directFields[fieldName]?.takeIf { it.isBefore(beforeElement) != false }
         }
 
     /**
@@ -75,24 +73,26 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
     val directFieldAssignments: Map<String, List<TableGenFieldAssignmentNode>>
 
     /**
-     * Returns a sequence of all fields of this class, including inherited fields.
-     * The field body items returned by this sequence are guaranteed to be the defining field body items.
+     * Returns the fields of this within [context] by name, including the inherited ones: those of the base classes in
+     * order, followed by the fields of this itself. Every name maps to the field defining it, i.e. the first one found.
+     * A class on a cycle of base classes has no fields. The map is cached per [context].
      */
     @RequiresReadLock
-    fun allFields(context: TableGenCompilationContext): Sequence<TableGenFieldBodyItem> = sequence {
-        val seen = mutableSetOf<String?>()
-        baseClassRefs.mapNotNull {
-            it.referencedDefinitionBlocking(context)
-        }.flatMap {
-            it.allFields(context)
-        }.forEach {
-            if (seen.add(it.fieldName)) yield(it)
-        }
-
-        yieldAll(directFields.values.asSequence().filter {
-            !seen.contains(it.fieldName)
-        })
-    }
+    suspend fun allFieldsByName(context: TableGenCompilationContext): Map<String, TableGenFieldBodyItem> =
+        projectContextDependentSuspendingCachedValue(
+            this, context, "fields by name", onCycle = { emptyMap() }
+        ) { scope ->
+            val result = linkedMapOf<String, TableGenFieldBodyItem>()
+            // Following a reference to a base class is launched, so that the depth of the stack does not depend on
+            // the depth of the class hierarchy.
+            coroutineScope {
+                scope.baseClassRefs.toList().map { ref ->
+                    async { ref.referencedDefinition(context)?.allFieldsByName(context) }
+                }.awaitAll()
+            }.forEach { it?.forEach(result::putIfAbsent) }
+            scope.directFields.forEach(result::putIfAbsent)
+            result
+        }.await()
 
     /**
      * Returns a map of all field assignments in order of application (earliest to latest), including from all

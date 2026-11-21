@@ -5,93 +5,30 @@ import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.psi.PsiElement
 
 /**
- * Lazy view of the [TableGenIdentifierScopeNode.idMap] of [myScope] within [myContext], composed out of the id map
- * of its parent scope and its own [TableGenIdentifierScopeNode.directIdMap].
+ * Appends the entries of [key] visible within [scope] within [context] to [result], restricted to the ones occurring
+ * before [before] if given.
+ *
+ * Every enclosing scope appends to the one list rather than returning a list of its own: a lookup then compares and
+ * copies every entry once, no matter how deeply [scope] is nested.
  */
-private class ScopeIdMap(
-    private val myScope: TableGenIdentifierScopeNode,
-    private val myContext: TableGenCompilationContext,
-) : AbstractMap<String, List<IdMapEntry>>() {
-
-    /**
-     * The constituents are fetched once per view rather than once per lookup. As a view is created anew on every
-     * [TableGenIdentifierScopeNode.idMap] access, what they capture never outlives the read action it was fetched in.
-     */
-    private val myParent: Map<String, List<IdMapEntry>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        myScope.parentScope?.idMap(myContext) ?: emptyMap()
+private suspend fun appendEntries(
+    scope: TableGenIdentifierScopeNode,
+    key: String,
+    context: TableGenCompilationContext,
+    before: PsiElement?,
+    result: MutableList<IdMapEntry>,
+) {
+    // Everything inherited occurs before 'scope' and therefore before everything declared within it.
+    scope.parentScope?.let { appendEntries(it, key, context, before = scope, result) }
+    val direct = scope.directIdMap(context)[key] ?: return
+    if (before == null) {
+        result.addAll(direct)
+        return
     }
-    private val myDirect: Map<String, List<IdMapEntry>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        myScope.directIdMap(myContext)
+    for (entry in direct) {
+        if (entry >= before) break
+        result.add(entry)
     }
-
-    /**
-     * Returns true if the parent scope contributes entries for [key], i.e. has any occurring before [myScope].
-     */
-    private fun inheritsEntries(key: String): Boolean {
-        // The lists are ordered and never empty.
-        val first = myParent[key]?.firstOrNull() ?: return false
-        return first < myScope
-    }
-
-    /**
-     * Returns the keys of this map: those of [myDirect] first, followed by the ones only the parent scope contributes
-     * entries for.
-     */
-    private fun keySequence(): Sequence<String> = myDirect.keys.asSequence() + myParent.keys.asSequence().filter {
-        it !in myDirect && inheritsEntries(it)
-    }
-
-    /**
-     * Appends the entries of [key] visible within [scope] to [result], restricted to the ones occurring before
-     * [before] if given.
-     *
-     * Every enclosing scope appends to the one list rather than returning a list of its own: a lookup then compares
-     * and copies every entry once, no matter how deeply [scope] is nested.
-     */
-    private fun appendEntries(
-        scope: TableGenIdentifierScopeNode, key: String, before: PsiElement?, result: MutableList<IdMapEntry>
-    ) {
-        // Everything inherited occurs before 'scope' and therefore before everything declared within it.
-        scope.parentScope?.let { appendEntries(it, key, before = scope, result) }
-        val direct = scope.directIdMap(myContext)[key] ?: return
-        if (before == null) {
-            result.addAll(direct)
-            return
-        }
-        for (entry in direct) {
-            if (entry >= before) break
-            result.add(entry)
-        }
-    }
-
-    override fun get(key: String): List<IdMapEntry>? {
-        val result = mutableListOf<IdMapEntry>()
-        appendEntries(myScope, key, before = null, result)
-        return result.ifEmpty { null }
-    }
-
-    override fun containsKey(key: String) = get(key) != null
-
-    override val size: Int
-        get() = keySequence().count()
-
-    override val keys: Set<String>
-        get() = object : AbstractSet<String>() {
-            override val size get() = this@ScopeIdMap.size
-
-            override fun contains(element: String) = containsKey(element)
-
-            override fun iterator() = keySequence().iterator()
-        }
-
-    override val entries: Set<Map.Entry<String, List<IdMapEntry>>>
-        get() = object : AbstractSet<Map.Entry<String, List<IdMapEntry>>>() {
-            override val size get() = this@ScopeIdMap.size
-
-            override fun iterator(): Iterator<Map.Entry<String, List<IdMapEntry>>> = keySequence().map {
-                java.util.AbstractMap.SimpleImmutableEntry(it, getValue(it))
-            }.iterator()
-        }
 }
 
 /**
@@ -129,18 +66,34 @@ interface TableGenIdentifierScopeNode : PsiElement {
      * [context] only matters to scopes with entries that stem from resolution, such as the fields a record inherits
      * from its base classes; every other scope ignores it.
      */
-    fun directIdMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> = emptyMap()
+    suspend fun directIdMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> = emptyMap()
 
     /**
-     * Same as [directIdMap], but contains elements from every parent scope as well.
-     * Lexicographical sorting of elements in lists is preserved.
-     *
-     * The parent scopes are composed into the result lazily rather than merged into it, so unlike [directIdMap] the
-     * returned map assembles the list of a key on lookup and iterating it costs one lookup per visible name. The
-     * returned view derives everything from the composed maps on use and is created anew on every access, so it must
-     * not be retained beyond the enclosing read action.
+     * Returns the entries of [key] within [context] that are visible within this scope, i.e. those of [directIdMap]
+     * and those of every parent scope occurring before this, or null if there are none. Lexicographical sorting of the
+     * entries is preserved.
      */
-    fun idMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> = ScopeIdMap(this, context)
+    suspend fun idMapEntries(key: String, context: TableGenCompilationContext): List<IdMapEntry>? {
+        val result = mutableListOf<IdMapEntry>()
+        appendEntries(this, key, context, before = null, result)
+        return result.ifEmpty { null }
+    }
+
+    /**
+     * Same as [directIdMap], but contains the entries of every parent scope as well, see [idMapEntries]. Unlike
+     * [idMapEntries], this looks up every name visible within this scope.
+     */
+    suspend fun idMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> {
+        val keys = linkedSetOf<String>()
+        var scope: TableGenIdentifierScopeNode? = this
+        while (scope != null) {
+            keys += scope.directIdMap(context).keys
+            scope = scope.parentScope
+        }
+        return buildMap {
+            for (key in keys) idMapEntries(key, context)?.let { put(key, it) }
+        }
+    }
 
     /**
      * Returns true if [element], which must be a direct child of 'this', is within the scope created by 'this'.
