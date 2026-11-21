@@ -301,6 +301,117 @@ class ValueComputationTest : BasePlatformTestCase() {
     """.trimIndent(), TableGenIntegerValue(1)
     )
 
+    fun `test let append to list`() = doTest(
+        """
+        class C {
+            list<int> l = [1];
+        }
+        def D : C {
+            let append l = [2];
+        }
+        defvar v = D.l;
+    """.trimIndent(), TableGenListValue(listOf(TableGenIntegerValue(1), TableGenIntegerValue(2)), TableGenIntType)
+    )
+
+    fun `test let prepend to list`() = doTest(
+        """
+        class C {
+            list<int> l = [1];
+        }
+        def D : C {
+            let prepend l = [2];
+        }
+        defvar v = D.l;
+    """.trimIndent(), TableGenListValue(listOf(TableGenIntegerValue(2), TableGenIntegerValue(1)), TableGenIntType)
+    )
+
+    fun `test let append to string`() = doTest(
+        """
+        class C {
+            string s = "a";
+        }
+        def D : C {
+            let append s = "b";
+        }
+        defvar v = D.s;
+    """.trimIndent(), TableGenStringValue("ab")
+    )
+
+    fun `test let prepend to string`() = doTest(
+        """
+        class C {
+            string s = "a";
+        }
+        def D : C {
+            let prepend s = "b";
+        }
+        defvar v = D.s;
+    """.trimIndent(), TableGenStringValue("ba")
+    )
+
+    // Appending to a field without a value assigns it instead.
+    fun `test let append to undef`() = doTest(
+        """
+        class C {
+            list<int> l;
+        }
+        def D : C {
+            let append l = [2];
+        }
+        defvar v = D.l;
+    """.trimIndent(), TableGenListValue(listOf(TableGenIntegerValue(2)), TableGenIntType)
+    )
+
+    // Every 'let' appends to what the field is at that point, including the enclosing ones.
+    fun `test let appends in order of application`() = doTest(
+        """
+        class C {
+            list<int> l = [1];
+        }
+        class C2 : C {
+            let append l = [2];
+        }
+        let append l = [3] in
+        def D : C2 {
+            let prepend l = [4];
+        }
+        defvar v = D.l;
+    """.trimIndent(),
+        TableGenListValue(listOf(4, 1, 2, 3).map { TableGenIntegerValue(it.toLong()) }, TableGenIntType)
+    )
+
+    fun `test let append after field is replaced`() = doTest(
+        """
+        class C {
+            list<int> l = [1];
+        }
+        class C2 : C {
+            let append l = [2];
+        }
+        def D : C2 {
+            let l = [3];
+            let append l = [4];
+        }
+        defvar v = D.l;
+    """.trimIndent(), TableGenListValue(listOf(TableGenIntegerValue(3), TableGenIntegerValue(4)), TableGenIntType)
+    )
+
+    // The value appended to is evaluated like the rest of the record, i.e. with the field it refers to as it is in the
+    // end rather than at the point of appending.
+    fun `test let append to value referring to field`() = doTest(
+        """
+        class C {
+            int n = 1;
+            list<int> l = [n];
+        }
+        def D : C {
+            let append l = [2];
+            let n = 5;
+        }
+        defvar v = D.l;
+    """.trimIndent(), TableGenListValue(listOf(TableGenIntegerValue(5), TableGenIntegerValue(2)), TableGenIntType)
+    )
+
     fun `test record template arg extra indirection`() = doTest(
         """
         class C<int x> {
