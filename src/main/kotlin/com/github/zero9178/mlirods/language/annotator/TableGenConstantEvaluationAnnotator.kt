@@ -7,8 +7,6 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
-import com.github.zero9178.mlirods.language.psi.TableGenFieldAssignmentNode
-import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.github.zero9178.mlirods.language.psi.impl.TableGenEvaluationContext
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
@@ -16,7 +14,6 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.psi.PsiElement
-import com.intellij.util.takeWhileInclusive
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -113,18 +110,6 @@ private suspend fun visitLiveValues(root: TableGenValueNode, holder: TableGenEva
 }
 
 /**
- * Returns the values making up a field whose [assignments] are given in order of application: the final assignment and,
- * if it is a 'let' in prepend or append mode, the previous ones it builds upon.
- */
-private fun effectiveFieldValues(assignments: List<TableGenFieldAssignmentNode>): Sequence<TableGenValueNode> =
-    assignments.asReversed().asSequence().takeWhileInclusive {
-        when (it) {
-            is TableGenAbstractLetItem -> it.letMode != null
-            else -> false
-        }
-    }.mapNotNull { it.assignedValueNode }
-
-/**
  * Re-runs the [EVALUATION_CHECKS] over every final field expression of [def], evaluated in the def's instantiation
  * context. This catches problems that only become visible once a class's template arguments and fields are bound to
  * concrete values, e.g. a `!div` whose divisor is a template argument that this def sets to `0`.
@@ -134,7 +119,7 @@ private fun checkInstantiation(
 ) {
     val anchor = def.nameIdentifier ?: return
     val evaluationHolder = TableGenInstantiationEvaluationHolder(def, anchor, holder, context)
-    val values = def.allFieldAssignments(context).values.asSequence().flatMap(::effectiveFieldValues).toList()
+    val values = def.effectiveFieldAssignments(context).values.flatten().mapNotNull { it.assignedValueNode }
     if (values.isEmpty()) return
 
     runBlockingCancellable {
@@ -170,13 +155,14 @@ private fun checkCyclicFields(
 ) {
     val anchor = def.nameIdentifier ?: return
     val evaluationContext = TableGenEvaluationContext(def, context)
-    val assignments = def.allFieldAssignments(context)
+    val assignments = def.effectiveFieldAssignments(context)
     if (assignments.isEmpty()) return
 
     // Maps each field to the fields its value refers to.
     val dependencies = runBlockingCancellable {
         assignments.mapValues { (_, assignments) ->
-            effectiveFieldValues(assignments).toList().flatMap { liveValuesPostOrder(it, evaluationContext) }
+            assignments.mapNotNull { it.assignedValueNode }
+                .flatMap { liveValuesPostOrder(it, evaluationContext) }
                 .filterIsInstance<TableGenIdentifierValueNode>()
                 .mapNotNull { (it.referencedDefinition(context) as? TableGenFieldBodyItem)?.fieldName }
                 .toSet()

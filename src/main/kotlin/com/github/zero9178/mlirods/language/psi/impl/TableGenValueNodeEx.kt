@@ -13,9 +13,11 @@ import com.github.zero9178.mlirods.language.psi.TableGenReferencingElement
 import com.github.zero9178.mlirods.language.stubs.impl.*
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
+import com.github.zero9178.mlirods.language.types.commonType
 import com.github.zero9178.mlirods.language.types.computeTypeOf
 import com.github.zero9178.mlirods.language.types.typeOfAtomic
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
+import com.github.zero9178.mlirods.language.values.TableGenListValue
 import com.github.zero9178.mlirods.language.values.TableGenStringValue
 import com.github.zero9178.mlirods.language.values.TableGenUndefValue
 import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
@@ -80,10 +82,11 @@ class TableGenEvaluationContext private constructor(
                 it.referencedDefinition(compilationContext) == decl
             }
             argument?.valueNode?.evaluate(outer)
-                // 'allArgToTemplateArgMapping' only binds the template arguments of the base classes of the
-                // instantiated class. Its own are bound by this instantiation alone and default to values of the
-                // instantiated class.
-                ?: (instantiation.referencedDefinition(compilationContext)?.allArgToTemplateArgMapping(compilationContext)
+            // 'allArgToTemplateArgMapping' only binds the template arguments of the base classes of the
+            // instantiated class. Its own are bound by this instantiation alone and default to values of the
+            // instantiated class.
+                ?: (instantiation.referencedDefinition(compilationContext)
+                    ?.allArgToTemplateArgMapping(compilationContext)
                     ?.get(decl) ?: decl.valueNode)?.evaluate(this)
                 ?: TableGenUnknownValue
         },
@@ -115,14 +118,56 @@ class TableGenEvaluationContext private constructor(
         else -> "context of $source in $compilationContext"
     }
 
+    /**
+     * Evaluates the field [fieldName] of [record] by applying its effective assignments in order of application, see
+     * [TableGenRecord.effectiveFieldAssignments].
+     */
     private suspend fun evaluateFieldAssignments(record: TableGenRecord?, fieldName: String): TableGenValue {
-        // TODO: Implement append and prepend semantics.
-        val assignment = record?.allFieldAssignments(compilationContext)[fieldName]?.lastOrNull()
-            ?: return TableGenUnknownValue
-        val valueNode = assignment.assignedValueNode
-            // Like in TableGen, a field declared without a value is '?', even if it redefines an inherited field.
-            ?: return if (assignment is TableGenFieldBodyItem) TableGenUndefValue else TableGenUnknownValue
-        return valueNode.evaluate(this)
+        val assignments =
+            record?.effectiveFieldAssignments(compilationContext)[fieldName] ?: return TableGenUnknownValue
+        // The value is null until an assignment sets it. A partial assignment before that is invalid TableGen, e.g. a
+        // 'let append' on a field that is never declared, and yields an unknown value.
+        return assignments.fold(null) { value, assignment ->
+            val assigned = assignment.assignedValueNode?.evaluate(this)
+            when (assignment) {
+                // Like in TableGen, a field declared without a value is '?', even if it redefines an inherited field.
+                is TableGenFieldBodyItem -> assigned ?: TableGenUndefValue
+                // A 'let' only lacks a value due to a syntax error.
+                is TableGenAbstractLetItem -> when (val mode = assignment.letMode) {
+                    null -> assigned
+                    else -> if (value != null && assigned != null) combine(value, assigned, mode, compilationContext)
+                    else null
+                } ?: TableGenUnknownValue
+
+                else -> TableGenUnknownValue
+            }
+        } ?: TableGenUnknownValue
+    }
+}
+
+/**
+ * Returns the value of a field that is [current] so far, after a 'let' in [mode] assigned [assigned] to it.
+ * List element types are unified in [context].
+ */
+private fun combine(
+    current: TableGenValue,
+    assigned: TableGenValue,
+    mode: LetMode,
+    context: TableGenCompilationContext,
+): TableGenValue {
+    // Like in TableGen, a field without a value so far is simply assigned.
+    if (current is TableGenUndefValue) return assigned
+
+    val (lhs, rhs) = when (mode) {
+        LetMode.Append -> current to assigned
+        LetMode.Prepend -> assigned to current
+    }
+    return when (lhs) {
+        is TableGenStringValue if rhs is TableGenStringValue -> TableGenStringValue(lhs.value + rhs.value)
+        is TableGenListValue if rhs is TableGenListValue ->
+            TableGenListValue(lhs.elements + rhs.elements, commonType(lhs.elementType, rhs.elementType, context))
+
+        else -> TableGenUnknownValue
     }
 }
 

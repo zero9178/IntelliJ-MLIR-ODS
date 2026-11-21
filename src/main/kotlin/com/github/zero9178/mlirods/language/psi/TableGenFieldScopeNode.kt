@@ -6,6 +6,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
+import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
@@ -13,6 +14,7 @@ import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCached
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentsOfType
 import com.intellij.util.concurrency.annotations.RequiresReadLock
+import java.util.AbstractMap.SimpleImmutableEntry
 
 /**
  * Map used to lookup fields within a [TableGenFieldScopeNode] within [myContext].
@@ -125,6 +127,18 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         }
 
     /**
+     * Returns a mapping of each each field to the assignments making up its value, in order of application.
+     * Assuming valid TableGen, the first item is always an initial value setter, i.e. a field body item or a 'let'
+     * that sets the entire field followed by 'let's that perform partial assignments
+     * ('prepend', 'append' mode, single bits assignments, etc.).
+     *
+     * Invalid TableGen might have the first item be a partial assignment.
+     */
+    @RequiresReadLock
+    fun effectiveFieldAssignments(context: TableGenCompilationContext): Map<String, List<TableGenFieldAssignmentNode>> =
+        EffectiveFieldAssignmentsView(allFieldAssignments(context))
+
+    /**
      * Returns a sequence of all references to base classes that should be used for field lookup.
      */
     val baseClassRefs: Sequence<TableGenClassRef>
@@ -221,3 +235,39 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      */
     fun fields(context: TableGenCompilationContext): FieldMap = FieldMap(this, context)
 }
+
+/**
+ * The view returned by [TableGenFieldScopeNode.effectiveFieldAssignments] over the assignments [all] returned by
+ * [TableGenFieldScopeNode.allFieldAssignments].
+ */
+private class EffectiveFieldAssignmentsView(
+    private val all: Map<String, List<TableGenFieldAssignmentNode>>,
+) : AbstractMap<String, List<TableGenFieldAssignmentNode>>() {
+    override val size: Int
+        get() = all.size
+
+    override val keys: Set<String>
+        get() = all.keys
+
+    override fun containsKey(key: String): Boolean = all.containsKey(key)
+
+    override fun get(key: String): List<TableGenFieldAssignmentNode>? = all[key]?.let(::effectiveAssignments)
+
+    override val entries: Set<Map.Entry<String, List<TableGenFieldAssignmentNode>>> =
+        object : AbstractSet<Map.Entry<String, List<TableGenFieldAssignmentNode>>>() {
+            override val size: Int
+                get() = all.size
+
+            override fun iterator(): Iterator<Map.Entry<String, List<TableGenFieldAssignmentNode>>> =
+                all.entries.asSequence().map { (field, assignments) ->
+                    SimpleImmutableEntry(field, effectiveAssignments(assignments))
+                }.iterator()
+        }
+}
+
+/**
+ * Returns the effective part of [assignments], given in order of application, see
+ * [TableGenFieldScopeNode.effectiveFieldAssignments].
+ */
+private fun effectiveAssignments(assignments: List<TableGenFieldAssignmentNode>): List<TableGenFieldAssignmentNode> =
+    assignments.drop(assignments.indexOfLast { (it as? TableGenAbstractLetItem)?.letMode == null }.coerceAtLeast(0))

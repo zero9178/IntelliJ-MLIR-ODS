@@ -155,6 +155,15 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test division by zero in a partial assignment to an undeclared field is revealed on instantiation`() {
+        doResolvingTest(
+            """
+            class C<int x> { let append l = [!div(6, x)]; }
+            def <error descr="Division by zero">D</error> : C<0>;
+        """.trimIndent()
+        )
+    }
+
     fun `test division by a non-zero template argument is not flagged`() {
         doResolvingTest(
             """
