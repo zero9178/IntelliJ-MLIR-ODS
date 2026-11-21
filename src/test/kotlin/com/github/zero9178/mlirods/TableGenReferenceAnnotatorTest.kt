@@ -257,4 +257,87 @@ class TableGenReferenceAnnotatorTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting()
     }
+
+    fun `test let assigning to a non-existent field is flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            class Base {
+                int x = 0;
+            }
+            def D : Base {
+                let <error descr="Cannot resolve field 'nope'">nope</error> = 1;
+                let <error descr="Cannot resolve field 'b'">b</error>{0} = 1;
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test let assigning to a field defined after it is flagged`() {
+        // TableGen applies the 'let' where it occurs, at which point the field does not exist yet.
+        val main = myFixture.configureByText(
+            "test.td", """
+            class A {
+                let <error descr="Cannot resolve field 'x'">x</error> = 1;
+                int x = 0;
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test let assigning to an existing or inherited field is not flagged`() {
+        val main = myFixture.configureByText(
+            "test.td", """
+            class Base {
+                list<int> l = [];
+            }
+            class Derived : Base {
+                int x = 0;
+                let x = 1;
+            }
+            def D : Derived {
+                let x = 2;
+                let append l = [1];
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test let in a record with an unresolved base class is not double-flagged`() {
+        // The field may come from the unresolved class, which is already reported.
+        val main = myFixture.configureByText(
+            "test.td", """
+            def D : <error descr="Cannot resolve class 'Missing'">Missing</error> {
+                let x = 1;
+            }
+        """.trimIndent()
+        )
+        installCompileCommands(
+            project, mapOf(main.virtualFile to IncludePaths(emptyList()))
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test let assigning to a non-existent field without a context is suppressed`() {
+        // Without a context, field resolution cannot run, so the annotator does not fire.
+        myFixture.configureByText(
+            "test.td", """
+            def D {
+                let nope = 1;
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
 }
