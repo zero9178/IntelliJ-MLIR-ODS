@@ -8,6 +8,9 @@
 
 - Indexing no longer fails for files containing a preprocessor directive within a value or type, e.g. a `#define`
   between two concatenated string literals.
+- A list or string field built up with `let append` or `let prepend` now evaluates to the concatenation of all its
+  parts, as in TableGen. Only its last part was used before, so e.g. accessing the field of a `def` was typed by that
+  part alone.
 
 ## [0.17.0] - 2026-10-19
 
