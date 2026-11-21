@@ -111,3 +111,26 @@ defvar after7 = 0;
 // A multiclass body must be enclosed in braces.
 multiclass BracelessMulticlass def X;
 defvar afterMulticlass = 0;
+
+
+// A '{' after a value is a bit access, also if a 'let', 'foreach' or 'if' is missing its 'in' or 'then'. The error is
+// reported at the statement within the braces, which is parsed as the body.
+let missingIn = 1 { def InLet; }
+defvar afterLet = 0;
+foreach missingIn = 1 { def InForeach; }
+defvar afterForeach = 0;
+if 1 { def InIf; }
+defvar afterIf = 0;
+
+def BrokenBitAccess {
+  bits<4> b = 0;
+  bit empty = b{};
+  bit trailingComma = b{0,};
+  bit afterBitAccess = b{0};
+}
+
+// A '}' or 'else' belonging to nothing is skipped.
+}
+defvar afterBrace = 0;
+else
+defvar afterElse = 0;

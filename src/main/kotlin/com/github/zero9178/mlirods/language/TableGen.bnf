@@ -87,9 +87,14 @@
 
 tableGenFile ::= table_gen_file_item_statement*
 // For error recovery purposes, assume the user meant to write a statement and pin that choice to parse the entire file.
+// A '}' or 'else' not belonging to anything is skipped rather than ending the file.
 private table_gen_file_item_statement ::= !<<eof>> statement {
     pin=1
+    recoverWhile=table_gen_file_item_statement_recover
 }
+private table_gen_file_item_statement_recover ::= !(<<eof>> | top_level_statement_follows)
+private top_level_statement_follows ::= 'def' | 'include' | 'class' | 'defm' | 'defset' | 'defvar' | 'dump' | 'foreach'
+                                      | 'if' | 'let' | 'multiclass' | 'assert'
 
 // Exit early if this is a trailing comma before closing. Otherwise, we assume a value is meant to come after.
 // If a value failed to parse we recover by finding either the next comma or the closing token.
@@ -485,6 +490,8 @@ foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
     methods = [
         lBrace='LBRACE'
         rBrace='RBRACE'
+
+        toString
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenForeachStatementMixin"
@@ -492,6 +499,8 @@ foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
 }
 foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_node) {
     implements=[
+        // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
+        "com.intellij.psi.PsiElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
     ]
     methods=[
@@ -500,6 +509,7 @@ foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_no
         getName
         setName
         getTextOffset
+        toString
     ]
     pin=1
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
@@ -507,9 +517,16 @@ foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_no
 }
 
 if_statement ::= 'if' value_node 'then' if_body else_body? {
+    implements=[
+        // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
+        "com.intellij.psi.PsiElement"
+        scope_item
+    ]
     methods=[
         thenBody="if_body[0]"
         elseBody="if_body[1]"
+
+        toString
     ]
     pin=1
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
@@ -524,6 +541,8 @@ if_body ::= statement_block {
     methods = [
         lBrace='LBRACE'
         rBrace='RBRACE'
+
+        toString
     ]
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenStatementStub"
     mixin="com.github.zero9178.mlirods.language.psi.impl.TableGenIfBodyMixin"
@@ -707,8 +726,26 @@ field_access_value_node ::= value_node field_access_value_node_suffix {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldAccessValueNodeStubElementType"
 }
 
-bit_access_value_node ::= value_node '{' range_list '}' {
+// As in TableGen, a '{' after a value always starts a bit access. Pinning it, rather than backtracking if the range
+// list fails to parse, also ensures an error is reported.
+private bit_access_value_node_suffix ::= '{' bit_access_range_list '}' {
+    pin=1
+}
+// Same as 'trailing_item_list_no_comma' except that a statement keyword also ends the recovery within the bit access.
+// A '{' following a value in a statement, e.g. a 'let' or 'foreach' missing its 'in', otherwise skips the statement up
+// to some '}'.
+private bit_access_range_list ::=
+    <<private_list_closing '}' <<private_list_closing_recover bit_access_follows range_piece>>>>
+    range_piece bit_access_range_list_trailing* {
+    pin=1
+}
+private bit_access_follows ::= value_node_follows | statement_follows
+private bit_access_range_list_trailing ::= !'}' ',' range_piece {
     pin=2
+    recoverWhile=bit_access_range_list_trailing_recover
+}
+private bit_access_range_list_trailing_recover ::= !(',' | statement_follows)
+bit_access_value_node ::= value_node bit_access_value_node_suffix {
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenBitAccessValueNodeStubElementType"
 }
 private range_list ::= range_piece (',' range_piece)*

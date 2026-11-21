@@ -16,6 +16,11 @@
 - A list or string field built up with `let append` or `let prepend` now evaluates to the concatenation of all its
   parts, as in TableGen. Only its last part was used before, so e.g. accessing the field of a `def` was typed by that
   part alone.
+- A `{` following a value is always parsed as a bit access, as in TableGen. A `let` or `foreach` missing its `in`
+  followed by braces, e.g. `let x = 1 { def X; }`, was previously silently accepted, and an `if` missing its `then`
+  reported a missing `else` instead.
+- A `}` at the top level closing nothing is reported as an error and skipped. All statements following it were
+  previously left unparsed.
 
 ## [0.17.0] - 2026-10-19
 
