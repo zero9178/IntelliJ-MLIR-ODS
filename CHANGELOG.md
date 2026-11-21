@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- A `let` in the body of a class or `def` assigning to a field that the record does not have at that point, be it
+  because no such field exists or because it is only defined after the `let`, is reported as an error.
+
 ### Fixed
 
 - Indexing no longer fails for files containing a preprocessor directive within a value or type, e.g. a `#define`
