@@ -96,7 +96,7 @@ private fun checkArgumentType(
     context: TableGenCompilationContext,
 ) {
     val valueNode = item.valueNode ?: return
-    val declaredType = decl.typeNode.toType()
+    val declaredType = decl.typeBlocking(context)
 
     // Only report a definite mismatch; an indeterminate result (null) leaves the argument alone.
     if (valueType.isConvertibleTo(declaredType, context) != false) return
@@ -119,7 +119,7 @@ private fun checkLetType(element: TableGenLetBodyItem, holder: AnnotationHolder,
     if (element.rangePieceList.isNotEmpty()) return
     val valueNode = element.valueNode ?: return
     val field = TableGenLetReference.findFieldBlocking(element, context) ?: return
-    val fieldType = field.typeNode.toType()
+    val fieldType = field.typeBlocking(context)
     val valueType = valueNode.typeBlocking(context)
     if (valueType.isConvertibleTo(fieldType, context) != false) return
 

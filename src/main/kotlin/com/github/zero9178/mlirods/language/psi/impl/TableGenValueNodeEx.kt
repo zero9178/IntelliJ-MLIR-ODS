@@ -1,29 +1,14 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.cache.SuspendingCachedValue
-import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
-import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
-import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
-import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
-import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
-import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
-import com.github.zero9178.mlirods.language.psi.TableGenRecord
-import com.github.zero9178.mlirods.language.psi.TableGenReferencingElement
+import com.github.zero9178.mlirods.language.generated.psi.*
+import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.stubs.impl.*
 import com.github.zero9178.mlirods.language.types.TableGenType
-import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.github.zero9178.mlirods.language.types.commonType
 import com.github.zero9178.mlirods.language.types.computeTypeOf
 import com.github.zero9178.mlirods.language.types.typeOfAtomic
-import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
-import com.github.zero9178.mlirods.language.values.TableGenListValue
-import com.github.zero9178.mlirods.language.values.TableGenStringValue
-import com.github.zero9178.mlirods.language.values.TableGenUndefValue
-import com.github.zero9178.mlirods.language.values.TableGenUnknownValue
-import com.github.zero9178.mlirods.language.values.TableGenValue
+import com.github.zero9178.mlirods.language.values.*
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.openapi.util.TextRange
@@ -174,17 +159,6 @@ private fun combine(
 }
 
 /**
- * The cached type of [element] in [context], see [TableGenValueNodeEx.type].
- */
-private fun cachedTypeOf(
-    element: TableGenValueNodeEx,
-    context: TableGenCompilationContext,
-): SuspendingCachedValue<TableGenType> =
-    projectContextDependentSuspendingCachedValue(element, context, "type", onCycle = { TableGenUnknownType }) {
-        computeTypeOf(it, context)
-    }
-
-/**
  * The cached value of [element] in [context], see [TableGenValueNodeEx.evaluate]. It is dropped along with the values of
  * every other context when anything changes, and with it [context], which would otherwise keep the PSI it originates
  * from alive.
@@ -197,28 +171,23 @@ private fun cachedValueOf(
         it.evaluateInner(context)
     }
 
-interface TableGenValueNodeEx : PsiElement {
+interface TableGenValueNodeEx : PsiElement, TableGenTypedElement {
     /**
      * Generic accept method allowing 'TableGenVisitor's with return values.
      */
     fun <R> accept(visitor: TableGenVisitor<R>): R
 
     /**
-     * Returns the type of this TableGen expression, resolving whatever it refers to within [context]. A type that
-     * depends on itself is unknown.
-     *
-     * Like [evaluate], this is for code that is a coroutine, with [typeBlocking] for everything else.
+     * Returns the type of the result of this TableGen expression.
      */
-    suspend fun type(context: TableGenCompilationContext): TableGenType =
-        cachedTypeOf(this, context).await()
+    override suspend fun type(context: TableGenCompilationContext): TableGenType = cachedType(context).await()
 
-    /**
-     * [type] for callers that cannot suspend, see [evaluateBlocking].
-     */
     @RequiresReadLock
     @RequiresBlockingContext
-    fun typeBlocking(context: TableGenCompilationContext): TableGenType =
-        cachedTypeOf(this, context).getBlocking()
+    override fun typeBlocking(context: TableGenCompilationContext): TableGenType = cachedType(context).getBlocking()
+
+    private fun cachedType(context: TableGenCompilationContext) =
+        cachedTypeOf(this, context) { computeTypeOf(it, context) }
 
     /**
      * Performs constant evaluation of this value within the given context. A value that depends on itself is unknown.

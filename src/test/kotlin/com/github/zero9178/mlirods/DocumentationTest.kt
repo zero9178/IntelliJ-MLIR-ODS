@@ -1,10 +1,10 @@
 package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
-import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.model.Pointer
+import com.intellij.openapi.application.readAction
 import com.intellij.platform.backend.documentation.DocumentationData
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.PsiDocumentationTargetProvider
@@ -27,10 +27,21 @@ class DocumentationTest : BasePlatformTestCase() {
         }
 
     /**
+     * Returns the documentation HTML [target] renders. Like the platform does, it is computed in a read action of a
+     * coroutine off the EDT.
+     */
+    private fun computeHtml(target: DocumentationTarget?): String? {
+        var html: String? = null
+        awaitOffEdt {
+            html = readAction { (target?.computeDocumentation() as? DocumentationData)?.html }
+        }
+        return html
+    }
+
+    /**
      * Returns the documentation HTML shown for [element].
      */
-    private fun documentation(element: PsiElement): String? =
-        (documentationTarget(element)?.computeDocumentation() as? DocumentationData)?.html
+    private fun documentation(element: PsiElement): String? = computeHtml(documentationTarget(element))
 
     /**
      * Returns the documentation HTML shown for the element the caret resolves to.
@@ -85,7 +96,7 @@ class DocumentationTest : BasePlatformTestCase() {
      */
     private fun followLink(element: PsiElement, label: String): String? {
         val target = documentationTarget(element)!!
-        val html = (target.computeDocumentation() as? DocumentationData)?.html
+        val html = computeHtml(target)
         val link = section(html, DocumentationMarkup.CLASS_DEFINITION).select("a").single { it.text() == label }
         val pointer = target.createPointer()
         var linked: Pointer<out DocumentationTarget>? = null
@@ -93,7 +104,7 @@ class DocumentationTest : BasePlatformTestCase() {
             linked = resolveLinkToTarget(pointer, link.attr("href"))
         }
         assertNotNull("expected \"$label\" to lead to documentation within:\n$html", linked)
-        return (linked!!.dereference()?.computeDocumentation() as? DocumentationData)?.html
+        return computeHtml(linked!!.dereference())
     }
 
     /**
@@ -149,6 +160,96 @@ class DocumentationTest : BasePlatformTestCase() {
         )
         assertDefinition(html, "defvar value = 42")
         assertContent(html, "The answer.")
+    }
+
+    fun `test defvar documentation shows its type`() {
+        val html = docAtCaret(
+            """
+                defvar value = 42;
+                defvar other = val<caret>ue;
+            """.trimIndent()
+        )
+        assertEquals("defvar value = 42 of type int", definitionText(html))
+    }
+
+    fun `test defvar type links to the classes within it`() {
+        val code = """
+            // Op doc.
+            class Op;
+            def op : Op;
+            class B {
+                Op o = op;
+            }
+            defvar ops = [B<>.o];
+            defvar other = o<caret>ps;
+        """.trimIndent()
+        assertDefinition(docAtCaret(code), "of type list<Op>")
+        assertContent(followLinkAtCaret(code, "Op"), "Op doc.")
+    }
+
+    fun `test unknown defvar type is not shown`() {
+        val html = docAtCaret(
+            """
+                def op;
+                defvar v = !getdagop((op));
+                defvar w = <caret>v;
+            """.trimIndent()
+        )
+        assertEquals("defvar v = !getdagop((op))", definitionText(html))
+    }
+
+    fun `test defvar type is not shown in dumb mode`() {
+        myFixture.configureByText(
+            "test.td", """
+                def op;
+                defvar value = op;
+                defvar other = val<caret>ue;
+            """.trimIndent()
+        )
+        val element = myFixture.elementAtCaret
+        DumbModeTestUtils.runInDumbModeSynchronously(project) {
+            assertEquals("defvar value = op", definitionText(documentation(element)))
+        }
+    }
+
+    fun `test foreach iterator documentation shows its type`() {
+        val html = docAtCaret(
+            """
+                foreach i = ["a", "b"] in {
+                    def a#<caret>i;
+                }
+            """.trimIndent()
+        )
+        assertEquals("foreach i = [\"a\", \"b\"] of type string", definitionText(html))
+    }
+
+    fun `test foreach iterator over a range list is an integer`() {
+        val html = docAtCaret(
+            """
+                foreach i = {0-3, 5} in {
+                    def a#<caret>i;
+                }
+            """.trimIndent()
+        )
+        assertEquals("foreach i = {0-3, 5} of type int", definitionText(html))
+    }
+
+    fun `test bang operator iterator documentation shows its type`() {
+        val html = docAtCaret(
+            """
+                defvar l = !foreach(x, ["a"], !strconcat(<caret>x, "b"));
+            """.trimIndent()
+        )
+        assertEquals("!foreach(x, [\"a\"], ...) of type string", definitionText(html))
+    }
+
+    fun `test foldl accumulator documentation shows its type`() {
+        val html = docAtCaret(
+            """
+                defvar s = !foldl(0, [1, 2], acc, x, !add(a<caret>cc, x));
+            """.trimIndent()
+        )
+        assertEquals("!foldl(0, [1, 2], acc, x, ...) of type int", definitionText(html))
     }
 
     fun `test field documentation`() {

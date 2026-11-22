@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.psi.TableGenFieldRedefinitionReference
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStub
+import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
@@ -36,6 +37,13 @@ abstract class TableGenFieldBodyItemMixin : StubBasedPsiElementBase<TableGenFiel
         get() = name
 
     override val assignedValueNode get() = valueNode
+
+    /**
+     * Returns the declared type.
+     */
+    override suspend fun type(context: TableGenCompilationContext) = typeBlocking(context)
+
+    override fun typeBlocking(context: TableGenCompilationContext): TableGenType = typeNode.toType()
 
     override fun getTextOffset(): Int {
         return nameIdentifier?.textOffset ?: super.getTextOffset()

@@ -5,6 +5,9 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValu
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMapEntry
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStub
+import com.github.zero9178.mlirods.language.types.TableGenRecordType
+import com.github.zero9178.mlirods.language.types.TableGenType
+import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.lang.ASTNode
@@ -35,6 +38,14 @@ abstract class TableGenDefStatementMixin : TableGenRecordStatementMixin<TableGen
                 it.second
             }
         }.await()
+
+    /**
+     * Returns the type of the record the 'def' defines.
+     */
+    override suspend fun type(context: TableGenCompilationContext): TableGenType = typeBlocking(context)
+
+    override fun typeBlocking(context: TableGenCompilationContext): TableGenType =
+        if (name == null) TableGenUnknownType else TableGenRecordType.create(this)
 
     override fun mostDerivedRecords(context: TableGenCompilationContext): Sequence<TableGenRecord> = sequenceOf(this)
 }
