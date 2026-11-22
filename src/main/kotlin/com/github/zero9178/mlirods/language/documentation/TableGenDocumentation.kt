@@ -4,6 +4,8 @@ import com.github.zero9178.mlirods.color.IDENTIFIER
 import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenAbstractRef
+import com.github.zero9178.mlirods.language.generated.psi.TableGenBangOperatorDefinition
+import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachIterator
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefvarStatement
@@ -19,6 +21,13 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenUndefValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.psi.TableGenReferencingElement
+import com.github.zero9178.mlirods.language.psi.TableGenTypedElement
+import com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorScopeNodeEx
+import com.github.zero9178.mlirods.language.types.TableGenListType
+import com.github.zero9178.mlirods.language.types.TableGenRecordType
+import com.github.zero9178.mlirods.language.types.TableGenType
+import com.github.zero9178.mlirods.language.types.TableGenUndefType
+import com.github.zero9178.mlirods.language.types.TableGenUnknownType
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.codeInsight.documentation.DocumentationManagerProtocol
 import com.intellij.codeInsight.documentation.DocumentationManagerUtil
@@ -42,7 +51,8 @@ import com.intellij.psi.util.elementType
  */
 internal fun isDocumentedTableGenElement(element: PsiElement): Boolean = when (element) {
     is TableGenClassStatement, is TableGenMulticlassStatement, is TableGenDefStatement,
-    is TableGenDefvarStatement, is TableGenFieldBodyItem -> true
+    is TableGenDefvarStatement, is TableGenFieldBodyItem, is TableGenForeachIterator,
+    is TableGenBangOperatorDefinition -> true
 
     else -> false
 }
@@ -114,7 +124,7 @@ private class Definition(val text: String, val links: List<DefinitionLink>)
  * Builds a [Definition] piece by piece, recording the range of every linked name as it is appended. Names are resolved
  * within [context].
  */
-private class DefinitionBuilder(private val context: TableGenCompilationContext) {
+private class DefinitionBuilder(val context: TableGenCompilationContext) {
     private val text = StringBuilder()
     private val links = mutableListOf<DefinitionLink>()
 
@@ -212,6 +222,48 @@ private fun DefinitionBuilder.appendRecordHeader(
 }
 
 /**
+ * Appends [type] in TableGen syntax, linking the classes within it to their documentation.
+ */
+private fun DefinitionBuilder.appendType(type: TableGenType) {
+    when (type) {
+        is TableGenListType -> {
+            append("list<")
+            appendType(type.elementType)
+            append(">")
+        }
+
+        is TableGenRecordType -> appendName(type.recordName, type.record(context))
+
+        else -> append(type.toString())
+    }
+}
+
+/**
+ * Appends the type of the named [element] on a line of its own, for elements whose definition does not spell out their
+ * type. Nothing is appended if the type is not known, which it never is in dumb mode.
+ */
+private fun DefinitionBuilder.appendInferredType(element: TableGenTypedElement) {
+    if (DumbService.isDumb(element.project)) return
+
+    val type = element.typeBlocking(context)
+    if (type is TableGenUnknownType || type is TableGenUndefType) return
+
+    append("\n  of type ")
+    appendType(type)
+}
+
+/**
+ * Appends the source of the bang operator defining [element], e.g. the iterator of a '!foreach', with its body elided.
+ */
+private fun DefinitionBuilder.appendBangOperatorDefinition(element: TableGenBangOperatorDefinition) {
+    val operator = element.parent
+    val body = (operator as? TableGenBangOperatorScopeNodeEx)?.body
+    generateSequence(operator.firstChild) { it.nextSibling }.forEach {
+        if (it == body) append("...") else appendSource(it)
+    }
+}
+
+/**
  * Appends the definition of a field: its type and name, the initializer if it is a single atom, and the record the
  * field is defined in.
  */
@@ -250,12 +302,23 @@ private fun definition(element: PsiElement): Definition =
 
             is TableGenFieldBodyItem -> appendFieldDefinition(element)
 
-            else -> {
+            is TableGenForeachIterator -> {
+                append("foreach ").appendSource(element)
+                appendInferredType(element)
+            }
+
+            is TableGenBangOperatorDefinition -> {
+                appendBangOperatorDefinition(element)
+                appendInferredType(element)
+            }
+
+            is TableGenDefvarStatement -> {
                 // The whole statement except for its terminating semicolon.
                 val semicolon = element.lastChild?.takeIf { it.elementType == TableGenTypes.SEMICOLON }
                 generateSequence(element.firstChild) { it.nextSibling }.takeWhile { it != semicolon }.forEach {
                     appendSource(it)
                 }
+                appendInferredType(element)
             }
         }
     }.build()

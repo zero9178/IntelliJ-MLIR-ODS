@@ -280,6 +280,7 @@ template_arg_decl ::= type_node IDENTIFIER equals_value? {
     pin=1
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenTypedElement"
     ]
     methods=[
         nameIdentifier='IDENTIFIER'
@@ -376,6 +377,7 @@ field_body_item ::= 'field'? type_node IDENTIFIER equals_value? ';' {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenTypedElement"
         "com.github.zero9178.mlirods.language.psi.impl.TableGenFieldBodyItemEx"
     ]
     methods=[
@@ -422,6 +424,7 @@ def_statement ::= 'def' object_name? record_body {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+        "com.github.zero9178.mlirods.language.psi.TableGenTypedElement"
         "com.github.zero9178.mlirods.language.psi.TableGenRecord"
         scope_item
     ]
@@ -465,6 +468,7 @@ defvar_statement ::= 'defvar' IDENTIFIER '=' value_node ';' {
         // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
         "com.intellij.psi.PsiElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenDefvarStatementEx"
         scope_item
     ]
     methods=[
@@ -984,6 +988,7 @@ bang_operator_definition ::= IDENTIFIER {
     implements=[
         "com.intellij.psi.PsiElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorDefinitionEx"
     ]
     methods=[
         name_identifier="IDENTIFIER"

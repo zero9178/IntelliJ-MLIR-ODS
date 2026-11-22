@@ -11,6 +11,8 @@ import kotlinx.coroutines.coroutineScope
 import com.github.zero9178.mlirods.language.values.TableGenIntegerValue
 import com.github.zero9178.mlirods.language.values.TableGenRecordValue
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
+import com.github.zero9178.mlirods.language.psi.TableGenTypedElement
+import com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorScopeNodeEx
 import kotlin.math.abs
 
 private suspend fun typeOf(node: TableGenValueNode?, context: TableGenCompilationContext): TableGenType =
@@ -119,43 +121,12 @@ internal suspend fun computeTypeOf(
 
 private suspend fun typeOfIdentifier(
     element: TableGenIdentifierValueNode, context: TableGenCompilationContext,
-): TableGenType =
-    when (val resolve = element.referencedDefinition(context)) {
-        // The value may again be an identifier referring to another 'defvar', and so on, to any length no matter how
-        // deep the AST is. Launched, its type is computed from the bottom of the stack of some thread instead of on top
-        // of ours.
-        is TableGenDefvarStatement -> coroutineScope { async { typeOf(resolve.valueNode, context) }.await() }
-        is TableGenFieldBodyItem -> resolve.typeNode.toType()
-        is TableGenTemplateArgDecl -> resolve.typeNode.toType()
-        is TableGenForeachIterator -> typeOfForeachIterator(resolve, context)
-        is TableGenBangOperatorDefinition -> {
-            when (val parent = resolve.parent) {
-                is TableGenForeachOperatorValueNode -> when (val iterableType = typeOf(parent.iterable, context)) {
-                    is TableGenDagType -> TableGenDagType
-                    is TableGenListType -> iterableType.elementType
-                    else -> TableGenUnknownType
-                }
+): TableGenType = (element.referencedDefinition(context) as? TableGenTypedElement)?.type(context) ?: TableGenUnknownType
 
-                is TableGenFoldlOperatorValueNode ->
-                    when (resolve) {
-                        parent.accmulator -> typeOf(parent, context)
-                        parent.iterator -> elementTypeOf(parent.iterable, context)
-                        else -> TableGenUnknownType
-                    }
-
-                is TableGenSortOperatorValueNode -> elementTypeOf(parent.iterable, context)
-
-                is TableGenFilterOperatorValueNode -> elementTypeOf(parent.iterable, context)
-
-                else -> TableGenUnknownType
-            }
-        }
-
-        is TableGenDefStatement -> TableGenRecordType.create(resolve)
-        else -> TableGenUnknownType
-    }
-
-private suspend fun typeOfForeachIterator(
+/**
+ * Implements [TableGenForeachIterator.type]: the type of the values [iterator] takes on within [context].
+ */
+internal suspend fun typeOfForeachIterator(
     iterator: TableGenForeachIterator, context: TableGenCompilationContext,
 ): TableGenType {
     // A range list in braces or a range iterates over the integers it denotes.
@@ -173,13 +144,32 @@ private suspend fun typeOfForeachIterator(
     }
 }
 
+/**
+ * Implements [TableGenBangOperatorDefinition.type]: the type of the values the variable [definition] of a bang operator
+ * takes on within [context].
+ */
+internal suspend fun typeOfBangOperatorDefinition(
+    definition: TableGenBangOperatorDefinition, context: TableGenCompilationContext,
+): TableGenType {
+    val operator = definition.parent as? TableGenBangOperatorScopeNodeEx ?: return TableGenUnknownType
+    // The accumulator of '!foldl' holds the result so far rather than an element.
+    if (operator is TableGenFoldlOperatorValueNode && definition == operator.accmulator) return typeOf(operator, context)
+
+    return when (val iterableType = typeOf(operator.iterable, context)) {
+        // '!foreach' iterates over the arguments of a dag as well, each of which is a dag in turn.
+        is TableGenDagType if operator is TableGenForeachOperatorValueNode -> TableGenDagType
+        is TableGenListType -> iterableType.elementType
+        else -> TableGenUnknownType
+    }
+}
+
 private suspend fun typeOfFieldAccess(
     element: TableGenFieldAccessValueNode, context: TableGenCompilationContext,
 ): TableGenType {
     val identifier = element.fieldName ?: return TableGenUnknownType
     val record = (typeOf(element.valueNode, context) as? TableGenRecordType)?.record(context)
         ?: return TableGenUnknownType
-    val declaredType = record.allFieldsByName(context)[identifier]?.typeNode?.toType() ?: return TableGenUnknownType
+    val declaredType = record.allFieldsByName(context)[identifier]?.type(context) ?: return TableGenUnknownType
     // Only the fields of a 'def' have a value to go by. Any other record (e.g. a template argument of class type) is
     // only known to be of the declared type.
     if (record !is TableGenDefStatement) return declaredType

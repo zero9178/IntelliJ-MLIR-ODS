@@ -13,6 +13,8 @@
 - A `let append` or `let prepend` assigning to a bit range is reported as an error.
 - The items of top-level `let` statements now refer to the fields they assign to, enabling navigation, find usages and
   renaming. As in TableGen, a `let` applies to all records within it, including those of a `defm` and included files.
+- Quick documentation of a `defvar`, a `foreach` iterator and the variables of `!foreach`, `!foldl`, `!filter` and
+  `!sort` shows their type, which is not written out at their definition.
 
 
 ### Fixed
