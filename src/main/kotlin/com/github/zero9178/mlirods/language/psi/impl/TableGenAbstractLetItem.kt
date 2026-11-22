@@ -18,6 +18,17 @@ interface TableGenAbstractLetItem : PsiElement, TableGenFieldAssignmentNode {
 
     override val assignedValueNode: TableGenValueNode?
         get() = valueNode
+
+    /**
+     * Returns the opening brace of the bit range assigned by this let item, if any.
+     */
+    val lBrace: PsiElement?
+
+    /**
+     * Returns the closing brace of the bit range assigned by this let item, if any.
+     */
+    val rBrace: PsiElement?
+
     /**
      * Returns the identifier representing the 'let'-mode if present.
      * Note that it does not verify whether the identifier is one of "prepend" or "append".

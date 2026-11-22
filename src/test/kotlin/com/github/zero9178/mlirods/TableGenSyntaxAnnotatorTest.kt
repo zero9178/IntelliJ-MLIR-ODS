@@ -30,6 +30,29 @@ class TableGenSyntaxAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting()
     }
 
+    fun `test appending let to a bit range`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C {
+                list<int> l = [];
+                let append l<error descr="Cannot 'append' to a bit range">{0}</error> = [1];
+            }
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
+    fun `test top level prepending let to a bit range`() {
+        myFixture.configureByText(
+            "test.td", """
+            class C { string s = ""; }
+            let prepend s<error descr="Cannot 'prepend' to a bit range">{0, 1}</error> = "a" in
+            def D : C;
+        """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
+
     fun `test valid switch`() {
         myFixture.configureByText(
             "test.td", """
