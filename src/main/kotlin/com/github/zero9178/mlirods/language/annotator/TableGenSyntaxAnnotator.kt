@@ -10,6 +10,7 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenIfStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenSwitchOperatorValueNode
 import com.github.zero9178.mlirods.language.psi.TableGenTypeArgument
+import com.github.zero9178.mlirods.language.psi.impl.LetMode
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.project.DumbAware
@@ -78,6 +79,23 @@ private val ANNOTATIONS = arrayOf(
             holder.newAnnotation(
                 HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.invalidLetMode", letModeIdentifier.text)
             ).range(letModeIdentifier).create()
+    },
+    /**
+     * Flags a 'let' that both appends or prepends and assigns to a bit range (e.g. 'let append b{0} = 1'): TableGen
+     * only concatenates whole values.
+     */
+    addAnnotationFor { element: TableGenAbstractLetItem, holder ->
+        val letMode = element.letMode ?: return@addAnnotationFor
+        val lBrace = element.lBrace ?: return@addAnnotationFor
+        val rBrace = element.rBrace
+
+        val modeName = when (letMode) {
+            LetMode.Append -> "append"
+            LetMode.Prepend -> "prepend"
+        }
+        holder.newAnnotation(
+            HighlightSeverity.ERROR, MyBundle.message("tableGen.syntax.letModeWithBitRange", modeName)
+        ).range(TextRange(lBrace.startOffset, (rBrace ?: lBrace).endOffset)).create()
     },
     /**
      * Verifies the grammar invariants of a `!switch` operator: there must be at least one `case : value` pair, every
