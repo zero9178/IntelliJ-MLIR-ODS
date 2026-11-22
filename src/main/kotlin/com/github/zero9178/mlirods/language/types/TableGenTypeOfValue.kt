@@ -127,6 +127,7 @@ private suspend fun typeOfIdentifier(
         is TableGenDefvarStatement -> coroutineScope { async { typeOf(resolve.valueNode, context) }.await() }
         is TableGenFieldBodyItem -> resolve.typeNode.toType()
         is TableGenTemplateArgDecl -> resolve.typeNode.toType()
+        is TableGenForeachIterator -> typeOfForeachIterator(resolve, context)
         is TableGenBangOperatorDefinition -> {
             when (val parent = resolve.parent) {
                 is TableGenForeachOperatorValueNode -> when (val iterableType = typeOf(parent.iterable, context)) {
@@ -153,6 +154,24 @@ private suspend fun typeOfIdentifier(
         is TableGenDefStatement -> TableGenRecordType.create(resolve)
         else -> TableGenUnknownType
     }
+
+private suspend fun typeOfForeachIterator(
+    iterator: TableGenForeachIterator, context: TableGenCompilationContext,
+): TableGenType {
+    // A range list in braces or a range iterates over the integers it denotes.
+    if (iterator.isRangeList) return TableGenIntType
+    val value = when (val piece = iterator.rangePieceList.singleOrNull()) {
+        is TableGenBitRange -> return TableGenIntType
+        is TableGenSingleBit -> piece.valueNode
+        else -> return TableGenUnknownType
+    }
+    return when (val type = typeOf(value, context)) {
+        is TableGenListType -> type.elementType
+        is TableGenUnknownType -> TableGenUnknownType
+        // Any other value is a range consisting of the single integer it denotes.
+        else -> TableGenIntType
+    }
+}
 
 private suspend fun typeOfFieldAccess(
     element: TableGenFieldAccessValueNode, context: TableGenCompilationContext,
