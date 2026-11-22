@@ -15,6 +15,8 @@
   renaming. As in TableGen, a `let` applies to all records within it, including those of a `defm` and included files.
 - Quick documentation of a `defvar`, a `foreach` iterator and the variables of `!foreach`, `!foldl`, `!filter` and
   `!sort` shows their type, which is not written out at their definition.
+- Inlay hints show the type of a `defvar`, a `foreach` iterator and the variables of `!foreach`, `!foldl`, `!filter`
+  and `!sort` in front of their name, unless it is obvious from a literal or class instantiation they are defined as.
 
 
 ### Fixed

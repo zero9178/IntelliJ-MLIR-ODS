@@ -140,6 +140,14 @@
         <annotator language="TableGen"
                    implementationClass="com.github.zero9178.mlirods.language.annotator.TableGenReferenceAnnotator"
         />
+        <codeInsight.declarativeInlayProvider language="TableGen"
+                                              providerId="tableGen.type.hints"
+                                              implementationClass="com.github.zero9178.mlirods.language.TableGenTypeInlayHintsProvider"
+                                              isEnabledByDefault="true"
+                                              group="TYPES_GROUP"
+                                              bundle="messages.MyBundle"
+                                              nameKey="tableGen.inlay.types.name"
+                                              descriptionKey="tableGen.inlay.types.description"/>
         <localInspection language="TableGen"
                          shortName="TableGenRedefinedField"
                          bundle="messages.MyBundle"
