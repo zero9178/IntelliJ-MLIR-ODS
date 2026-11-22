@@ -5,7 +5,6 @@ import com.github.zero9178.mlirods.language.psi.TableGenClassReference
 import com.github.zero9178.mlirods.model.IncludePaths
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.command.WriteCommandAction
@@ -1530,24 +1529,10 @@ class ReferenceTest : BasePlatformTestCase() {
         (this as PsiPolyVariantReference).multiResolve(false).map { it.element!! }
 
     /**
-     * Returns what [reference] resolves to, resolved on a thread whose stack is too small for following a long chain
-     * of references to be a call per reference: the depth of the stack must only depend on the syntax tree.
+     * Returns what [reference] resolves to, see [computeOnSmallStack].
      */
-    private fun resolveAllOnSmallStack(reference: PsiReference?): List<PsiElement> {
-        var result: List<PsiElement>? = null
-        var failure: Throwable? = null
-        val thread = Thread(null, {
-            try {
-                result = runReadAction { reference.resolveAll() }
-            } catch (t: Throwable) {
-                failure = t
-            }
-        }, "small stack", 512 * 1024)
-        thread.start()
-        thread.join(60_000)
-        failure?.let { throw it }
-        return checkNotNull(result) { "resolving did not finish" }
-    }
+    private fun resolveAllOnSmallStack(reference: PsiReference?): List<PsiElement> =
+        computeOnSmallStack { reference.resolveAll() }
 
     private fun referenceAcrossFiles(vararg files: Pair<String, String>): PsiReference? {
         val virtualFiles = files.map { (name, content) -> myFixture.createFile(name, content.trimIndent()) }
