@@ -72,6 +72,72 @@ class FindUsageTest : BasePlatformTestCase() {
             })
     }
 
+    // References to a field, including its redefinitions, resolve to the field body item that first defined it,
+    // making a redefinition stand for the defining field.
+    fun `test redefined field finds usages of defining field`() {
+        myFixture.configureByText(
+            "test.td", """
+            class A {
+                int x = 0;
+            }
+            class B : A {
+                int <caret>x = 1;
+                int y = x;
+            }
+            def D : B {
+                let x = 2;
+            }
+            defvar v = D.x;
+        """.trimIndent()
+        )
+        val actual = myFixture.testFindUsagesUsingAction().filterIsInstance<PsiElementUsage>()
+        assertUnorderedCollection(
+            actual, {
+                assertInstanceOf<TableGenIdentifierValueNode>(it.element)
+            },
+            {
+                assertInstanceOf<TableGenLetBodyItem>(it.element)
+            },
+            {
+                assertInstanceOf<TableGenFieldAccessValueNode>(it.element)
+            },
+            {
+                assertInstanceOf<TableGenFieldBodyItem>(it.element)
+            })
+    }
+
+    fun `test defining field finds usages after redefinition`() {
+        myFixture.configureByText(
+            "test.td", """
+            class A {
+                int <caret>x = 0;
+            }
+            class B : A {
+                int x = 1;
+                int y = x;
+            }
+            def D : B {
+                let x = 2;
+            }
+            defvar v = D.x;
+        """.trimIndent()
+        )
+        val actual = myFixture.testFindUsagesUsingAction().filterIsInstance<PsiElementUsage>()
+        assertUnorderedCollection(
+            actual, {
+                assertInstanceOf<TableGenIdentifierValueNode>(it.element)
+            },
+            {
+                assertInstanceOf<TableGenLetBodyItem>(it.element)
+            },
+            {
+                assertInstanceOf<TableGenFieldAccessValueNode>(it.element)
+            },
+            {
+                assertInstanceOf<TableGenFieldBodyItem>(it.element)
+            })
+    }
+
     fun `test include`() {
         val includeFile = myFixture.copyFileToProject("Include.td")
         val defFile = myFixture.copyFileToProject("Def.td")

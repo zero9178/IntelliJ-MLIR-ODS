@@ -7,7 +7,6 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenLetStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
-import com.github.zero9178.mlirods.language.stubs.disallowTreeLoading
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
@@ -18,40 +17,6 @@ import java.util.AbstractMap.SimpleImmutableEntry
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-
-/**
- * Map used to lookup fields within a [TableGenFieldScopeNode] within [myContext].
- * Will perform the lookup not only in [myRoot], but also any of its base classes.
- */
-class FieldMap(private val myRoot: TableGenFieldScopeNode, private val myContext: TableGenCompilationContext) {
-
-    /**
-     * Returns the field named [fieldName] within [myRoot] or null if no such field exists yet at the location of
-     * [beforeElement]. If there are multiple [TableGenFieldBodyItem] that define [fieldName], then the defining one is
-     * returned. [TableGenFieldScopeNode.allFieldsByName] looks up the fields regardless of any location.
-     */
-    @RequiresReadLock
-    operator fun get(fieldName: String, beforeElement: PsiElement): TableGenFieldBodyItem? =
-        disallowTreeLoading {
-            // Only consider base classes referenced before 'beforeElement'.
-            myRoot.baseClassRefs.takeWhile {
-                it.isBefore(beforeElement) != false
-            }.mapNotNull {
-                it.referencedDefinitionBlocking(myContext)
-            }.firstNotNullOfOrNull {
-                FieldMap(it, myContext)[fieldName, beforeElement]
-            }?.let { return@disallowTreeLoading it }
-
-            // Only consider fields defined before 'beforeElement'.
-            myRoot.directFields[fieldName]?.takeIf { it.isBefore(beforeElement) != false }
-        }
-
-    /**
-     * Returns the field named [fieldName] within [myRoot] or null if no such field exists yet at the location of
-     * [fieldName].
-     */
-    operator fun get(fieldName: PsiElement) = get(fieldName.text, fieldName)
-}
 
 /**
  * Interface used by any [TableGenIdentifierScopeNode] which may also contain fields.
@@ -93,6 +58,18 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
             scope.directFields.forEach(result::putIfAbsent)
             result
         }.await()
+
+    /**
+     * Returns the field named [fieldName] of this within [context] as it is at [element], or null if there is no such
+     * field yet. Like [allFieldsByName], the defining field is returned, except that fields of the body of this only
+     * count if they are defined before [element]. Those of the base classes are always defined before.
+     */
+    @RequiresReadLock
+    suspend fun fieldDefinedBefore(
+        fieldName: String, element: PsiElement, context: TableGenCompilationContext,
+    ): TableGenFieldBodyItem? = allFieldsByName(context)[fieldName]?.takeIf {
+        directFields[fieldName] !== it || it.isBefore(element) != false
+    }
 
     /**
      * Returns a map of all field assignments in order of application (earliest to latest), including from all
@@ -229,11 +206,6 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         }
         result
     }.await()
-
-    /**
-     * Returns a map for field lookup within [context].
-     */
-    fun fields(context: TableGenCompilationContext): FieldMap = FieldMap(this, context)
 }
 
 /**

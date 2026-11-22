@@ -44,7 +44,7 @@ abstract class TableGenLetBodyItemMixin : StubBasedPsiElementBase<TableGenLetBod
     override fun getReference() = TableGenLetReference(this)
 
     override fun referencedDefinitionBlocking(context: TableGenCompilationContext) =
-        TableGenLetReference.findField(this, context)
+        TableGenLetReference.findFieldBlocking(this, context)
 
     override fun getPresentation(): ItemPresentation? {
         return object : ItemPresentation {

@@ -38,6 +38,39 @@ class RenameTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test rename field redefinition`() {
+        // Renaming a redefinition renames the defining field along with every reference to the field.
+        doTestInline(
+            "z",
+            """
+            class A {
+                int x = 0;
+            }
+            class B : A {
+                int <caret>x = 1;
+                int y = x;
+            }
+            def D : B {
+                let x = 2;
+            }
+            defvar v = D.x;
+        """.trimIndent(),
+            """
+            class A {
+                int z = 0;
+            }
+            class B : A {
+                int z = 1;
+                int y = z;
+            }
+            def D : B {
+                let z = 2;
+            }
+            defvar v = D.z;
+        """.trimIndent()
+        )
+    }
+
     fun `test rename include`() {
         val testFile = myFixture.copyFileToProject("test.td")
         val virtualFile = myFixture.copyFileToProject("HasCompileCommands.td")

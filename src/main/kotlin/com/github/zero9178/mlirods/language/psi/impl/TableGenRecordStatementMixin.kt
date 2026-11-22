@@ -43,10 +43,16 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
                 async { ref.referencedDefinition(context)?.allFieldsByName(context)?.values?.map { IdMapEntry(it, ref) } }
             }.awaitAll()
         }
+        // A field body item redefining a field is found as the defining field body item, like every other reference
+        // to the field.
+        val fields = allFieldsByName(context)
         return inherited.asSequence().flatMap { it.orEmpty() } + stubbedChildren<TableGenIdentifierElement>(
             TableGenDefvarStatement::class.java,
             TableGenFieldBodyItem::class.java,
-        ).map(::IdMapEntry)
+        ).map { element ->
+            val field = (element as? TableGenFieldBodyItem)?.fieldName?.let(fields::get)
+            IdMapEntry(field ?: element, element)
+        }
     }
 
     private var myDirectFields = resettableLazy {

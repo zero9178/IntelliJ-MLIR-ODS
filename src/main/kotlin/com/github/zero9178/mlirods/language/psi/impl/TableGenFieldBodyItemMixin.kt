@@ -1,7 +1,7 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
-import com.github.zero9178.mlirods.language.psi.TableGenFieldScopeNode
+import com.github.zero9178.mlirods.language.psi.TableGenFieldRedefinitionReference
 import com.github.zero9178.mlirods.language.psi.createIdentifier
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenFieldBodyItemStub
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
@@ -9,7 +9,6 @@ import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
-import com.intellij.psi.util.parentOfType
 
 abstract class TableGenFieldBodyItemMixin : StubBasedPsiElementBase<TableGenFieldBodyItemStub>,
     TableGenFieldBodyItem {
@@ -42,10 +41,8 @@ abstract class TableGenFieldBodyItemMixin : StubBasedPsiElementBase<TableGenFiel
         return nameIdentifier?.textOffset ?: super.getTextOffset()
     }
 
-    override fun definingFieldBodyItem(context: TableGenCompilationContext): TableGenFieldBodyItem {
-        val fieldName = fieldName ?: return this
-        val scope = parentOfType<TableGenFieldScopeNode>() ?: return this
-        // Only fields defined before this one (in this scope or a base class) constitute a redefinition.
-        return scope.fields(context)[fieldName, this] ?: this
-    }
+    override fun getReference() = TableGenFieldRedefinitionReference(this)
+
+    override fun referencedDefinitionBlocking(context: TableGenCompilationContext) =
+        TableGenFieldRedefinitionReference.findRedefinedFieldBlocking(this, context)
 }

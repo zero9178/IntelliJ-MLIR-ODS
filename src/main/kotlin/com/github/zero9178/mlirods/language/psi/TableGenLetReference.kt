@@ -1,11 +1,12 @@
 package com.github.zero9178.mlirods.language.psi
 
+import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
-import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.psi.PsiElementResolveResult
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
@@ -24,12 +25,27 @@ class TableGenLetReference(element: TableGenLetBodyItem) : PsiReferenceBase.Poly
          * PSI itself are built on; results are cached per [element] and [context].
          */
         @RequiresReadLock
-        fun findField(element: TableGenLetBodyItem, context: TableGenCompilationContext): TableGenFieldBodyItem? =
-            getProjectContextDependentCache(element, context) { element ->
-                val identifier = element.fieldIdentifier ?: return@getProjectContextDependentCache null
+        suspend fun findField(element: TableGenLetBodyItem, context: TableGenCompilationContext): TableGenFieldBodyItem? =
+            fieldOf(element, context).await()
+
+        /**
+         * [findField] for platform entry points. Suspending code must use [findField] instead.
+         */
+        @RequiresReadLock
+        fun findFieldBlocking(element: TableGenLetBodyItem, context: TableGenCompilationContext): TableGenFieldBodyItem? =
+            fieldOf(element, context).getBlocking()
+
+        /**
+         * The cached value of [findField].
+         */
+        private fun fieldOf(
+            element: TableGenLetBodyItem, context: TableGenCompilationContext
+        ): SuspendingCachedValue<TableGenFieldBodyItem?> =
+            projectContextDependentSuspendingCachedValue(element, context, "assigned field") { element ->
+                val fieldName = element.fieldName ?: return@projectContextDependentSuspendingCachedValue null
                 val parent = element.parentOfTypes(TableGenClassStatement::class, TableGenDefStatement::class)
-                    ?: return@getProjectContextDependentCache null
-                parent.fields(context)[identifier]
+                    ?: return@projectContextDependentSuspendingCachedValue null
+                parent.fieldDefinedBefore(fieldName, element, context)
             }
     }
 
@@ -40,6 +56,6 @@ class TableGenLetReference(element: TableGenLetBodyItem) : PsiReferenceBase.Poly
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> {
         val context = TableGenCompilationContext.activeFor(element)
-        return PsiElementResolveResult.createResults(listOfNotNull(findField(element, context)))
+        return PsiElementResolveResult.createResults(listOfNotNull(findFieldBlocking(element, context)))
     }
 }
