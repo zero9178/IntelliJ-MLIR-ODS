@@ -136,7 +136,7 @@ class TableGenEvaluationContext private constructor(
  * Returns the value of a field that is [current] so far, after a 'let' in [mode] assigned [assigned] to it.
  * List element types are unified in [context].
  */
-private fun combine(
+private suspend fun combine(
     current: TableGenValue,
     assigned: TableGenValue,
     mode: LetMode,

@@ -18,7 +18,7 @@ sealed class TableGenType {
      * resolution.
      */
     @RequiresReadLock
-    abstract fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean?
+    abstract suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean?
 
     /**
      * Returns a human-readable representation of this type.
@@ -30,11 +30,12 @@ sealed class TableGenType {
  * 'int' type, which is a 64-bit integer.
  */
 object TableGenIntType : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = when (target) {
-        is TableGenBitType, is TableGenBitsType, is TableGenIntType -> true
-        is TableGenUnknownType -> null
-        else -> false
-    }
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? =
+        when (target) {
+            is TableGenBitType, is TableGenBitsType, is TableGenIntType -> true
+            is TableGenUnknownType -> null
+            else -> false
+        }
 
     override fun toString() = "int"
 }
@@ -43,13 +44,14 @@ object TableGenIntType : TableGenType() {
  * Single bit type, also used for booleans.
  */
 object TableGenBitType : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = when (target) {
-        is TableGenBitType, is TableGenIntType -> true
-        // A bit is convertible to 'bits<1>'.
-        is TableGenBitsType -> target.numberOfBits?.let { it == 1L }
-        is TableGenUnknownType -> null
-        else -> false
-    }
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? =
+        when (target) {
+            is TableGenBitType, is TableGenIntType -> true
+            // A bit is convertible to 'bits<1>'.
+            is TableGenBitsType -> target.numberOfBits?.let { it == 1L }
+            is TableGenUnknownType -> null
+            else -> false
+        }
 
     override fun toString() = "bit"
 }
@@ -58,11 +60,12 @@ object TableGenBitType : TableGenType() {
  * String type used for string and 'code'.
  */
 object TableGenStringType : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = when (target) {
-        is TableGenStringType -> true
-        is TableGenUnknownType -> null
-        else -> false
-    }
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? =
+        when (target) {
+            is TableGenStringType -> true
+            is TableGenUnknownType -> null
+            else -> false
+        }
 
     override fun toString() = "string"
 }
@@ -71,11 +74,12 @@ object TableGenStringType : TableGenType() {
  * Singletonn type representing all DAG instances.
  */
 object TableGenDagType : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = when (target) {
-        is TableGenDagType -> true
-        is TableGenUnknownType -> null
-        else -> false
-    }
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? =
+        when (target) {
+            is TableGenDagType -> true
+            is TableGenUnknownType -> null
+            else -> false
+        }
 
     override fun toString() = "dag"
 }
@@ -85,16 +89,17 @@ object TableGenDagType : TableGenType() {
  * [numberOfBits] may be zero if it is unknown, due to e.g. errors in the code.
  */
 data class TableGenBitsType(val numberOfBits: Long?) : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = when (target) {
-        is TableGenBitsType ->
-            if (numberOfBits == null || target.numberOfBits == null) null
-            else numberOfBits == target.numberOfBits
-        // 'bits<1>' is convertible to a single bit.
-        is TableGenBitType -> numberOfBits?.let { it == 1L }
-        is TableGenIntType -> true
-        is TableGenUnknownType -> null
-        else -> false
-    }
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? =
+        when (target) {
+            is TableGenBitsType ->
+                if (numberOfBits == null || target.numberOfBits == null) null
+                else numberOfBits == target.numberOfBits
+            // 'bits<1>' is convertible to a single bit.
+            is TableGenBitType -> numberOfBits?.let { it == 1L }
+            is TableGenIntType -> true
+            is TableGenUnknownType -> null
+            else -> false
+        }
 
     override fun toString() = "bits<${numberOfBits ?: "?"}>"
 }
@@ -103,11 +108,12 @@ data class TableGenBitsType(val numberOfBits: Long?) : TableGenType() {
  * List type containing [elementType] elements.
  */
 data class TableGenListType(val elementType: TableGenType) : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = when (target) {
-        is TableGenListType -> elementType.isConvertibleTo(target.elementType, context)
-        is TableGenUnknownType -> null
-        else -> false
-    }
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? =
+        when (target) {
+            is TableGenListType -> elementType.isConvertibleTo(target.elementType, context)
+            is TableGenUnknownType -> null
+            else -> false
+        }
 
     override fun toString() = "list<$elementType>"
 }
@@ -152,7 +158,7 @@ class TableGenRecordType private constructor(
     fun record(context: TableGenCompilationContext): TableGenFieldScopeNode? =
         myRecord ?: myReference?.referencedDefinitionBlocking(context)
 
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? {
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? {
         if (target !is TableGenRecordType) return if (target is TableGenUnknownType) null else false
 
         // Identical class references are trivially convertible, even if resolution fails.
@@ -170,7 +176,7 @@ class TableGenRecordType private constructor(
  * Type of the `?` ("undef") value, which is assignable to any field regardless of its type.
  */
 object TableGenUndefType : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean = true
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean = true
 
     override fun toString() = "?"
 }
@@ -179,7 +185,7 @@ object TableGenUndefType : TableGenType() {
  * Type representing an unknown type due to a previous error, but not an error worth reporting itself.
  */
 object TableGenUnknownType : TableGenType() {
-    override fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = null
+    override suspend fun isConvertibleTo(target: TableGenType, context: TableGenCompilationContext): Boolean? = null
 
     override fun toString() = "?"
 }
@@ -192,15 +198,16 @@ object TableGenUnknownType : TableGenType() {
  * that the value is not known to be convertible to.
  */
 @RequiresReadLock
-fun TableGenType.refinedBy(valueType: TableGenType, context: TableGenCompilationContext): TableGenType = when (this) {
-    is TableGenRecordType if valueType is TableGenRecordType && valueType.isConvertibleTo(this, context) == true ->
-        valueType
+suspend fun TableGenType.refinedBy(valueType: TableGenType, context: TableGenCompilationContext): TableGenType =
+    when (this) {
+        is TableGenRecordType if valueType is TableGenRecordType && valueType.isConvertibleTo(this, context) == true ->
+            valueType
 
-    is TableGenListType if valueType is TableGenListType ->
-        TableGenListType(elementType.refinedBy(valueType.elementType, context))
+        is TableGenListType if valueType is TableGenListType ->
+            TableGenListType(elementType.refinedBy(valueType.elementType, context))
 
-    else -> this
-}
+        else -> this
+    }
 
 /**
  * Returns the type that values of both [t1] and [t2] can be used as, as is required by operators yielding one of
@@ -211,7 +218,7 @@ fun TableGenType.refinedBy(valueType: TableGenType, context: TableGenCompilation
  * reporting them is up to the caller.
  */
 @RequiresReadLock
-fun commonType(t1: TableGenType, t2: TableGenType, context: TableGenCompilationContext): TableGenType {
+suspend fun commonType(t1: TableGenType, t2: TableGenType, context: TableGenCompilationContext): TableGenType {
     // Both '?' and an unknown type carry no information, making the other side the best guess available.
     if (t1 is TableGenUndefType || t1 is TableGenUnknownType) return t2
     if (t2 is TableGenUndefType || t2 is TableGenUnknownType) return t1
@@ -235,5 +242,5 @@ fun commonType(t1: TableGenType, t2: TableGenType, context: TableGenCompilationC
  * Returns the type that values of all types in this collection can be used as. See [commonType].
  */
 @RequiresReadLock
-fun Iterable<TableGenType>.commonType(context: TableGenCompilationContext): TableGenType =
+suspend fun Iterable<TableGenType>.commonType(context: TableGenCompilationContext): TableGenType =
     reduceOrNull { t1, t2 -> commonType(t1, t2, context) } ?: TableGenUnknownType

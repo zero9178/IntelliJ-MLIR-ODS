@@ -2,6 +2,7 @@ package com.github.zero9178.mlirods
 
 import com.github.zero9178.mlirods.model.*
 import com.intellij.openapi.application.impl.TestOnlyThreading
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -123,4 +124,24 @@ fun UsefulTestCase.compileCommandsUpdater(project: Project): (Map<VirtualFile, I
         // modified) have been as well.
         awaitIncludeGraph(project)
     }
+}
+
+/**
+ * Returns what [action] computes within a read action, computed on a thread whose stack is too small for following a
+ * long chain of references to be a call per reference: the depth of the stack must only depend on the syntax tree.
+ */
+fun <T : Any> computeOnSmallStack(action: () -> T): T {
+    var result: T? = null
+    var failure: Throwable? = null
+    val thread = Thread(null, {
+        try {
+            result = runReadAction(action)
+        } catch (t: Throwable) {
+            failure = t
+        }
+    }, "small stack", 512 * 1024)
+    thread.start()
+    thread.join(60_000)
+    failure?.let { throw it }
+    return checkNotNull(result) { "computation did not finish" }
 }

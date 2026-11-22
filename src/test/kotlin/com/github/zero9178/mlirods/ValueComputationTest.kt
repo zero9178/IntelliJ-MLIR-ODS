@@ -768,6 +768,25 @@ class ValueComputationTest : BasePlatformTestCase() {
         assertEquals(TableGenIntegerValue(1), valueIn(TableGenCompilationContext.activeFor(statement)))
     }
 
+    // Every class contributes its template arguments and fields through the one it derives from. Following a base class
+    // is launched rather than called, making the depth of the hierarchy a matter of the heap rather than the stack.
+    fun `test field of long class chain does not overflow the stack`() {
+        val chain = (1..<1000).joinToString("\n") { "class C$it<int a> : C${it - 1}<a>;" }
+        val file = assertInstanceOf<TableGenFile>(
+            myFixture.configureByText(
+                "test.td", """
+                |class C0<int a> { int x = a; }
+                |$chain
+                |def D : C999<5>;
+                |defvar v = D.x;
+            """.trimMargin()
+            )
+        )
+        val statement = assertInstanceOf<TableGenDefvarStatement>(file.lastChild)
+        val context = TableGenEvaluationContext(TableGenCompilationContext.activeFor(file))
+        assertEquals(TableGenIntegerValue(5), computeOnSmallStack { statement.valueNode!!.evaluateBlocking(context) })
+    }
+
     fun doTest(source: String, expectedValue: TableGenValue) = doTest(source) {
         assertEquals(expectedValue, it)
     }

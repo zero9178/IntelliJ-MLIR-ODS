@@ -38,16 +38,22 @@ private fun checkArguments(
     // argument is a literal or an identifier, whose type costs less than a coroutine of its own would.
     val items = element.argValueItemList
     val resolved = runBlockingCancellable {
-        items.map { (it.valueNode?.type(context) ?: TableGenUnknownType) to it.referencedDefinition(context) }
+        items.map {
+            val valueType = it.valueNode?.type(context) ?: TableGenUnknownType
+            val decl = it.referencedDefinition(context)
+            // Only a definite mismatch is reported; an indeterminate result (null) leaves the argument alone.
+            val mismatched = decl != null && valueType.isConvertibleTo(decl.type(context), context) == false
+            decl to valueType.takeIf { mismatched }
+        }
     }
 
     // Map each referenced declaration to the arguments assigning a value to it.
     val itemsByDecl = mutableMapOf<TableGenTemplateArgDecl, MutableList<TableGenArgValueItem>>()
-    for ((item, typeAndDecl) in items.zip(resolved)) {
-        val (valueType, decl) = typeAndDecl
+    for ((item, resolution) in items.zip(resolved)) {
+        val (decl, mismatchedType) = resolution
         if (decl != null) {
             itemsByDecl.getOrPut(decl) { mutableListOf() }.add(item)
-            checkArgumentType(item, valueType, decl, holder, context)
+            mismatchedType?.let { reportArgumentTypeMismatch(item, it, decl, holder, context) }
             continue
         }
 
@@ -85,10 +91,9 @@ private fun checkArguments(
 
 /**
  * Flags an argument [item] whose value is of [valueType], a type that cannot be assigned to its resolved template
- * argument declaration [decl]. Mirroring TableGen, the check uses type convertibility; if either type is unknown (or otherwise
- * indeterminate) no error is reported.
+ * argument declaration [decl] by TableGen's type convertibility.
  */
-private fun checkArgumentType(
+private fun reportArgumentTypeMismatch(
     item: TableGenArgValueItem,
     valueType: TableGenType,
     decl: TableGenTemplateArgDecl,
@@ -97,9 +102,6 @@ private fun checkArgumentType(
 ) {
     val valueNode = item.valueNode ?: return
     val declaredType = decl.typeBlocking(context)
-
-    // Only report a definite mismatch; an indeterminate result (null) leaves the argument alone.
-    if (valueType.isConvertibleTo(declaredType, context) != false) return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message(
@@ -113,21 +115,24 @@ private fun checkArgumentType(
  * Flags a 'let' in the body of a record whose value is of a type that cannot be assigned to the field it overrides.
  * Appending and prepending lets are checked the same way, as TableGen concatenates values of the field's type. Lets
  * assigning to a bit range are left alone: their value is converted to the bits of the range rather than to the
- * field's type. Mirroring [checkArgumentType], only definite mismatches are reported.
+ * field's type. Like for template arguments, only definite mismatches are reported.
  */
 private fun checkLetType(element: TableGenLetBodyItem, holder: AnnotationHolder, context: TableGenCompilationContext) {
     if (element.rangePieceList.isNotEmpty()) return
     val valueNode = element.valueNode ?: return
-    val field = TableGenLetReference.findFieldBlocking(element, context) ?: return
-    val fieldType = field.typeBlocking(context)
-    val valueType = valueNode.typeBlocking(context)
-    if (valueType.isConvertibleTo(fieldType, context) != false) return
+    runBlockingCancellable {
+        val field = TableGenLetReference.findField(element, context) ?: return@runBlockingCancellable
+        val fieldType = field.type(context)
+        val valueType = valueNode.type(context)
+        // Only report a definite mismatch; an indeterminate result (null) leaves the 'let' alone.
+        if (valueType.isConvertibleTo(fieldType, context) != false) return@runBlockingCancellable
 
-    holder.newAnnotation(
-        HighlightSeverity.ERROR, MyBundle.message(
-            "tableGen.syntax.fieldTypeMismatch", valueType.toString(), field.name ?: "", fieldType.toString()
-        )
-    ).range(valueNode).create()
+        holder.newAnnotation(
+            HighlightSeverity.ERROR, MyBundle.message(
+                "tableGen.syntax.fieldTypeMismatch", valueType.toString(), field.name ?: "", fieldType.toString()
+            )
+        ).range(valueNode).create()
+    }
 }
 
 /**

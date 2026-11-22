@@ -62,15 +62,13 @@ private suspend fun computeAssignableFields(
         // The statements of nested 'let's are summarized by the 'let' itself, which every 'let' reaching it shares.
         for (child in container.nestedStatements { it !is TableGenLetStatement }) when (child) {
             is TableGenRecord -> {
-                val bases = child.baseClassRefs.map { ref ->
-                    async { ref.referencedDefinition(context)?.allFieldsByName(context) }
-                }.toList()
+                // A record without base classes only has the fields of its body, which takes no reference to follow.
+                val fields = if (child.baseClassRefs.none()) null else async { child.allFieldsByName(context) }
                 steps += {
-                    // The field defining the name is the one of the first base class having it. Reached through a
-                    // 'defm', the 'let' applies to the fields of the body as well.
-                    val inherited = bases.firstNotNullOfOrNull { it.await()?.get(name) }
-                    if (inherited != null) result += inherited
-                    else if (throughDefm) child.directFields[name]?.let(result::add)
+                    // Only the inherited fields are subject to the 'let'. Reached through a 'defm', it applies to the
+                    // fields of the body as well.
+                    val field = (fields?.await() ?: child.directFields)[name]
+                    field?.takeIf { throughDefm || child.directFields[name] !== it }?.let(result::add)
                 }
             }
 
