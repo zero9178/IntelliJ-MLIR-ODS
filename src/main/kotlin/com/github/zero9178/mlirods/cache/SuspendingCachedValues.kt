@@ -40,7 +40,7 @@ fun <H : UserDataHolder, T> H.suspendingCachedValue(
     getUserData(key)?.let { return it }
 
     val holder = this
-    val created = SuspendingCachedValue(key.toString(), onCycle) { provider(holder) }
+    val created = SuspendingCachedValue({ key.toString() }, onCycle) { provider(holder) }
     if (holder is UserDataHolderEx) return holder.putUserDataIfAbsent(key, created)
 
     return synchronized(holder) {
