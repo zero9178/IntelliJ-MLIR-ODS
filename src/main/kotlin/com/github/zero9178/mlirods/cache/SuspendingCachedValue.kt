@@ -114,16 +114,20 @@ class CyclicCachedValueDependencyException internal constructor(cycle: List<Stri
  *
  * [onCycle] is called with no lock held but may be called more than once per cycle, and from any thread.
  *
- * [name] identifies the value in diagnostics.
+ * [describe] names the value in diagnostics. It is only called when a diagnostic needs it, as values are created far
+ * more often than they are diagnosed.
  *
  * @see getSuspendingCachedValue
  */
 class SuspendingCachedValue<T>(
-    internal val name: String = "<anonymous>",
+    private val describe: () -> String = { "<anonymous>" },
     internal val onCycle: (() -> T)? = null,
     private val provider: suspend SuspendingCachedValueScope.() -> T,
 ) {
     private val lock = Any()
+
+    internal val name: String
+        get() = describe()
 
     /**
      * Last value computed, possibly outdated, or collected for lack of memory, as the platform's cached values are.
@@ -197,7 +201,8 @@ class SuspendingCachedValue<T>(
     fun getBlocking(): T {
         // Worth not setting up a coroutine for, this being what almost every call amounts to.
         upToDateData?.let {
-            currentComputation.get()?.consume(it)
+            // A provider calling us without suspending. The platform makes its coroutine context the thread context.
+            currentThreadContext()[Computation]?.consume(it)
             return it.value
         }
         // The platform makes the context of a calling provider, if any, the context of the coroutine.
@@ -276,9 +281,53 @@ class SuspendingCachedValue<T>(
 /**
  * A computed value with everything needed to tell whether it is still up to date.
  */
-internal class Data<T>(val value: T, val dependencies: Set<Dependency>) {
+internal class Data<T>(val value: T, val dependencies: Dependencies) {
     val isUpToDate: Boolean
-        get() = dependencies.all { it.isUpToDate }
+        get() = dependencies.isUpToDate
+}
+
+/**
+ * An immutable set of [Dependency]s.
+ *
+ * An array rather than a hash set: the dependencies of a value are a handful, almost always the very same ones, which
+ * an array is quicker to check, merge and share for. Values with the same dependencies share one instance (see
+ * [intern]), which makes merging those of another value mostly an identity comparison.
+ */
+internal class Dependencies private constructor(private val items: Array<Dependency>) {
+
+    companion object {
+        val EMPTY = Dependencies(emptyArray())
+
+        /**
+         * The last instance handed out by [intern].
+         */
+        @Volatile
+        private var lastInterned = EMPTY
+
+        /**
+         * Returns an instance equal to [dependencies], which is the one returned last time if it is equal as well.
+         */
+        fun intern(dependencies: Dependencies): Dependencies {
+            val last = lastInterned
+            if (last.items.size == dependencies.items.size && last.containsAll(dependencies)) return last
+            lastInterned = dependencies
+            return dependencies
+        }
+    }
+
+    val isUpToDate: Boolean
+        get() = items.all { it.isUpToDate }
+
+    fun containsAll(other: Dependencies): Boolean = other === this || other.items.all { it in items }
+
+    operator fun plus(dependency: Dependency): Dependencies =
+        if (dependency in items) this else Dependencies(items + dependency)
+
+    operator fun plus(other: Dependencies): Dependencies = when {
+        containsAll(other) -> this
+        other.containsAll(this) -> other
+        else -> Dependencies(items + other.items.filter { it !in items })
+    }
 }
 
 /**
@@ -325,7 +374,7 @@ private object WaitForGraph {
     inline fun <R> waiting(
         from: Computation?,
         to: SuspendingCachedValue<*>,
-        onCycle: (Set<Dependency>) -> R,
+        onCycle: (Dependencies) -> R,
         action: () -> R,
     ): R {
         if (from == null) return action()
@@ -342,7 +391,7 @@ private object WaitForGraph {
      * Returns `null` if the edge was added, and what the values on the cycle it would have closed depend on otherwise.
      */
     @Synchronized
-    fun addEdge(from: Computation, to: SuspendingCachedValue<*>): Set<Dependency>? {
+    fun addEdge(from: Computation, to: SuspendingCachedValue<*>): Dependencies? {
         // Checking and adding being atomic makes it impossible for a cycle to ever make it into the graph.
         val path = pathBetween(to, from.owner)
         if (path == null) {
@@ -353,7 +402,7 @@ private object WaitForGraph {
         // All of them requested the next one because of what they had depended on by then. These are the dependencies
         // to change for the cycle to be gone, whatever else the computations would have come to depend on.
         val computations = path.mapNotNull { if (it === from.owner) from else it.computation }
-        val dependencies = computations.flatMapTo(LinkedHashSet()) { it.dependenciesSoFar() }
+        val dependencies = computations.fold(Dependencies.EMPTY) { all, it -> all + it.dependenciesSoFar() }
         computations.forEach { if (it.owner.onCycle != null) it.cancelForCycle(dependencies) }
 
         if (to.onCycle != null) return dependencies
@@ -393,17 +442,11 @@ private object WaitForGraph {
 }
 
 /**
- * The [Computation] the current thread is running the provider of, for the benefit of code that cannot access the
- * coroutine context because it does not suspend. Maintained by [Computation] being a [ThreadContextElement].
- */
-private val currentComputation = ThreadLocal<Computation?>()
-
-/**
  * A provider being run, collecting the dependencies it declares. Being part of the coroutine context of the provider is
  * what makes requesting other cached values from within it discoverable.
  */
 internal class Computation(val owner: SuspendingCachedValue<*>) : SuspendingCachedValueScope,
-    ThreadContextElement<Computation?> {
+    CoroutineContext.Element {
 
     companion object Key : CoroutineContext.Key<Computation>
 
@@ -414,7 +457,13 @@ internal class Computation(val owner: SuspendingCachedValue<*>) : SuspendingCach
      */
     override lateinit var coroutineContext: CoroutineContext
 
-    private val dependencies = LinkedHashSet<Dependency>()
+    /**
+     * Only ever grows. Written with [lock] held.
+     */
+    @Volatile
+    private var dependencies = Dependencies.EMPTY
+
+    private val lock = Any()
 
     /**
      * Values the provider is waiting for, and how many of its coroutines are. Guarded by [WaitForGraph].
@@ -426,17 +475,11 @@ internal class Computation(val owner: SuspendingCachedValue<*>) : SuspendingCach
      * [WaitForGraph] held.
      */
     @Volatile
-    var cycleDependencies: Set<Dependency>? = null
+    var cycleDependencies: Dependencies? = null
         private set
 
-    override fun updateThreadContext(context: CoroutineContext): Computation? =
-        currentComputation.get().also { currentComputation.set(this) }
-
-    override fun restoreThreadContext(context: CoroutineContext, oldState: Computation?) =
-        currentComputation.set(oldState)
-
     private fun add(dependency: Dependency) {
-        synchronized(dependencies) { dependencies.add(dependency) }
+        synchronized(lock) { dependencies += dependency }
     }
 
     override fun dependsOn(vararg trackers: ModificationTracker) =
@@ -460,19 +503,21 @@ internal class Computation(val owner: SuspendingCachedValue<*>) : SuspendingCach
      * otherwise recurse just as deep as computing them did, and keep all of them alive.
      */
     fun consume(data: Data<*>) {
-        synchronized(dependencies) { dependencies.addAll(data.dependencies) }
+        // Usually what we depend on already, which needs no lock: dependencies only ever grow.
+        if (dependencies.containsAll(data.dependencies)) return
+        synchronized(lock) { dependencies += data.dependencies }
     }
 
-    fun dependenciesSoFar(): Set<Dependency> = synchronized(dependencies) { LinkedHashSet(dependencies) }
+    fun dependenciesSoFar(): Dependencies = dependencies
 
-    fun <T> seal(value: T): Data<T> = Data(value, dependenciesSoFar())
+    fun <T> seal(value: T): Data<T> = Data(value, Dependencies.intern(dependencies))
 
     /**
      * Cancels the provider for its value to be what it is on a cycle instead, depending on [dependencies]. Only ever
      * called on a provider waiting for or requesting a value, and hence running.
      */
-    fun cancelForCycle(dependencies: Set<Dependency>) {
-        cycleDependencies = cycleDependencies.orEmpty() + dependencies
+    fun cancelForCycle(dependencies: Dependencies) {
+        cycleDependencies = (cycleDependencies ?: Dependencies.EMPTY) + dependencies
         coroutineContext.cancel()
     }
 }

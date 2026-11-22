@@ -66,7 +66,7 @@ class SuspendingCachedValueTest : BasePlatformTestCase() {
         name: String = "test",
         onCycle: (() -> T)? = null,
         provider: suspend SuspendingCachedValueScope.() -> T,
-    ) = SuspendingCachedValue(name, onCycle, provider)
+    ) = SuspendingCachedValue({ name }, onCycle, provider)
 
     /**
      * Requests [value] and only returns once the request is suspended waiting for the computation.

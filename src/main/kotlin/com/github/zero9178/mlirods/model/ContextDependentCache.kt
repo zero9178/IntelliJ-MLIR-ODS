@@ -8,25 +8,33 @@ import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.UserDataHolderEx
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.ParameterizedCachedValue
 import com.intellij.psi.util.PsiModificationTracker
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * One [Key] per [provider] class so that distinct call sites get their own cached-value slot on an element, mirroring
- * how [CachedValuesManager.getProjectPsiDependentCache] derives its key from the provider class.
+ * The slots of the keyed caches an element has for one call site, one per key, valid for as long as the TableGen PSI
+ * and the include graph are at [psiStamp] and [graphStamp].
  */
-private val keyForProviderClass = ConcurrentHashMap<Class<*>, Key<ParameterizedCachedValue<*, *>>>()
+private class Slots<K, S>(val psiStamp: Long, val graphStamp: Long) {
+    val map = ConcurrentHashMap<K, S>()
+}
+
+/**
+ * One [Key] per provider class so that distinct call sites get their own slots on an element, mirroring how
+ * [CachedValuesManager.getProjectPsiDependentCache] derives its key from the provider class.
+ */
+private val keyForProviderClass = ConcurrentHashMap<Class<*>, Key<Slots<*, *>>>()
 
 @Suppress("UNCHECKED_CAST")
-private fun <T, P> cacheKeyFor(providerClass: Class<*>): Key<ParameterizedCachedValue<T, P>> =
+private fun <K, S> slotsKeyFor(providerClass: Class<*>): Key<Slots<K, S>> =
     keyForProviderClass.computeIfAbsent(providerClass) {
         Key.create("TableGenContextDependentCache#${it.name}")
-    } as Key<ParameterizedCachedValue<T, P>>
+    } as Key<Slots<K, S>>
 
 /**
  * What everything cached by [getProjectContextDependentCache] depends on: the TableGen PSI and the include graph of
@@ -41,16 +49,22 @@ private fun projectContextDependencies(project: Project): Array<Any> = arrayOf(
  * The slots of the keyed caches [element] has for the call site [providerClass] identifies, one per key. The map is
  * dropped along with everything in it whenever what everything cached here depends on changes.
  */
-private fun <S, P : PsiElement, K : Any> slotsOf(element: P, providerClass: Class<*>): ConcurrentHashMap<K, S> =
-    CachedValuesManager.getManager(element.project).getParameterizedCachedValue(
-        element,
-        cacheKeyFor<ConcurrentHashMap<K, S>, P>(providerClass),
-        { param: P ->
-            CachedValueProvider.Result.create(ConcurrentHashMap<K, S>(), *projectContextDependencies(param.project))
-        },
-        false,
-        element,
-    )
+private fun <S, P : PsiElement, K : Any> slotsOf(element: P, providerClass: Class<*>): ConcurrentHashMap<K, S> {
+    val key = slotsKeyFor<K, S>(providerClass)
+    val project = element.project
+    val psiStamp = PsiModificationTracker.getInstance(project).forLanguage(TableGenLanguage.INSTANCE).modificationCount
+    val graphStamp = project.service<TableGenIncludeGraphService>().graphChangedModificationTracker.modificationCount
+    while (true) {
+        val current = element.getUserData(key)
+        if (current != null && current.psiStamp == psiStamp && current.graphStamp == graphStamp) return current.map
+
+        val fresh = Slots<K, S>(psiStamp, graphStamp)
+        val replaced = (element as? UserDataHolderEx)?.replace(key, current, fresh) ?: synchronized(element) {
+            (element.getUserData(key) === current).also { if (it) element.putUserData(key, fresh) }
+        }
+        if (replaced) return fresh.map
+    }
+}
 
 /**
  * Context-aware replacement for [CachedValuesManager.getProjectPsiDependentCache], for a value that depends on a [key]
@@ -128,7 +142,7 @@ fun <T, P : PsiElement, K : Any> projectContextDependentSuspendingCachedValue(
     slotsOf<SuspendingCachedValue<T>, P, K>(element, provider.javaClass).computeIfAbsent(key) {
         // Identified by what is at hand without loading the tree of a stubbed element.
         SuspendingCachedValue(
-            "$what of ${element.javaClass.simpleName}@${System.identityHashCode(element)} in $key", onCycle,
+            { "$what of ${element.javaClass.simpleName}@${System.identityHashCode(element)} in $key" }, onCycle,
         ) {
             dependsOnProjectContext(element.project)
             provider(element)
