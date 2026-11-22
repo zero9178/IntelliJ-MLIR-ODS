@@ -4,10 +4,12 @@ import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
+import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
 import com.github.zero9178.mlirods.language.generated.psi.TableGenVisitor
 import com.github.zero9178.mlirods.language.psi.TableGenBangOperator
 import com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement
+import com.github.zero9178.mlirods.language.psi.TableGenIdentifierReference
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.psi.TableGenReferencingElement
 import com.github.zero9178.mlirods.language.stubs.impl.*
@@ -307,7 +309,7 @@ interface TableGenIdentifierValueNodeEx : TableGenValueNodeEx, TableGenReferenci
      * [TableGenIdentifierReference.findVisibleDeclarations].
      */
     override suspend fun referencedDefinition(context: TableGenCompilationContext): TableGenIdentifierElement? =
-        referencedDefinitionBlocking(context)
+        TableGenIdentifierReference.findVisibleDeclarations(this as TableGenIdentifierValueNode, context).singleOrNull()
 
     override fun referencedDefinitionBlocking(context: TableGenCompilationContext): TableGenIdentifierElement?
 }

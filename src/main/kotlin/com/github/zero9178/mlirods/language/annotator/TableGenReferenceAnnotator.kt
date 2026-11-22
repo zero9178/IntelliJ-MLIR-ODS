@@ -76,7 +76,7 @@ private fun checkFieldAccess(
 ) {
     val fieldIdentifier = element.fieldIdentifier ?: return
     val fieldName = element.fieldName ?: return
-    if (TableGenFieldAccessReference.findField(element, context) != null) return
+    if (TableGenFieldAccessReference.findFieldBlocking(element, context) != null) return
 
     val type = element.valueNode.typeBlocking(context) as? TableGenRecordType ?: return
     if (type.record(context) == null) return

@@ -15,6 +15,9 @@ import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.util.resettableLazy
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 /**
  * Common base class for record functionality.
@@ -32,19 +35,19 @@ abstract class TableGenRecordStatementMixin<StubT : StubElement<*>> : StubBasedP
     /**
      * Returns all id entries originating from the record body, resolving the base classes within [context].
      */
-    protected fun bodyIdEntries(context: TableGenCompilationContext): Sequence<IdMapEntry> =
-        baseClassRefs.mapNotNull {
-            it.referencedDefinitionBlocking(context)?.let { klass ->
-                klass to it
-            }
-        }.flatMap { (klass, ref) ->
-            klass.allFields(context).map {
-                IdMapEntry(it, ref)
-            }
-        } + stubbedChildren<TableGenIdentifierElement>(
+    protected suspend fun bodyIdEntries(context: TableGenCompilationContext): Sequence<IdMapEntry> {
+        // Following a reference to a base class is launched, so that the depth of the stack does not depend on the
+        // depth of the class hierarchy.
+        val inherited = coroutineScope {
+            baseClassRefs.toList().map { ref ->
+                async { ref.referencedDefinition(context)?.allFieldsByName(context)?.values?.map { IdMapEntry(it, ref) } }
+            }.awaitAll()
+        }
+        return inherited.asSequence().flatMap { it.orEmpty() } + stubbedChildren<TableGenIdentifierElement>(
             TableGenDefvarStatement::class.java,
             TableGenFieldBodyItem::class.java,
         ).map(::IdMapEntry)
+    }
 
     private var myDirectFields = resettableLazy {
         directFieldAssignments.mapNotNull { (k, v) ->

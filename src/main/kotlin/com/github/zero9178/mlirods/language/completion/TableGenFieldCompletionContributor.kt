@@ -8,6 +8,7 @@ import com.github.zero9178.mlirods.language.types.TableGenRecordType
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
@@ -29,9 +30,10 @@ internal class TableGenFieldCompletionContributor : CompletionContributor() {
                     val scope = parameters.position.parentOfType<TableGenFieldScopeNode>() ?: return
                     val compilationContext = TableGenCompilationContext.activeFor(parameters.originalFile)
                     // References are resolved from the original file rather than its copy, which no index knows about.
-                    CompletionUtil.getOriginalOrSelf(scope).allFields(compilationContext).forEach {
-                        result.addElement(LookupElementBuilder.create(it))
+                    val fields = runBlockingCancellable {
+                        CompletionUtil.getOriginalOrSelf(scope).allFieldsByName(compilationContext).values
                     }
+                    fields.forEach { result.addElement(LookupElementBuilder.create(it)) }
                 }
             }
         )
@@ -48,11 +50,12 @@ internal class TableGenFieldCompletionContributor : CompletionContributor() {
                     val fieldAccess = parameters.position.parentOfType<TableGenFieldAccessValueNode>() ?: return
                     val compilationContext = TableGenCompilationContext.activeFor(parameters.originalFile)
                     // References are resolved from the original file rather than its copy, which no index knows about.
-                    val recordType = CompletionUtil.getOriginalOrSelf(fieldAccess.valueNode)
-                        .typeBlocking(compilationContext) as? TableGenRecordType ?: return
-                    recordType.record(compilationContext)?.allFields(compilationContext)?.forEach {
-                        result.addElement(LookupElementBuilder.create(it))
+                    val fields = runBlockingCancellable {
+                        val recordType = CompletionUtil.getOriginalOrSelf(fieldAccess.valueNode)
+                            .type(compilationContext) as? TableGenRecordType
+                        recordType?.record(compilationContext)?.allFieldsByName(compilationContext)?.values.orEmpty()
                     }
+                    fields.forEach { result.addElement(LookupElementBuilder.create(it)) }
                 }
             })
     }

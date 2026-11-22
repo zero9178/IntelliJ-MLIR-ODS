@@ -25,7 +25,7 @@ abstract class TableGenFieldAccessValueNodeMixin : StubBasedPsiElementBase<Table
     ) : super(stub, stubType)
 
     override fun referencedDefinitionBlocking(context: TableGenCompilationContext) =
-        TableGenFieldAccessReference.findField(this, context)
+        TableGenFieldAccessReference.findFieldBlocking(this, context)
 
     override suspend fun evaluateInner(context: TableGenEvaluationContext): TableGenValue {
         val record = valueNode.evaluate(context) as? TableGenRecordValue ?: return TableGenUnknownValue

@@ -452,7 +452,12 @@ defm_statement ::= 'defm' object_name? <<parent_class_list multi_class_ref>>? ';
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefmStatementStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenDefmStatementStubElementType"
 }
-defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {pin=1}
+defset_statement ::= 'defset' type_node IDENTIFIER '=' '{' statement* '}' {
+    pin=1
+    implements=[
+        "com.github.zero9178.mlirods.language.psi.TableGenStatementContainer"
+    ]
+}
 deftype_statement ::= 'deftype' IDENTIFIER '=' type_node ';' {pin=1}
 defvar_statement ::= 'defvar' IDENTIFIER '=' value_node ';' {
     pin=1
@@ -489,6 +494,7 @@ foreach_statement ::= 'foreach' foreach_iterator 'in' statement_block {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.TableGenStatementContainer"
     ]
     methods = [
         lBrace='LBRACE'
@@ -524,6 +530,7 @@ if_statement ::= 'if' value_node 'then' if_body else_body? {
         // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
         "com.intellij.psi.PsiElement"
         scope_item
+        "com.github.zero9178.mlirods.language.psi.TableGenStatementContainer"
     ]
     methods=[
         thenBody="if_body[0]"
@@ -540,6 +547,7 @@ if_body ::= statement_block {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.TableGenStatementContainer"
     ]
     methods = [
         lBrace='LBRACE'
@@ -557,6 +565,7 @@ let_statement ::= 'let' let_list 'in' statement_block {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenBracedFoldingElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.TableGenStatementContainer"
     ]
     methods = [
         lBrace='LBRACE'
@@ -600,6 +609,7 @@ multiclass_statement ::= 'multiclass' IDENTIFIER template_arg_list? <<parent_cla
 
         "com.intellij.navigation.NavigationItem"
         "com.intellij.psi.PsiNameIdentifierOwner"
+        "com.github.zero9178.mlirods.language.psi.TableGenStatementContainer"
     ]
     pin=1
     stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenMulticlassStatementStub"
@@ -719,7 +729,7 @@ private field_access_value_node_suffix ::= '.' IDENTIFIER {
 field_access_value_node ::= value_node field_access_value_node_suffix {
     implements=[
         "com.github.zero9178.mlirods.language.psi.TableGenFieldIdentifierNode"
-        "com.github.zero9178.mlirods.language.psi.TableGenFieldReferencingElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenFieldAccessValueNodeEx"
     ]
     methods = [
         field_identifier="IDENTIFIER"
@@ -993,11 +1003,10 @@ foreach_operator_value_node ::= '!foreach' '(' bang_operator_definition ',' valu
         body="/value_node[1]"
         iterator="/bang_operator_definition"
 
-        directIdMap
         isWithinNewScope
     ]
     implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorScopeNodeEx"
     ]
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachOperatorValueNodeStubElementType"
 }
@@ -1011,11 +1020,10 @@ foldl_operator_value_node ::= '!foldl' '(' value_node ',' value_node ',' bang_op
         accmulator="/bang_operator_definition[0]"
         iterator="/bang_operator_definition[1]"
 
-        directIdMap
         isWithinNewScope
     ]
     implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorScopeNodeEx"
     ]
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFoldlOperatorValueNodeStubElementType"
 }
@@ -1027,11 +1035,10 @@ filter_operator_value_node ::= '!filter' '(' bang_operator_definition ',' value_
         body="/value_node[1]"
         iterator="/bang_operator_definition"
 
-        directIdMap
         isWithinNewScope
     ]
     implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorScopeNodeEx"
     ]
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenFilterOperatorValueNodeStubElementType"
 }
@@ -1043,11 +1050,10 @@ sort_operator_value_node ::= '!sort' '(' bang_operator_definition ',' value_node
         body="/value_node[1]"
         iterator="/bang_operator_definition"
 
-        directIdMap
         isWithinNewScope
     ]
     implements=[
-        "com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenBangOperatorScopeNodeEx"
     ]
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenSortOperatorValueNodeStubElementType"
 }

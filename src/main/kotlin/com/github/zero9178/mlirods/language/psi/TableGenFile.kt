@@ -5,6 +5,7 @@ import com.github.zero9178.mlirods.language.TableGenLanguage
 import com.github.zero9178.mlirods.language.generated.TableGenTypes
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIncludeDirective
 import com.github.zero9178.mlirods.language.stubs.TableGenStubElementTypes
+import com.github.zero9178.mlirods.language.stubs.stubbedChildren
 import com.github.zero9178.mlirods.model.TableGenIncludeGraphService
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.openapi.vfs.VirtualFile
@@ -23,7 +24,7 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.resettableLazy
 
 class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, TableGenLanguage.INSTANCE),
-    TableGenIdentifierScopeNode {
+    TableGenIdentifierScopeNode, TableGenStatementContainer {
 
     /**
      * The include paths this file resolves its `include` directives against, taken from its active context in the
@@ -36,6 +37,9 @@ class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, T
         } ?: emptyList()
 
     override fun getFileType(): FileType = TableGenFileType.INSTANCE
+
+    override val statements: Sequence<PsiElement>
+        get() = stubTree?.root?.stubbedChildren<PsiElement>() ?: children.asSequence()
 
     /**
      * Returns a sequence of all stub elements that is one of the given [elementTypes].
@@ -93,7 +97,7 @@ class TableGenFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, T
         }
     }
 
-    override fun directIdMap(context: TableGenCompilationContext) = myDirectIdMap.value
+    override suspend fun directIdMap(context: TableGenCompilationContext) = myDirectIdMap.value
 
     private val myUsedMacros = resettableLazy {
         stubStream(TableGenStubElementTypes.IFDEF_IFNDEF_DIRECTIVE).mapNotNullTo(mutableSetOf()) { it.macroName }

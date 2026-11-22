@@ -1,6 +1,7 @@
 package com.github.zero9178.mlirods.language.psi.impl
 
 import com.github.zero9178.mlirods.language.generated.psi.TableGenLetItem
+import com.github.zero9178.mlirods.language.psi.TableGenLetItemReference
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenLetItemStub
 import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
@@ -25,4 +26,6 @@ abstract class TableGenLetItemMixin : StubBasedPsiElementBase<TableGenLetItemStu
 
             return super.letMode
         }
+
+    override fun getReference() = TableGenLetItemReference(this)
 }

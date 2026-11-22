@@ -34,7 +34,7 @@ abstract class TableGenIdentifierValueNodeMixin : StubBasedPsiElementBase<TableG
         get() = stub?.identifier ?: identifier.text
 
     override fun referencedDefinitionBlocking(context: TableGenCompilationContext): TableGenIdentifierElement? =
-        TableGenIdentifierReference.findVisibleDeclarations(this, context).singleOrNull()
+        TableGenIdentifierReference.findVisibleDeclarationsBlocking(this, context).singleOrNull()
 
     override suspend fun evaluateInner(context: TableGenEvaluationContext): TableGenValue {
         val ref = referencedDefinition(context.compilationContext) ?: return TableGenUnknownValue

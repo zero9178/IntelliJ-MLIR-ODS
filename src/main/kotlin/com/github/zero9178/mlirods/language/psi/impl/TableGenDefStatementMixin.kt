@@ -6,7 +6,7 @@ import com.github.zero9178.mlirods.language.psi.TableGenIdentifierScopeNode.IdMa
 import com.github.zero9178.mlirods.language.psi.TableGenRecord
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenDefStatementStub
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
-import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.stubs.IStubElementType
@@ -24,8 +24,8 @@ abstract class TableGenDefStatementMixin : TableGenRecordStatementMixin<TableGen
 
     // Note: [bodyIdEntries] resolves base classes and must therefore be cached per compilation context, not just per
     // subtree.
-    override fun directIdMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> =
-        getProjectContextDependentCache(this, context) { record ->
+    override suspend fun directIdMap(context: TableGenCompilationContext): Map<String, List<IdMapEntry>> =
+        projectContextDependentSuspendingCachedValue(this, context, "id map") { record ->
             record.bodyIdEntries(context).mapNotNull {
                 val name = it.element.name ?: return@mapNotNull null
                 name to it
@@ -34,7 +34,7 @@ abstract class TableGenDefStatementMixin : TableGenRecordStatementMixin<TableGen
             }) {
                 it.second
             }
-        }
+        }.await()
 
     override fun mostDerivedRecords(context: TableGenCompilationContext): Sequence<TableGenRecord> = sequenceOf(this)
 }

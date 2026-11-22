@@ -4,7 +4,8 @@ import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.index.getVisibleElements
 import com.github.zero9178.mlirods.language.generated.psi.TableGenIdentifierValueNode
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
-import com.github.zero9178.mlirods.model.getProjectContextDependentCache
+import com.github.zero9178.mlirods.cache.SuspendingCachedValue
+import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.psi.PsiElementResolveResult
@@ -57,14 +58,38 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
          * precedence over whatever the index knows under the same name, which a reference only consults if none of
          * them matches.
          */
-        fun findLocalElements(
+        @RequiresReadLock
+        suspend fun findLocalElements(
             element: TableGenIdentifierValueNode, context: TableGenCompilationContext
-        ): Sequence<TableGenIdentifierElement> {
-            val parent = TableGenIdentifierScopeNode.getParentScope(element) ?: return emptySequence()
-            return parent.idMap(context).values.asSequence().mapNotNull {
+        ): List<TableGenIdentifierElement> {
+            val parent = TableGenIdentifierScopeNode.getParentScope(element) ?: return emptyList()
+            return parent.idMap(context).values.mapNotNull {
                 it.findBefore(element, scope = parent)?.element
             }
         }
+
+        /**
+         * The cached value of [findVisibleDeclarations].
+         */
+        private fun visibleDeclarationsOf(
+            element: TableGenIdentifierValueNode, context: TableGenCompilationContext
+        ): SuspendingCachedValue<List<TableGenIdentifierElement>> =
+            projectContextDependentSuspendingCachedValue(element, context, "visible declarations") { element ->
+                val name = element.identifier.text
+
+                val def = TableGenIdentifierScopeNode.getParentScope(element)?.let {
+                    it.idMapEntries(name, context)?.findBefore(element, scope = it)?.element
+                }
+
+                // Lookup in the same file succeeded.
+                if (def != null) return@projectContextDependentSuspendingCachedValue listOf(def)
+                val project = element.project
+                if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
+
+                // Otherwise, use the index to search for the global identifiers preceding the reference, be it in
+                // this file or in another one.
+                IDENTIFIER_INDEX.getVisibleElements(name, context.at(element))
+            }
 
         /**
          * Returns all declarations [element] may refer to within [context]: the closest one preceding it within its
@@ -73,24 +98,18 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
          * on; results are cached per [element] and [context].
          */
         @RequiresReadLock
-        fun findVisibleDeclarations(
+        suspend fun findVisibleDeclarations(
             element: TableGenIdentifierValueNode, context: TableGenCompilationContext
-        ): List<TableGenIdentifierElement> = getProjectContextDependentCache(element, context) { element ->
-            val name = element.identifier.text
+        ): List<TableGenIdentifierElement> = visibleDeclarationsOf(element, context).await()
 
-            val def = TableGenIdentifierScopeNode.getParentScope(element)?.let {
-                it.idMap(context)[name]?.findBefore(element, scope = it)?.element
-            }
-
-            // Lookup in the same file succeeded.
-            if (def != null) return@getProjectContextDependentCache listOf(def)
-            val project = element.project
-            if (DumbService.isDumb(project)) throw IndexNotReadyException.create()
-
-            // Otherwise, use the index to search for the global identifiers preceding the reference, be it in this
-            // file or in another one.
-            IDENTIFIER_INDEX.getVisibleElements(name, context.at(element))
-        }
+        /**
+         * [findVisibleDeclarations] for platform entry points. Suspending code must use [findVisibleDeclarations]
+         * instead.
+         */
+        @RequiresReadLock
+        fun findVisibleDeclarationsBlocking(
+            element: TableGenIdentifierValueNode, context: TableGenCompilationContext
+        ): List<TableGenIdentifierElement> = visibleDeclarationsOf(element, context).getBlocking()
     }
 
     /**
@@ -100,6 +119,6 @@ class TableGenIdentifierReference(element: TableGenIdentifierValueNode) :
     @RequiresReadLock
     override fun multiResolve(incompleteCode: Boolean): Array<out ResolveResult> {
         val context = TableGenCompilationContext.activeFor(element)
-        return PsiElementResolveResult.createResults(findVisibleDeclarations(element, context))
+        return PsiElementResolveResult.createResults(findVisibleDeclarationsBlocking(element, context))
     }
 }

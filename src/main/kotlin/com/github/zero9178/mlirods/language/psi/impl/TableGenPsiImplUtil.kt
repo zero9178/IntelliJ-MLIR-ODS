@@ -7,7 +7,6 @@ import com.github.zero9178.mlirods.language.psi.*
 import com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub
 import com.github.zero9178.mlirods.language.types.*
 import com.github.zero9178.mlirods.language.values.*
-import com.github.zero9178.mlirods.model.TableGenCompilationContext
 import com.intellij.extapi.psi.ASTDelegatePsiElement
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.extapi.psi.StubBasedPsiElementBase
@@ -346,61 +345,13 @@ class TableGenPsiImplUtil {
         }
 
         @JvmStatic
-        fun directIdMap(
-            element: TableGenForeachOperatorValueNode, context: TableGenCompilationContext,
-        ): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
-            buildMap {
-                element.iterator?.let {
-                    it.name?.let { name ->
-                        put(name, listOf(TableGenIdentifierScopeNode.IdMapEntry(it)))
-                    }
-                }
-            }
-
-        @JvmStatic
         fun isWithinNewScope(self: TableGenForeachOperatorValueNode, element: PsiElement) = element == self.body
-
-        @JvmStatic
-        fun directIdMap(
-            element: TableGenFoldlOperatorValueNode, context: TableGenCompilationContext,
-        ): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
-            buildMap {
-                listOfNotNull(element.iterator, element.accmulator).forEach {
-                    it.name?.let { name ->
-                        put(name, listOf(TableGenIdentifierScopeNode.IdMapEntry(it)))
-                    }
-                }
-            }
 
         @JvmStatic
         fun isWithinNewScope(self: TableGenFoldlOperatorValueNode, element: PsiElement) = element == self.body
 
         @JvmStatic
-        fun directIdMap(
-            element: TableGenFilterOperatorValueNode, context: TableGenCompilationContext,
-        ): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
-            buildMap {
-                element.iterator?.let {
-                    it.name?.let { name ->
-                        put(name, listOf(TableGenIdentifierScopeNode.IdMapEntry(it)))
-                    }
-                }
-            }
-
-        @JvmStatic
         fun isWithinNewScope(self: TableGenFilterOperatorValueNode, element: PsiElement) = element == self.body
-
-        @JvmStatic
-        fun directIdMap(
-            element: TableGenSortOperatorValueNode, context: TableGenCompilationContext,
-        ): Map<String, List<TableGenIdentifierScopeNode.IdMapEntry>> =
-            buildMap {
-                element.iterator?.let {
-                    it.name?.let { name ->
-                        put(name, listOf(TableGenIdentifierScopeNode.IdMapEntry(it)))
-                    }
-                }
-            }
 
         @JvmStatic
         fun isWithinNewScope(self: TableGenSortOperatorValueNode, element: PsiElement) = element == self.body

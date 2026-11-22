@@ -10,6 +10,7 @@ import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbService
 import com.intellij.patterns.PlatformPatterns
@@ -39,7 +40,10 @@ internal class TableGenIdentifierCompletionContributor : CompletionContributor()
                     val compilationContext = TableGenCompilationContext.activeFor(parameters.originalFile)
 
                     val shadowed = HashSet<String>()
-                    for (element in TableGenIdentifierReference.findLocalElements(node, compilationContext)) {
+                    val localElements = runBlockingCancellable {
+                        TableGenIdentifierReference.findLocalElements(node, compilationContext)
+                    }
+                    for (element in localElements) {
                         shadowed += element.name ?: continue
                         result.addElement(createLookupElement(element, position))
                     }

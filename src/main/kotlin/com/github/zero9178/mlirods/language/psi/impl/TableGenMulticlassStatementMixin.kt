@@ -51,7 +51,7 @@ abstract class TableGenMulticlassStatementMixin : StubBasedPsiElementBase<TableG
         }
     }
 
-    override fun directIdMap(context: TableGenCompilationContext) = myDirectIdMap.value
+    override suspend fun directIdMap(context: TableGenCompilationContext) = myDirectIdMap.value
 
     override fun subtreeChanged() {
         super.subtreeChanged()

@@ -128,6 +128,20 @@ class RenameTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test rename field from top-level let`() {
+        doTestInline(
+            "y",
+            """
+            class C { int x; }
+            let append <caret>x = 1 in def a : C;
+        """.trimIndent(),
+            """
+            class C { int y; }
+            let append y = 1 in def a : C;
+        """.trimIndent()
+        )
+    }
+
     private fun doTestInline(newName: String, source: String, expected: String) {
         val mainVF = myFixture.createFile("test.td", source)
         installCompileCommands(
