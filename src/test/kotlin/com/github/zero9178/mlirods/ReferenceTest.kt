@@ -465,6 +465,40 @@ class ReferenceTest : BasePlatformTestCase() {
         assertEquals(parentClass.name, "A")
     }
 
+    // Like every other reference to a field, an identifier after a redefinition refers to the defining field.
+    fun `test RedefinedFieldResolution`() {
+        val element = doTestInline<TableGenFieldBodyItem>(
+            """
+            class A {
+                int i = 5;
+            }
+            class B : A {
+                int i = 6;
+                int j = <caret>i;
+            }
+        """.trimIndent()
+        )
+        assertEquals(element.name, "i")
+        val parentClass = assertInstanceOf(element.parent, TableGenClassStatement::class.java)
+        assertEquals(parentClass.name, "A")
+    }
+
+    fun `test FieldRedefinitionResolution`() {
+        val element = doTestInline<TableGenFieldBodyItem>(
+            """
+            class A {
+                int i = 5;
+            }
+            class B : A {
+                int <caret>i = 6;
+            }
+        """.trimIndent()
+        )
+        assertEquals(element.name, "i")
+        val parentClass = assertInstanceOf(element.parent, TableGenClassStatement::class.java)
+        assertEquals(parentClass.name, "A")
+    }
+
     fun `test GlobalFieldDefResolution`() {
         val element = doTest<TableGenFieldBodyItem>("test.td")
         assertEquals(element.name, "i")

@@ -396,7 +396,7 @@ let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_
     pin=1
     implements=[
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
-        "com.github.zero9178.mlirods.language.psi.TableGenFieldReferencingElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenLetBodyItemEx"
     ]
     methods=[
         lBrace='LBRACE'

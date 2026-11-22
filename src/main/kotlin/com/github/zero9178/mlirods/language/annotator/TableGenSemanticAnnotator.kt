@@ -118,7 +118,7 @@ private fun checkArgumentType(
 private fun checkLetType(element: TableGenLetBodyItem, holder: AnnotationHolder, context: TableGenCompilationContext) {
     if (element.rangePieceList.isNotEmpty()) return
     val valueNode = element.valueNode ?: return
-    val field = TableGenLetReference.findField(element, context) ?: return
+    val field = TableGenLetReference.findFieldBlocking(element, context) ?: return
     val fieldType = field.typeNode.toType()
     val valueType = valueNode.typeBlocking(context)
     if (valueType.isConvertibleTo(fieldType, context) != false) return

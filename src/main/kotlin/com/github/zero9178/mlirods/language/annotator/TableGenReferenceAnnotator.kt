@@ -95,7 +95,7 @@ private fun checkLetBodyItem(
     element: TableGenLetBodyItem, holder: AnnotationHolder, context: TableGenCompilationContext
 ) {
     val fieldIdentifier = element.fieldIdentifier ?: return
-    if (TableGenLetReference.findField(element, context) != null) return
+    if (TableGenLetReference.findFieldBlocking(element, context) != null) return
 
     val record = element.parentOfTypes(TableGenClassStatement::class, TableGenDefStatement::class) ?: return
     if (record.allBaseClasses(context).contains(null)) return

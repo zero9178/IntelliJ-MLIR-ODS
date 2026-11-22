@@ -29,7 +29,8 @@ internal class TableGenUsageTypeProvider : UsageTypeProvider {
             is TableGenIncludeDirective -> INCLUDE_DIRECTIVE
 
             is TableGenIdentifierValueNode, is TableGenFieldAccessValueNode -> UsageType.READ
-            is TableGenAbstractLetItem, is TableGenLetStatement -> UsageType.WRITE
+            // A field body item is only a usage as the redefinition of a field, assigning it a new value.
+            is TableGenAbstractLetItem, is TableGenLetStatement, is TableGenFieldBodyItem -> UsageType.WRITE
             else -> null
         }
     }

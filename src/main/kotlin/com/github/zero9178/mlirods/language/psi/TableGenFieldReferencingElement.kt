@@ -4,7 +4,8 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
 
 /**
- * An element referring to a field, i.e. a field access or a 'let' body item assigning a new value to a field.
+ * An element referring to a field, i.e. a field access, a 'let' body item assigning a new value to a field or a
+ * field body item redefining a field.
  */
 interface TableGenFieldReferencingElement : TableGenReferencingElement {
     /**

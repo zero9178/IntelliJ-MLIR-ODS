@@ -28,9 +28,7 @@ internal class TableGenRedefinedFieldInspection : LocalInspectionTool() {
         val context = TableGenCompilationContext.activeFor(holder.file)
         return object : TableGenVisitor<Unit>() {
             override fun visitFieldBodyItem(element: TableGenFieldBodyItem) = disallowTreeLoading {
-                val definingField = element.definingFieldBodyItem(context)
-                if (definingField == element)
-                    return@disallowTreeLoading
+                val definingField = element.referencedDefinitionBlocking(context) ?: return@disallowTreeLoading
 
                 val fieldIdentifier = element.fieldIdentifier ?: return@disallowTreeLoading
                 val fieldName = definingField.fieldName ?: return@disallowTreeLoading

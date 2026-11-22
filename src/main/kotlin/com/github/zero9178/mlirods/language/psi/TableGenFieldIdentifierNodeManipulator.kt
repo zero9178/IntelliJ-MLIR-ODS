@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.psi
 
+import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.AbstractElementManipulator
@@ -23,3 +24,5 @@ internal abstract class TableGenFieldIdentifierNodeManipulator<T : TableGenField
 }
 
 internal class TableGenAbstractLetItemManipulator : TableGenFieldIdentifierNodeManipulator<TableGenAbstractLetItem>()
+
+internal class TableGenFieldBodyItemManipulator : TableGenFieldIdentifierNodeManipulator<TableGenFieldBodyItem>()
