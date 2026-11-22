@@ -4,6 +4,7 @@ import com.github.zero9178.mlirods.index.ALL_IDENTIFIERS_INDEX
 import com.github.zero9178.mlirods.index.IDENTIFIER_INDEX
 import com.github.zero9178.mlirods.index.MAY_DERIVE_CLASS_INDEX
 import com.github.zero9178.mlirods.language.generated.psi.TableGenDefStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenForeachIterator
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenBangOperatorDefinitionImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefStatementImpl
 import com.github.zero9178.mlirods.language.generated.psi.impl.TableGenDefvarStatementImpl
@@ -80,10 +81,45 @@ class TableGenDefvarStatementStubElementType(debugName: String) : TableGenAbstra
     }
 }
 
-class TableGenForeachIteratorStubElementType(debugName: String) : TableGenAbstractIdentifierElementStubElementType(
-    debugName,
-    ::TableGenForeachIteratorImpl
-)
+/**
+ * Stub interface for [TableGenForeachIterator].
+ */
+sealed interface TableGenForeachIteratorStub : TableGenIdentifierElementStub {
+    /**
+     * See [com.github.zero9178.mlirods.language.psi.impl.TableGenForeachIteratorEx.isRangeList].
+     * Stored as it is otherwise only derivable from the tokens in the AST.
+     */
+    val isRangeList: Boolean
+}
+
+class TableGenForeachIteratorStubElementType(debugName: String) :
+    TableGenStubElementType<TableGenForeachIteratorStub, TableGenForeachIterator>(
+        debugName,
+        ::TableGenForeachIteratorImpl
+    ) {
+    override fun createStub(
+        psi: TableGenForeachIterator, parentStub: StubElement<out PsiElement?>?
+    ): TableGenForeachIteratorStub = TableGenForeachIteratorStubImpl(psi.name, psi.isRangeList, parentStub, this)
+
+    override fun serialize(stub: TableGenForeachIteratorStub, dataStream: StubOutputStream) {
+        dataStream.writeName(stub.name)
+        dataStream.writeBoolean(stub.isRangeList)
+    }
+
+    override fun deserialize(
+        dataStream: StubInputStream, parentStub: StubElement<*>?
+    ): TableGenForeachIteratorStub =
+        TableGenForeachIteratorStubImpl(dataStream.readNameString(), dataStream.readBoolean(), parentStub, this)
+}
+
+private class TableGenForeachIteratorStubImpl(
+    override val name: String?,
+    override val isRangeList: Boolean,
+    parent: StubElement<out PsiElement>?,
+    elementType: TableGenForeachIteratorStubElementType,
+) : StubBase<TableGenIdentifierElement>(
+    parent, elementType
+), TableGenForeachIteratorStub
 
 class TableGenBangOperatorDefinitionStubElementType(debugName: String) :
     TableGenAbstractIdentifierElementStubElementType(

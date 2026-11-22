@@ -242,6 +242,67 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test foreach statement iterator over list`() {
+        doTest(
+            """
+            foreach i = ["a"] in {
+                defvar <caret>v = i;
+            }
+        """.trimIndent(), TableGenStringType
+        )
+    }
+
+    fun `test foreach statement iterator over list of lists`() {
+        doTest(
+            """
+            defvar l = [[1]];
+            foreach i = l in {
+                defvar <caret>v = i;
+            }
+        """.trimIndent(), TableGenListType(TableGenIntType)
+        )
+    }
+
+    fun `test foreach statement iterator over range list`() {
+        doTest(
+            """
+            foreach i = {0-1, 5} in {
+                defvar <caret>v = i;
+            }
+        """.trimIndent(), TableGenIntType
+        )
+    }
+
+    fun `test foreach statement iterator over range`() {
+        doTest(
+            """
+            foreach i = 0...1 in {
+                defvar <caret>v = i;
+            }
+        """.trimIndent(), TableGenIntType
+        )
+    }
+
+    fun `test foreach statement iterator over single integer`() {
+        doTest(
+            """
+            foreach i = 3 in {
+                defvar <caret>v = i;
+            }
+        """.trimIndent(), TableGenIntType
+        )
+    }
+
+    fun `test foreach statement iterator over unknown value`() {
+        doTest(
+            """
+            foreach i = unknown in {
+                defvar <caret>v = i;
+            }
+        """.trimIndent(), TableGenUnknownType
+        )
+    }
+
     fun `test decimal literal`() {
         doTest(
             """

@@ -511,6 +511,7 @@ foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_no
         // Required for grammar kit to resolve the 'toString' method to 'TableGenPsiImplUtil'.
         "com.intellij.psi.PsiElement"
         "com.github.zero9178.mlirods.language.psi.TableGenIdentifierElement"
+        "com.github.zero9178.mlirods.language.psi.impl.TableGenForeachIteratorEx"
     ]
     methods=[
         name_identifier="IDENTIFIER"
@@ -521,7 +522,7 @@ foreach_iterator ::= IDENTIFIER '=' ('{' range_list '}' | range_piece | value_no
         toString
     ]
     pin=1
-    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenIdentifierElementStub"
+    stubClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachIteratorStub"
     elementTypeClass="com.github.zero9178.mlirods.language.stubs.impl.TableGenForeachIteratorStubElementType"
 }
 
