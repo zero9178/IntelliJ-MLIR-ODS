@@ -181,6 +181,94 @@ class TableGenSemanticAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test let of a mismatching type is flagged`() {
+        doResolvingTest(
+            """
+            def D {
+                int i = 0;
+                let i = <error descr="Value of type 'string' cannot be assigned to field 'i' of type 'int'">"s"</error>;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test let of a mismatching type to an inherited field is flagged`() {
+        doResolvingTest(
+            """
+            class A { int i = 0; }
+            def D : A {
+                let i = <error descr="Value of type 'string' cannot be assigned to field 'i' of type 'int'">"s"</error>;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test appending let of a mismatching type is flagged`() {
+        doResolvingTest(
+            """
+            def D {
+                list<int> l = [1];
+                let append l = <error descr="Value of type 'list<string>' cannot be assigned to field 'l' of type 'list<int>'">["a"]</error>;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test prepending let of a mismatching type is flagged`() {
+        doResolvingTest(
+            """
+            def D {
+                string s = "a";
+                let prepend s = <error descr="Value of type 'int' cannot be assigned to field 's' of type 'string'">1</error>;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test lets of convertible types are not flagged`() {
+        doResolvingTest(
+            """
+            class A;
+            class B : A;
+            def X : B;
+            def D {
+                bits<2> b = 0;
+                let b = 1;
+                list<int> l = [];
+                let l = [];
+                let l = ?;
+                A a = ?;
+                let a = X;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test let of an unrelated record is flagged`() {
+        doResolvingTest(
+            """
+            class A;
+            def X;
+            def D {
+                A a = ?;
+                let a = <error descr="Value of type 'X' cannot be assigned to field 'a' of type 'A'">X</error>;
+            }
+        """.trimIndent()
+        )
+    }
+
+    fun `test let to a bit range is not checked against the field type`() {
+        // The value is converted to the bits of the range, not to the field's type.
+        doResolvingTest(
+            """
+            def D {
+                bits<4> b = 0;
+                let b{1-0} = 0b10;
+            }
+        """.trimIndent()
+        )
+    }
+
     /**
      * Creates the files the forward-declaration tests share, mirroring LLVM: 'Target.td' includes
      * 'TargetInstrPredicate.td', which forward declares 'Instruction' and already uses it as a template argument type,
