@@ -6,8 +6,10 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenArgValueItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassInstantiationValueNode
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
+import com.github.zero9178.mlirods.language.generated.psi.TableGenLetBodyItem
 import com.github.zero9178.mlirods.language.generated.psi.TableGenMulticlassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDecl
+import com.github.zero9178.mlirods.language.psi.TableGenLetReference
 import com.github.zero9178.mlirods.language.psi.findVisibleMulticlass
 import com.github.zero9178.mlirods.language.types.TableGenType
 import com.github.zero9178.mlirods.language.types.TableGenUnknownType
@@ -108,6 +110,27 @@ private fun checkArgumentType(
 }
 
 /**
+ * Flags a 'let' in the body of a record whose value is of a type that cannot be assigned to the field it overrides.
+ * Appending and prepending lets are checked the same way, as TableGen concatenates values of the field's type. Lets
+ * assigning to a bit range are left alone: their value is converted to the bits of the range rather than to the
+ * field's type. Mirroring [checkArgumentType], only definite mismatches are reported.
+ */
+private fun checkLetType(element: TableGenLetBodyItem, holder: AnnotationHolder, context: TableGenCompilationContext) {
+    if (element.rangePieceList.isNotEmpty()) return
+    val valueNode = element.valueNode ?: return
+    val field = TableGenLetReference.findField(element, context) ?: return
+    val fieldType = field.typeNode.toType()
+    val valueType = valueNode.typeBlocking(context)
+    if (valueType.isConvertibleTo(fieldType, context) != false) return
+
+    holder.newAnnotation(
+        HighlightSeverity.ERROR, MyBundle.message(
+            "tableGen.syntax.fieldTypeMismatch", valueType.toString(), field.name ?: "", fieldType.toString()
+        )
+    ).range(valueNode).create()
+}
+
+/**
  * Navigates to the definition a class or multiclass statement clashes with.
  */
 private class NavigateToPreviousDefinitionFix(definition: PsiNameIdentifierOwner) :
@@ -159,6 +182,7 @@ private val ANNOTATIONS = arrayOf(
     addAnnotationFor { element: TableGenClassInstantiationValueNode, holder, context ->
         checkArguments(element, holder, context)
     },
+    addAnnotationFor { element: TableGenLetBodyItem, holder, context -> checkLetType(element, holder, context) },
     addAnnotationFor { element: TableGenClassStatement, holder, context ->
         checkRedefinition(element, holder, context)
     },

@@ -399,6 +399,9 @@ let_body_item ::= 'let' let_mode_and_identifier ('{' range_list '}')? '=' value_
         "com.github.zero9178.mlirods.language.psi.TableGenFieldReferencingElement"
     ]
     methods=[
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+
         toString
         getFieldIdentifier
     ]
@@ -580,6 +583,9 @@ let_item ::= let_mode_and_identifier ('{' range_list '}')? '=' value_node {
         "com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem"
     ]
     methods=[
+        lBrace='LBRACE'
+        rBrace='RBRACE'
+
         toString
         getFieldIdentifier
     ]

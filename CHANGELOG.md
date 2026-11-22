@@ -8,8 +8,12 @@
 
 - A `let` in the body of a class or `def` assigning to a field that the record does not have at that point, be it
   because no such field exists or because it is only defined after the `let`, is reported as an error.
+- A `let` in the body of a class or `def` whose value is of a type that cannot be assigned to the field is reported as
+  an error.
+- A `let append` or `let prepend` assigning to a bit range is reported as an error.
 - The items of top-level `let` statements now refer to the fields they assign to, enabling navigation, find usages and
   renaming. As in TableGen, a `let` applies to all records within it, including those of a `defm` and included files.
+
 
 ### Fixed
 
