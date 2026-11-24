@@ -48,10 +48,10 @@ internal class TableGenOverridingFieldAssignmentLineMarkerProvider : LineMarkerP
         // A line marker provider is where the IDE enters: the lookup happens in the context the file derives from the
         // include graph.
         val context = TableGenCompilationContext.activeFor(element)
-        val overwriting =
-            scope.allFieldAssignments(context)[fieldName ?: return null].orEmpty().asReversed().asSequence().dropWhile {
-                it != parent
-            }.drop(1).firstOrNull() ?: return null
+        val assignments = scope.allFieldAssignmentsBlocking(context)[fieldName ?: return null].orEmpty()
+        val overwriting = assignments.asReversed().asSequence().dropWhile {
+            it != parent
+        }.drop(1).firstOrNull() ?: return null
 
         // There is no value in showing a gutter for overwriting a field: The user could simply navigate to the
         // definition via the field identifier.
@@ -100,7 +100,7 @@ internal class TableGenOverriddenFieldAssignmentLineMarkerProvider : LineMarkerP
         // Collect all fields and 'let' items from the most derived classes of the containing class that come after
         // the field- or let-body item.
         val seq = scope.mostDerivedRecords(context).flatMap { record ->
-            record.allFieldAssignments(context)[fieldName].orEmpty().asSequence().dropWhile {
+            record.allFieldAssignmentsBlocking(context)[fieldName].orEmpty().asSequence().dropWhile {
                 it != parent
             }.drop(1)
         }.distinct().toList().ifEmpty {

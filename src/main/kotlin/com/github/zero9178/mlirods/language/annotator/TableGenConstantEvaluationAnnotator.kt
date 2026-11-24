@@ -118,12 +118,13 @@ private fun checkInstantiation(
     def: TableGenDefStatement, holder: AnnotationHolder, context: TableGenCompilationContext
 ) {
     val anchor = def.nameIdentifier ?: return
+    // The cached assignments tell cheaply whether there is anything to evaluate at all.
+    if (def.allFieldAssignmentsBlocking(context).isEmpty()) return
     val evaluationHolder = TableGenInstantiationEvaluationHolder(def, anchor, holder, context)
-    val values = def.effectiveFieldAssignments(context).values.flatten().mapNotNull { it.assignedValueNode }
-    if (values.isEmpty()) return
-
     runBlockingCancellable {
-        values.forEach { visitLiveValues(it, evaluationHolder) }
+        def.effectiveFieldAssignments(context).values.flatten().mapNotNull { it.assignedValueNode }.forEach {
+            visitLiveValues(it, evaluationHolder)
+        }
     }
     evaluationHolder.flush()
 }
@@ -154,13 +155,11 @@ private fun checkCyclicFields(
     def: TableGenDefStatement, holder: AnnotationHolder, context: TableGenCompilationContext
 ) {
     val anchor = def.nameIdentifier ?: return
+    if (def.allFieldAssignmentsBlocking(context).isEmpty()) return
     val evaluationContext = TableGenEvaluationContext(def, context)
-    val assignments = def.effectiveFieldAssignments(context)
-    if (assignments.isEmpty()) return
-
     // Maps each field to the fields its value refers to.
     val dependencies = runBlockingCancellable {
-        assignments.mapValues { (_, assignments) ->
+        def.effectiveFieldAssignments(context).mapValues { (_, assignments) ->
             assignments.mapNotNull { it.assignedValueNode }
                 .flatMap { liveValuesPostOrder(it, evaluationContext) }
                 .filterIsInstance<TableGenIdentifierValueNode>()

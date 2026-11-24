@@ -1,5 +1,6 @@
 package com.github.zero9178.mlirods.language.psi
 
+import com.github.zero9178.mlirods.cache.SuspendingCachedValue
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassRef
 import com.github.zero9178.mlirods.language.generated.psi.TableGenClassStatement
 import com.github.zero9178.mlirods.language.generated.psi.TableGenFieldBodyItem
@@ -8,7 +9,6 @@ import com.github.zero9178.mlirods.language.generated.psi.TableGenTemplateArgDec
 import com.github.zero9178.mlirods.language.generated.psi.TableGenValueNode
 import com.github.zero9178.mlirods.language.psi.impl.TableGenAbstractLetItem
 import com.github.zero9178.mlirods.model.TableGenCompilationContext
-import com.github.zero9178.mlirods.model.getProjectContextDependentCache
 import com.github.zero9178.mlirods.model.projectContextDependentSuspendingCachedValue
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentsOfType
@@ -77,31 +77,17 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * The first element in a list is therefore always a field body item if valid TableGen.
      */
     @RequiresReadLock
-    fun allFieldAssignments(context: TableGenCompilationContext): Map<String, List<TableGenFieldAssignmentNode>> =
-        getProjectContextDependentCache(this, context) {
-            // Like in TableGen, the enclosing 'let' statements override what is inherited from the base classes, from
-            // the outermost to the innermost one, and are overridden by the body in turn.
-            val result = parentsOfType<TableGenLetStatement>(withSelf = false).toList().asReversed().flatMap {
-                it.letItemList
-            }.mapNotNull { item ->
-                item.fieldName?.let { it to item }
-            }.groupBy<_, _, TableGenFieldAssignmentNode>({ it.first }) { it.second }.toMutableMap()
-            directFieldAssignments.forEach { (k, v) ->
-                result.merge(k, v) { lets, direct ->
-                    lets + direct
-                }
-            }
-            baseClassRefs.toList().asReversed().mapNotNull { it.referencedDefinitionBlocking(context) }.map {
-                it.allFieldAssignments(context)
-            }.forEach {
-                it.forEach { (k, v) ->
-                    result.merge(k, v) { existing, parent ->
-                        parent + existing
-                    }
-                }
-            }
-            result
-        }
+    suspend fun allFieldAssignments(
+        context: TableGenCompilationContext,
+    ): Map<String, List<TableGenFieldAssignmentNode>> = fieldAssignmentsOf(this, context).await()
+
+    /**
+     * [allFieldAssignments] for platform entry points. Suspending code must use [allFieldAssignments] instead.
+     */
+    @RequiresReadLock
+    fun allFieldAssignmentsBlocking(
+        context: TableGenCompilationContext,
+    ): Map<String, List<TableGenFieldAssignmentNode>> = fieldAssignmentsOf(this, context).getBlocking()
 
     /**
      * Returns a mapping of each each field to the assignments making up its value, in order of application.
@@ -112,8 +98,9 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * Invalid TableGen might have the first item be a partial assignment.
      */
     @RequiresReadLock
-    fun effectiveFieldAssignments(context: TableGenCompilationContext): Map<String, List<TableGenFieldAssignmentNode>> =
-        EffectiveFieldAssignmentsView(allFieldAssignments(context))
+    suspend fun effectiveFieldAssignments(
+        context: TableGenCompilationContext,
+    ): Map<String, List<TableGenFieldAssignmentNode>> = EffectiveFieldAssignmentsView(allFieldAssignments(context))
 
     /**
      * Returns a sequence of all references to base classes that should be used for field lookup.
@@ -125,14 +112,15 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * The set contains a null value if there is at least one base-class that could not be resolved.
      */
     @RequiresReadLock
-    fun allBaseClasses(context: TableGenCompilationContext): Set<TableGenClassStatement?> =
-        getProjectContextDependentCache(this, context) {
-            baseClassRefs.map {
-                it.referencedDefinitionBlocking(context)
-            }.flatMap {
-                sequenceOf(it) + it?.allBaseClasses(context)?.asSequence().orEmpty()
-            }.toSet()
-        }
+    suspend fun allBaseClasses(context: TableGenCompilationContext): Set<TableGenClassStatement?> =
+        baseClassesOf(this, context).await()
+
+    /**
+     * [allBaseClasses] for platform entry points. Suspending code must use [allBaseClasses] instead.
+     */
+    @RequiresReadLock
+    fun allBaseClassesBlocking(context: TableGenCompilationContext): Set<TableGenClassStatement?> =
+        baseClassesOf(this, context).getBlocking()
 
     /**
      * Returns whether this record is [target] or transitively derives from it. Returns null if the class hierarchy
@@ -143,7 +131,7 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
      * [TableGenClassStatement.isSameClassAs].
      */
     @RequiresReadLock
-    fun derivesFrom(target: TableGenFieldScopeNode, context: TableGenCompilationContext): Boolean? {
+    suspend fun derivesFrom(target: TableGenFieldScopeNode, context: TableGenCompilationContext): Boolean? {
         // Trivial self case.
         if (target === this) return true
 
@@ -197,16 +185,75 @@ interface TableGenFieldScopeNode : TableGenIdentifierScopeNode {
         this, context, "template argument mapping", onCycle = { emptyMap() }
     ) {
         val result = directArgToTemplateArgMapping(context).toMutableMap()
-        baseClassRefs.toList().mapNotNull {
-            it.referencedDefinition(context)?.allArgToTemplateArgMapping(context)
-        }.forEach {
-            it.forEach { (decl, node) ->
-                result[decl] = node
-            }
-        }
+        // Following a reference to a base class is launched, so that the depth of the stack does not depend on the
+        // depth of the class hierarchy.
+        coroutineScope {
+            baseClassRefs.toList().map {
+                async { it.referencedDefinition(context)?.allArgToTemplateArgMapping(context) }
+            }.awaitAll()
+        }.filterNotNull().forEach(result::putAll)
         result
     }.await()
 }
+
+/**
+ * The cached value of [TableGenFieldScopeNode.allFieldAssignments].
+ */
+private fun fieldAssignmentsOf(
+    scope: TableGenFieldScopeNode, context: TableGenCompilationContext,
+): SuspendingCachedValue<Map<String, List<TableGenFieldAssignmentNode>>> =
+    projectContextDependentSuspendingCachedValue(
+        scope, context, "field assignments", onCycle = { emptyMap() }
+    ) { scope ->
+        // Following a reference to a base class is launched, so that the depth of the stack does not depend on the
+        // depth of the class hierarchy.
+        val inherited = coroutineScope {
+            scope.baseClassRefs.toList().map {
+                async { it.referencedDefinition(context)?.allFieldAssignments(context) }
+            }.awaitAll()
+        }.filterNotNull()
+        // Like in TableGen, the enclosing 'let' statements override what is inherited from the base classes, from
+        // the outermost to the innermost one, and are overridden by the body in turn.
+        val result = scope.parentsOfType<TableGenLetStatement>(withSelf = false).toList().asReversed().flatMap {
+            it.letItemList
+        }.mapNotNull { item ->
+            item.fieldName?.let { it to item }
+        }.groupBy<_, _, TableGenFieldAssignmentNode>({ it.first }) { it.second }.toMutableMap()
+        scope.directFieldAssignments.forEach { (k, v) ->
+            result.merge(k, v) { lets, direct ->
+                lets + direct
+            }
+        }
+        inherited.asReversed().forEach {
+            it.forEach { (k, v) ->
+                result.merge(k, v) { existing, parent ->
+                    parent + existing
+                }
+            }
+        }
+        result
+    }
+
+/**
+ * The cached value of [TableGenFieldScopeNode.allBaseClasses].
+ */
+private fun baseClassesOf(
+    scope: TableGenFieldScopeNode, context: TableGenCompilationContext,
+): SuspendingCachedValue<Set<TableGenClassStatement?>> =
+    projectContextDependentSuspendingCachedValue(
+        scope, context, "base classes", onCycle = { emptySet() }
+    ) { scope ->
+        // Following a reference to a base class is launched, so that the depth of the stack does not depend on the
+        // depth of the class hierarchy.
+        coroutineScope {
+            scope.baseClassRefs.toList().map { ref ->
+                async {
+                    val base = ref.referencedDefinition(context)
+                    listOf(base) + base?.allBaseClasses(context).orEmpty()
+                }
+            }.awaitAll()
+        }.flatten().toSet()
+    }
 
 /**
  * The view returned by [TableGenFieldScopeNode.effectiveFieldAssignments] over the assignments [all] returned by

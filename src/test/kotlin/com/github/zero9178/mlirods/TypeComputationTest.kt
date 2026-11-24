@@ -728,6 +728,23 @@ class TypeComputationTest : BasePlatformTestCase() {
         )
     }
 
+    // Whether 'D' can be used as a 'C0' depends on every class in between. Following a base class is launched rather
+    // than called, making the depth of the hierarchy a matter of the heap rather than the stack.
+    fun `test common type of long class chain does not overflow the stack`() {
+        val chain = (1..<1000).joinToString("\n") { "class C$it : C${it - 1};" }
+        myFixture.configureByText(
+            "test.td", """
+            |class C0;
+            |$chain
+            |def D : C999;
+            |defvar <caret>v = !if(1, D, C0<>);
+        """.trimMargin()
+        )
+        val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))
+        val context = TableGenCompilationContext.activeFor(statement)
+        assertEquals("C0", computeOnSmallStack { statement.valueNode!!.typeBlocking(context) }.toString())
+    }
+
     private fun typeAtCaret(source: String): TableGenType? {
         myFixture.configureByText("test.td", source)
         val statement = requireNotNull(myFixture.elementAtCaret.parentOfType<TableGenDefvarStatement>(withSelf = true))

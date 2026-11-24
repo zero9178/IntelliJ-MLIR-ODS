@@ -98,7 +98,7 @@ private fun checkLetBodyItem(
     if (TableGenLetReference.findFieldBlocking(element, context) != null) return
 
     val record = element.parentOfTypes(TableGenClassStatement::class, TableGenDefStatement::class) ?: return
-    if (record.allBaseClasses(context).contains(null)) return
+    if (record.allBaseClassesBlocking(context).contains(null)) return
 
     holder.newAnnotation(
         HighlightSeverity.ERROR, MyBundle.message("tableGen.reference.unresolvedField", fieldIdentifier.text)
